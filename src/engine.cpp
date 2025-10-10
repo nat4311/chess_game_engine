@@ -1,13 +1,15 @@
 #include "engine.h"
+#include "attacks.cpp"
 #include <stdio.h>
 
 void print_bitboard(U64 bitboard) {
+    printf("==============================\n");
     printf("    A  B  C  D  E  F  G  H\n\n");
     for (int y=0; y<8; y++) {
         printf("%d   ", 8-y);
         for (int x=0; x<8; x++) {
             U64 sq = 1ULL << (8*y + x);
-            printf("%d  ", (bitboard & sq)? 1 : 0);
+            printf("%c  ", (bitboard & sq)? '1' : '.');
         }
         printf(" %d\n", 8-y);
     }
@@ -83,12 +85,19 @@ public:
 
 };
 
+void init_engine() {
+    init_pawn_attacks();
+    init_knight_attacks();
+    init_king_attacks();
+}
+
 int main() {
+    init_engine();
     BoardState board;
-    board.print_board();
-    board.print_board();
-    printf("\n");
-    printf("%d\n", board.castling_rights);
+
+    for (int sq=0; sq<64; sq++){
+        print_bitboard(king_attacks[sq]);
+    }
 
     return 0;
 }
