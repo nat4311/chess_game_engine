@@ -1,0 +1,83 @@
+#include <stdint.h>
+
+#define U64 uint64_t
+
+enum {
+    WHITE_PAWN,
+    WHITE_KNIGHT,
+    WHITE_BISHOP,
+    WHITE_ROOK,
+    WHITE_QUEEN,
+    WHITE_KING,
+    BLACK_PAWN,
+    BLACK_KNIGHT,
+    BLACK_BISHOP,
+    BLACK_ROOK,
+    BLACK_QUEEN,
+    BLACK_KING,
+};
+
+U64 a8 = 1ULL<<0;
+U64 b8 = 1ULL<<1;
+U64 c8 = 1ULL<<2;
+U64 d8 = 1ULL<<3;
+U64 e8 = 1ULL<<4;
+U64 f8 = 1ULL<<5;
+U64 g8 = 1ULL<<6;
+U64 h8 = 1ULL<<7;
+U64 a7 = 1ULL<<8;
+U64 b7 = 1ULL<<9;
+U64 c7 = 1ULL<<10;
+U64 d7 = 1ULL<<11;
+U64 e7 = 1ULL<<12;
+U64 f7 = 1ULL<<13;
+U64 g7 = 1ULL<<14;
+U64 h7 = 1ULL<<15;
+U64 a6 = 1ULL<<16;
+U64 b6 = 1ULL<<17;
+U64 c6 = 1ULL<<18;
+U64 d6 = 1ULL<<19;
+U64 e6 = 1ULL<<20;
+U64 f6 = 1ULL<<21;
+U64 g6 = 1ULL<<22;
+U64 h6 = 1ULL<<23;
+U64 a5 = 1ULL<<24;
+U64 b5 = 1ULL<<25;
+U64 c5 = 1ULL<<26;
+U64 d5 = 1ULL<<27;
+U64 e5 = 1ULL<<28;
+U64 f5 = 1ULL<<29;
+U64 g5 = 1ULL<<30;
+U64 h5 = 1ULL<<31;
+U64 a4 = 1ULL<<32;
+U64 b4 = 1ULL<<33;
+U64 c4 = 1ULL<<34;
+U64 d4 = 1ULL<<35;
+U64 e4 = 1ULL<<36;
+U64 f4 = 1ULL<<37;
+U64 g4 = 1ULL<<38;
+U64 h4 = 1ULL<<39;
+U64 a3 = 1ULL<<40;
+U64 b3 = 1ULL<<41;
+U64 c3 = 1ULL<<42;
+U64 d3 = 1ULL<<43;
+U64 e3 = 1ULL<<44;
+U64 f3 = 1ULL<<45;
+U64 g3 = 1ULL<<46;
+U64 h3 = 1ULL<<47;
+U64 a2 = 1ULL<<48;
+U64 b2 = 1ULL<<49;
+U64 c2 = 1ULL<<50;
+U64 d2 = 1ULL<<51;
+U64 e2 = 1ULL<<52;
+U64 f2 = 1ULL<<53;
+U64 g2 = 1ULL<<54;
+U64 h2 = 1ULL<<55;
+U64 a1 = 1ULL<<56;
+U64 b1 = 1ULL<<57;
+U64 c1 = 1ULL<<58;
+U64 d1 = 1ULL<<59;
+U64 e1 = 1ULL<<60;
+U64 f1 = 1ULL<<61;
+U64 g1 = 1ULL<<62;
+U64 h1 = 1ULL<<63;
