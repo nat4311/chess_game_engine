@@ -1,6 +1,7 @@
 #include <stdint.h>
 
 #define U64 uint64_t
+#define TERMINAL_DARK_MODE
 
 enum {
     WHITE_PAWN,
@@ -16,6 +17,12 @@ enum {
     BLACK_QUEEN,
     BLACK_KING,
 };
+
+#ifdef TERMINAL_DARK_MODE
+const char* unicode_pieces[12] = {"♟","♞","♝","♜","♛","♚","♙","♘","♗","♖","♕","♔",};
+#else
+const char* unicode_pieces[12] = {"♙","♘","♗","♖","♕","♔","♟","♞","♝","♜","♛","♚",};
+#endif
 
 U64 a8 = 1ULL<<0;
 U64 b8 = 1ULL<<1;

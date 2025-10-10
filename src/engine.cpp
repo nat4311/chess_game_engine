@@ -6,8 +6,8 @@ void print_bitboard(U64 bitboard) {
     for (int y=0; y<8; y++) {
         printf("%d   ", 8-y);
         for (int x=0; x<8; x++) {
-            U64 sq = 8*y + x;
-            printf("%d  ", (bitboard & 1ULL<<sq)? 1 : 0);
+            U64 sq = 1ULL << (8*y + x);
+            printf("%d  ", (bitboard & sq)? 1 : 0);
         }
         printf(" %d\n", 8-y);
     }
@@ -38,18 +38,31 @@ public:
         bitboards[WHITE_KING] = e1;
     }
 
+    void print_board() {
+        printf("    A  B  C  D  E  F  G  H\n\n");
+        for (int y=0; y<8; y++) {
+            printf("%d   ", 8-y);
+            for (int x=0; x<8; x++) {
+                U64 sq = 1ULL << (8*y + x);
+                int piece_found = -1;
+                for (int piece_type=0; piece_type<12; piece_type++){
+                    if (bitboards[piece_type] & sq) {
+                        piece_found = piece_type;
+                        break;
+                    }
+                }
+                printf("%s  ", (piece_found == -1) ? "." : unicode_pieces[piece_found]);
+            }
+            printf(" %d\n", 8-y);
+        }
+        printf("\n    A  B  C  D  E  F  G  H\n");
+    }
+
 };
 
 int main() {
     BoardState board;
-    print_bitboard(board.bitboards[WHITE_ROOK]);
-    print_bitboard(board.bitboards[WHITE_KNIGHT]);
-    print_bitboard(board.bitboards[WHITE_BISHOP]);
-    print_bitboard(board.bitboards[WHITE_QUEEN]);
-    print_bitboard(board.bitboards[WHITE_KING]);
-    print_bitboard(board.bitboards[WHITE_PAWN]);
-    // print_bitboard(1);
-    // printf("%d  ", (1 & 1<<0)? 1 : 0);
-    // printf("%llu\n", board.bitboards[BLACK_ROOK]);
+    board.print_board();
+
     return 0;
 }
