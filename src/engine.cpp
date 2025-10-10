@@ -16,29 +16,44 @@ void print_bitboard(U64 bitboard) {
 
 class BoardState {
 public:
+    int turn;
+    int castling_rights;
+    int enpassant_sq;
+    int halfmove;         // for 50 move rule - 100 halfmoves without a pawn move or capture is a draw
     U64 bitboards[12];
+    U64 occupancies[3];
 
     BoardState() {
         reset_board();
     }
 
     void reset_board() {
-        bitboards[BLACK_PAWN] = a7 | b7 | c7 | d7 | e7 | f7 | g7 | h7;
-        bitboards[BLACK_ROOK] = a8 | h8;
-        bitboards[BLACK_KNIGHT] = b8 | g8;
-        bitboards[BLACK_BISHOP] = c8 | f8;
-        bitboards[BLACK_QUEEN] = d8;
-        bitboards[BLACK_KING] = e8;
+        turn = WHITE;
+        castling_rights = WHITE_CASTLE_KINGSIDE | WHITE_CASTLE_QUEENSIDE | BLACK_CASTLE_KINGSIDE | BLACK_CASTLE_QUEENSIDE;
+        enpassant_sq = no_sq;
+        halfmove = 0;
 
-        bitboards[WHITE_PAWN] = a2 | b2 | c2 | d2 | e2 | f2 | g2 | h2;
-        bitboards[WHITE_ROOK] = a1 | h1;
-        bitboards[WHITE_KNIGHT] = b1 | g1;
-        bitboards[WHITE_BISHOP] = c1 | f1;
-        bitboards[WHITE_QUEEN] = d1;
-        bitboards[WHITE_KING] = e1;
+        bitboards[BLACK_PAWN] = A7 | B7 | C7 | D7 | E7 | F7 | G7 | H7;
+        bitboards[BLACK_ROOK] = A8 | H8;
+        bitboards[BLACK_KNIGHT] = B8 | G8;
+        bitboards[BLACK_BISHOP] = C8 | F8;
+        bitboards[BLACK_QUEEN] = D8;
+        bitboards[BLACK_KING] = E8;
+
+        bitboards[WHITE_PAWN] = A2 | B2 | C2 | D2 | E2 | F2 | G2 | H2;
+        bitboards[WHITE_ROOK] = A1 | H1;
+        bitboards[WHITE_KNIGHT] = B1 | G1;
+        bitboards[WHITE_BISHOP] = C1 | F1;
+        bitboards[WHITE_QUEEN] = D1;
+        bitboards[WHITE_KING] = E1;
+
+        occupancies[WHITE] = A1|B1|C1|D1|E1|F1|G1|H1|A2|B2|C2|D2|E2|F2|G2|H2;
+        occupancies[BLACK] = A7|B7|C7|D7|E7|F7|G7|H7|A8|B8|C8|D8|E8|F8|G8|H8;
+        occupancies[BOTH] = A1|B1|C1|D1|E1|F1|G1|H1|A2|B2|C2|D2|E2|F2|G2|H2|A7|B7|C7|D7|E7|F7|G7|H7|A8|B8|C8|D8|E8|F8|G8|H8;
     }
 
     void print_board() {
+        printf("==============================\n\n");
         printf("    A  B  C  D  E  F  G  H\n\n");
         for (int y=0; y<8; y++) {
             printf("%d   ", 8-y);
@@ -55,7 +70,15 @@ public:
             }
             printf(" %d\n", 8-y);
         }
-        printf("\n    A  B  C  D  E  F  G  H\n");
+        printf("\n    A  B  C  D  E  F  G  H\n\n");
+        printf("           turn: %s\n", turn == WHITE ? "white" : "black");
+        printf("castling_rights: %c%c%c%c\n",
+               castling_rights & WHITE_CASTLE_KINGSIDE ? 'K' : '-',
+               castling_rights & WHITE_CASTLE_QUEENSIDE ? 'Q' : '-',
+               castling_rights & BLACK_CASTLE_KINGSIDE ? 'k' : '-',
+               castling_rights & BLACK_CASTLE_QUEENSIDE ? 'q' : '-');
+        printf("   enpassant_sq: %s\n", sq_str[enpassant_sq]);
+        printf("       halfmove: %d\n\n", halfmove);
     }
 
 };
@@ -63,6 +86,9 @@ public:
 int main() {
     BoardState board;
     board.print_board();
+    board.print_board();
+    printf("\n");
+    printf("%d\n", board.castling_rights);
 
     return 0;
 }

@@ -3,6 +3,39 @@
 #define U64 uint64_t
 #define TERMINAL_DARK_MODE
 
+/*/////////////////////////////////////////////////////////////////////////////
+                                sides
+/*/////////////////////////////////////////////////////////////////////////////
+enum {
+    WHITE,
+    BLACK,
+    BOTH,
+};
+
+/*/////////////////////////////////////////////////////////////////////////////
+                                castling
+/*/////////////////////////////////////////////////////////////////////////////
+enum {
+    WHITE_CASTLE_KINGSIDE = 1,
+    WHITE_CASTLE_QUEENSIDE = 2,
+    BLACK_CASTLE_KINGSIDE = 4,
+    BLACK_CASTLE_QUEENSIDE = 8,
+};
+
+const int castling_rights_masks[64] = {
+     7, 15, 15, 15,  3, 15, 15, 11,
+    15, 15, 15, 15, 15, 15, 15, 15,
+    15, 15, 15, 15, 15, 15, 15, 15,
+    15, 15, 15, 15, 15, 15, 15, 15,
+    15, 15, 15, 15, 15, 15, 15, 15,
+    15, 15, 15, 15, 15, 15, 15, 15,
+    15, 15, 15, 15, 15, 15, 15, 15,
+    13, 15, 15, 15, 12, 15, 15, 14,
+};
+
+/*/////////////////////////////////////////////////////////////////////////////
+                              pieces
+/*/////////////////////////////////////////////////////////////////////////////
 enum {
     WHITE_PAWN,
     WHITE_KNIGHT,
@@ -24,67 +57,94 @@ const char* unicode_pieces[12] = {"♟","♞","♝","♜","♛","♚","♙","♘
 const char* unicode_pieces[12] = {"♙","♘","♗","♖","♕","♔","♟","♞","♝","♜","♛","♚",};
 #endif
 
-U64 a8 = 1ULL<<0;
-U64 b8 = 1ULL<<1;
-U64 c8 = 1ULL<<2;
-U64 d8 = 1ULL<<3;
-U64 e8 = 1ULL<<4;
-U64 f8 = 1ULL<<5;
-U64 g8 = 1ULL<<6;
-U64 h8 = 1ULL<<7;
-U64 a7 = 1ULL<<8;
-U64 b7 = 1ULL<<9;
-U64 c7 = 1ULL<<10;
-U64 d7 = 1ULL<<11;
-U64 e7 = 1ULL<<12;
-U64 f7 = 1ULL<<13;
-U64 g7 = 1ULL<<14;
-U64 h7 = 1ULL<<15;
-U64 a6 = 1ULL<<16;
-U64 b6 = 1ULL<<17;
-U64 c6 = 1ULL<<18;
-U64 d6 = 1ULL<<19;
-U64 e6 = 1ULL<<20;
-U64 f6 = 1ULL<<21;
-U64 g6 = 1ULL<<22;
-U64 h6 = 1ULL<<23;
-U64 a5 = 1ULL<<24;
-U64 b5 = 1ULL<<25;
-U64 c5 = 1ULL<<26;
-U64 d5 = 1ULL<<27;
-U64 e5 = 1ULL<<28;
-U64 f5 = 1ULL<<29;
-U64 g5 = 1ULL<<30;
-U64 h5 = 1ULL<<31;
-U64 a4 = 1ULL<<32;
-U64 b4 = 1ULL<<33;
-U64 c4 = 1ULL<<34;
-U64 d4 = 1ULL<<35;
-U64 e4 = 1ULL<<36;
-U64 f4 = 1ULL<<37;
-U64 g4 = 1ULL<<38;
-U64 h4 = 1ULL<<39;
-U64 a3 = 1ULL<<40;
-U64 b3 = 1ULL<<41;
-U64 c3 = 1ULL<<42;
-U64 d3 = 1ULL<<43;
-U64 e3 = 1ULL<<44;
-U64 f3 = 1ULL<<45;
-U64 g3 = 1ULL<<46;
-U64 h3 = 1ULL<<47;
-U64 a2 = 1ULL<<48;
-U64 b2 = 1ULL<<49;
-U64 c2 = 1ULL<<50;
-U64 d2 = 1ULL<<51;
-U64 e2 = 1ULL<<52;
-U64 f2 = 1ULL<<53;
-U64 g2 = 1ULL<<54;
-U64 h2 = 1ULL<<55;
-U64 a1 = 1ULL<<56;
-U64 b1 = 1ULL<<57;
-U64 c1 = 1ULL<<58;
-U64 d1 = 1ULL<<59;
-U64 e1 = 1ULL<<60;
-U64 f1 = 1ULL<<61;
-U64 g1 = 1ULL<<62;
-U64 h1 = 1ULL<<63;
+/*/////////////////////////////////////////////////////////////////////////////
+                               squares
+/*/////////////////////////////////////////////////////////////////////////////
+enum {
+    a8, b8, c8, d8, e8, f8, g8, h8,
+    a7, b7, c7, d7, e7, f7, g7, h7,
+    a6, b6, c6, d6, e6, f6, g6, h6,
+    a5, b5, c5, d5, e5, f5, g5, h5,
+    a4, b4, c4, d4, e4, f4, g4, h4,
+    a3, b3, c3, d3, e3, f3, g3, h3,
+    a2, b2, c2, d2, e2, f2, g2, h2,
+    a1, b1, c1, d1, e1, f1, g1, h1,
+    no_sq,
+};
+
+const char* sq_str[] = {
+    "a8", "b8", "c8", "d8", "e8", "f8", "g8", "h8",
+    "a7", "b7", "c7", "d7", "e7", "f7", "g7", "h7",
+    "a6", "b6", "c6", "d6", "e6", "f6", "g6", "h6",
+    "a5", "b5", "c5", "d5", "e5", "f5", "g5", "h5",
+    "a4", "b4", "c4", "d4", "e4", "f4", "g4", "h4",
+    "a3", "b3", "c3", "d3", "e3", "f3", "g3", "h3",
+    "a2", "b2", "c2", "d2", "e2", "f2", "g2", "h2",
+    "a1", "b1", "c1", "d1", "e1", "f1", "g1", "h1",
+    "no_sq",
+};
+
+const U64 A8 = 1ULL<<0;
+const U64 B8 = 1ULL<<1;
+const U64 C8 = 1ULL<<2;
+const U64 D8 = 1ULL<<3;
+const U64 E8 = 1ULL<<4;
+const U64 F8 = 1ULL<<5;
+const U64 G8 = 1ULL<<6;
+const U64 H8 = 1ULL<<7;
+const U64 A7 = 1ULL<<8;
+const U64 B7 = 1ULL<<9;
+const U64 C7 = 1ULL<<10;
+const U64 D7 = 1ULL<<11;
+const U64 E7 = 1ULL<<12;
+const U64 F7 = 1ULL<<13;
+const U64 G7 = 1ULL<<14;
+const U64 H7 = 1ULL<<15;
+const U64 A6 = 1ULL<<16;
+const U64 B6 = 1ULL<<17;
+const U64 C6 = 1ULL<<18;
+const U64 D6 = 1ULL<<19;
+const U64 E6 = 1ULL<<20;
+const U64 F6 = 1ULL<<21;
+const U64 G6 = 1ULL<<22;
+const U64 H6 = 1ULL<<23;
+const U64 A5 = 1ULL<<24;
+const U64 B5 = 1ULL<<25;
+const U64 C5 = 1ULL<<26;
+const U64 D5 = 1ULL<<27;
+const U64 E5 = 1ULL<<28;
+const U64 F5 = 1ULL<<29;
+const U64 G5 = 1ULL<<30;
+const U64 H5 = 1ULL<<31;
+const U64 A4 = 1ULL<<32;
+const U64 B4 = 1ULL<<33;
+const U64 C4 = 1ULL<<34;
+const U64 D4 = 1ULL<<35;
+const U64 E4 = 1ULL<<36;
+const U64 F4 = 1ULL<<37;
+const U64 G4 = 1ULL<<38;
+const U64 H4 = 1ULL<<39;
+const U64 A3 = 1ULL<<40;
+const U64 B3 = 1ULL<<41;
+const U64 C3 = 1ULL<<42;
+const U64 D3 = 1ULL<<43;
+const U64 E3 = 1ULL<<44;
+const U64 F3 = 1ULL<<45;
+const U64 G3 = 1ULL<<46;
+const U64 H3 = 1ULL<<47;
+const U64 A2 = 1ULL<<48;
+const U64 B2 = 1ULL<<49;
+const U64 C2 = 1ULL<<50;
+const U64 D2 = 1ULL<<51;
+const U64 E2 = 1ULL<<52;
+const U64 F2 = 1ULL<<53;
+const U64 G2 = 1ULL<<54;
+const U64 H2 = 1ULL<<55;
+const U64 A1 = 1ULL<<56;
+const U64 B1 = 1ULL<<57;
+const U64 C1 = 1ULL<<58;
+const U64 D1 = 1ULL<<59;
+const U64 E1 = 1ULL<<60;
+const U64 F1 = 1ULL<<61;
+const U64 G1 = 1ULL<<62;
+const U64 H1 = 1ULL<<63;
