@@ -3,11 +3,11 @@
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 #include "engine.h"
-#include "attacks.cpp"
 #include <stdlib.h>
 #include <assert.h>
 #include <stdio.h>
 #include <unistd.h>
+#include <string.h>
 
 /*/////////////////////////////////////////////////////////////////////////////
                                 helper functions
@@ -15,7 +15,6 @@
 
 #define lsb_scan(x) __builtin_ctz(x)
 #define bit_count(x) __builtin_popcountll(x)
-
 
 unsigned int random_state = 1804289383;
 
@@ -43,9 +42,73 @@ U64 random_U64_few_bits() {
     return random_U64() & random_U64() & random_U64();
 }
 
+
+
 /*/////////////////////////////////////////////////////////////////////////////
-                                   bishop
+                                bishop attacks
 /*/////////////////////////////////////////////////////////////////////////////
+
+// index: square
+U64 bishop_relevant_bits_masks[64];
+// indices: square, magic_index
+U64 bishop_attack_tables[64][512];
+// index: square
+U64 bishop_magic_numbers[64];
+
+void init_bishop_masks() {
+    for (int sq=0; sq<64; sq++) {
+        int x0 = sq % 8;
+        int y0 = sq / 8;
+        int x, y;
+        for (x=x0+1, y=y0+1; x<7 && y<7; x++, y++) { bishop_relevant_bits_masks[sq] |= 1ULL << (x + y*8); }
+        for (x=x0+1, y=y0-1; x<7 && y>0; x++, y--) { bishop_relevant_bits_masks[sq] |= 1ULL << (x + y*8); }
+        for (x=x0-1, y=y0+1; x>0 && y<7; x--, y++) { bishop_relevant_bits_masks[sq] |= 1ULL << (x + y*8); }
+        for (x=x0-1, y=y0-1; x>0 && y>0; x--, y--) { bishop_relevant_bits_masks[sq] |= 1ULL << (x + y*8); }
+    }
+}
+
+U64 get_bishop_attacks(int square, U64 occupancy) {
+    U64 magic_index = ((occupancy & bishop_relevant_bits_masks[square]) * bishop_magic_numbers[square]) >> 55;
+    return bishop_attack_tables[square][magic_index];
+}
+
+/*/////////////////////////////////////////////////////////////////////////////
+                                   magic number generation
+/*/////////////////////////////////////////////////////////////////////////////
+
+U64 bishop_attacks_slow(int square, U64 occupancy) {
+    U64 attacks = 0ULL;
+    int x0 = square % 8;
+    int y0 = square / 8;
+    int x, y, sq;
+
+    for (x=x0+1, y=y0+1; x<=7 && y<=7; x++, y++) {
+        sq = x + 8*y;
+        attacks |= 1ULL << sq;
+        if (sq_bit[sq] & occupancy) { break; }
+    }
+
+    for (x=x0+1, y=y0-1; x<=7 && y>=0; x++, y--) {
+        sq = x + 8*y;
+        attacks |= 1ULL << sq;
+        if (sq_bit[sq] & occupancy) { break; }
+    }
+
+    for (x=x0-1, y=y0+1; x>=0 && y<=7; x--, y++) {
+        sq = x + 8*y;
+        attacks |= 1ULL << sq;
+        if (sq_bit[sq] & occupancy) { break; }
+    }
+
+    for (x=x0-1, y=y0-1; x>=0 && y>=0; x--, y--) {
+        sq = x + 8*y;
+        attacks |= 1ULL << sq;
+        if (sq_bit[sq] & occupancy) { break; }
+    }
+    
+    return attacks;
+}
+
 
 int bishop_n_relevant_occupancies[64] = {
     6, 5, 5, 5, 5, 5, 5, 6,
@@ -103,10 +166,10 @@ void bishop_visual_test(int sq) {
 }
 
 void find_bishop_magic_numbers() {
-    for (int sq=0; sq<1; sq++) {
+    for (int sq=0; sq<64; sq++) {
         U64 mask = bishop_relevant_bits_masks[sq];
         int max_occupancy_index = 1<<bishop_n_relevant_occupancies[sq];
-        print_bitboard(mask, sq);
+        // print_bitboard(mask, sq);
         for (U64 i=0; i<100000000ULL; i++) {
             U64 magic_number_candidate = random_U64_few_bits();
             if (bit_count((magic_number_candidate * mask) & 0xff00000000000000) < 6) continue;
@@ -126,7 +189,9 @@ void find_bishop_magic_numbers() {
                 }
             }
             if (!fail) {
-                printf("%llx\n", magic_number_candidate);
+                // printf("%.2d  0x%llx,\n", sq, magic_number_candidate);
+                bishop_magic_numbers[sq] = magic_number_candidate;
+                memcpy(bishop_attack_tables[sq], attack_table, 512 * sizeof(U64));
                 break;
             }
         }
@@ -137,24 +202,21 @@ void find_bishop_magic_numbers() {
                                    main
 /*/////////////////////////////////////////////////////////////////////////////
 
-void init() {
+void init_bishop_attacks() {
     init_bishop_masks();
     init_bishop_relevant_occupancies();
+    find_bishop_magic_numbers();
 }
 
 int main() {
-    init();
+    init_bishop_attacks();
 
-    find_bishop_magic_numbers();
+    int sq = a8;
+    U64 occupancy = 0*B7 | 0*C6 | 0*D5 | 0*E4 | 0*F3 | 0*G2 | H1 |  B8 | A3;
+    U64 attacks = get_bishop_attacks(sq, occupancy);
+    U64 attacks2 = bishop_attacks_slow(sq, occupancy);
+    print_bitboard(attacks, sq);
+    print_bitboard(attacks2, sq);
     
-    // U64 mask = bishop_relevant_bits_masks[0];
-    // U64 magic_number = 0x40040822862081ULL;
-    // for (int occupancy_index=0; occupancy_index<4; occupancy_index++) {
-    //     U64 relevant_occupancy = bishop_relevant_occupancies[0][occupancy_index];
-    //     int magic_index = (int)((relevant_occupancy * magic_number) >> 58);
-    //     print_bitboard(relevant_occupancy, a8);
-    //     printf("%llu\n", magic_index);
-    // }
-
     return 0;
 }
