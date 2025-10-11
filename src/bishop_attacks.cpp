@@ -3,50 +3,12 @@
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
 #include "engine.h"
-#include <stdlib.h>
+#include "random_numbers.cpp"
 #include <assert.h>
 #include <stdio.h>
 #include <unistd.h>
 #include <string.h>
 
-/*/////////////////////////////////////////////////////////////////////////////
-                                helper functions
-/*/////////////////////////////////////////////////////////////////////////////
-
-#define lsb_scan(x) __builtin_ctz(x)
-#define bit_count(x) __builtin_popcountll(x)
-
-unsigned int random_state = 1804289383;
-
-unsigned int get_random_U32_number() { // XOR shift algorithm
-    unsigned int n = random_state;
-
-    n ^= n << 13;
-    n ^= n >> 17;
-    n ^= n << 5;
-    random_state = n;
-
-    return random_state;
-}
-
-U64 random_U64() {
-    U64 a, b, c , d;
-    a = (U64)(get_random_U32_number() & 0xffff);
-    b = (U64)(get_random_U32_number() & 0xffff);
-    c = (U64)(get_random_U32_number() & 0xffff);
-    d = (U64)(get_random_U32_number() & 0xffff);
-    return a | (b<<16) | (c<<32) | (d<<48);
-    // return a | (b<<32);
-}
-U64 random_U64_few_bits() {
-    return random_U64() & random_U64() & random_U64();
-}
-
-
-
-/*/////////////////////////////////////////////////////////////////////////////
-                                bishop attacks
-/*/////////////////////////////////////////////////////////////////////////////
 
 // index: square
 U64 bishop_relevant_bits_masks[64];
@@ -55,7 +17,7 @@ U64 bishop_attack_tables[64][512];
 // index: square
 U64 bishop_magic_numbers[64];
 
-void init_bishop_masks() {
+static void init_bishop_masks() {
     for (int sq=0; sq<64; sq++) {
         int x0 = sq % 8;
         int y0 = sq / 8;
@@ -76,7 +38,7 @@ U64 get_bishop_attacks(int square, U64 occupancy) {
                                    magic number generation
 /*/////////////////////////////////////////////////////////////////////////////
 
-U64 bishop_attacks_slow(int square, U64 occupancy) {
+static U64 get_bishop_attacks_slow(int square, U64 occupancy) {
     U64 attacks = 0ULL;
     int x0 = square % 8;
     int y0 = square / 8;
@@ -110,7 +72,7 @@ U64 bishop_attacks_slow(int square, U64 occupancy) {
 }
 
 
-int bishop_n_relevant_occupancies[64] = {
+static int bishop_n_relevant_occupancies[64] = {
     6, 5, 5, 5, 5, 5, 5, 6,
     5, 5, 5, 5, 5, 5, 5, 5,
     5, 5, 7, 7, 7, 7, 5, 5,
@@ -122,9 +84,10 @@ int bishop_n_relevant_occupancies[64] = {
 };
 
 // indices: square, occupancy_index
-U64 bishop_relevant_occupancies[64][512];
+static U64 bishop_relevant_occupancies[64][512];
 
-U64 bishop_relevant_occupancy(int square, int occupancy_index) {
+// for converting occupancy_index into an occupancy
+static U64 bishop_relevant_occupancy(int square, int occupancy_index) {
     U64 relevant_occupancy = 0;
     int sqs[9];
     int sqs_index = 0;
@@ -149,7 +112,7 @@ U64 bishop_relevant_occupancy(int square, int occupancy_index) {
     return relevant_occupancy;
 }
 
-void init_bishop_relevant_occupancies() {
+static void init_bishop_relevant_occupancies() {
     for (int sq=0; sq<64; sq++) {
         int n_relevant_occupancies = bishop_n_relevant_occupancies[sq];
         for (int occupancy_index=0; occupancy_index < (1<<n_relevant_occupancies); occupancy_index++) {
@@ -158,14 +121,14 @@ void init_bishop_relevant_occupancies() {
     }
 }
 
-void bishop_visual_test(int sq) {
+static void bishop_visual_test(int sq) {
     for (int i=0; i<(1<<bishop_n_relevant_occupancies[sq]); i++) {
         print_bitboard(bishop_relevant_occupancies[sq][i], sq);
         usleep(100000);
     }
 }
 
-void find_bishop_magic_numbers() {
+static void find_bishop_magic_numbers() {
     for (int sq=0; sq<64; sq++) {
         U64 mask = bishop_relevant_bits_masks[sq];
         int max_occupancy_index = 1<<bishop_n_relevant_occupancies[sq];
@@ -181,9 +144,9 @@ void find_bishop_magic_numbers() {
                 U64 relevant_occupancy = bishop_relevant_occupancies[sq][occupancy_index];
                 int magic_index = (relevant_occupancy * magic_number_candidate) >> 55;
                 if (attack_table[magic_index] == 0) {
-                    attack_table[magic_index] = bishop_attacks_slow(sq, relevant_occupancy);
+                    attack_table[magic_index] = get_bishop_attacks_slow(sq, relevant_occupancy);
                 }
-                else if (attack_table[magic_index] != bishop_attacks_slow(sq, relevant_occupancy)) {
+                else if (attack_table[magic_index] != get_bishop_attacks_slow(sq, relevant_occupancy)) {
                     fail = 1;
                     break;
                 }
@@ -208,13 +171,14 @@ void init_bishop_attacks() {
     find_bishop_magic_numbers();
 }
 
+// for testing
 int main() {
     init_bishop_attacks();
 
     int sq = a8;
     U64 occupancy = 0*B7 | 0*C6 | 0*D5 | 0*E4 | 0*F3 | 0*G2 | H1 |  B8 | A3;
     U64 attacks = get_bishop_attacks(sq, occupancy);
-    U64 attacks2 = bishop_attacks_slow(sq, occupancy);
+    U64 attacks2 = get_bishop_attacks_slow(sq, occupancy);
     print_bitboard(attacks, sq);
     print_bitboard(attacks2, sq);
     
