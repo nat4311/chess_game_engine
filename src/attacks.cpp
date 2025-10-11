@@ -22,8 +22,8 @@ U64 pawn_attacks[2][64];
 
 void init_pawn_attacks() {
     for (int sq=0; sq<64; sq++) {
-        pawn_attacks[WHITE][sq] = 0;
-        pawn_attacks[BLACK][sq] = 0;
+        pawn_attacks[WHITE][sq] = 0ULL;
+        pawn_attacks[BLACK][sq] = 0ULL;
         U64 sq_bitmask = sq_bit[sq];
 
         if ((sq_bitmask & rank_8) || (sq_bitmask & rank_1)) { continue; }
@@ -49,7 +49,7 @@ U64 knight_attacks[64];
 
 void init_knight_attacks() {
     for (int sq=0; sq<64; sq++) {
-        knight_attacks[sq] = 0;
+        knight_attacks[sq] = 0ULL;
         U64 sq_bitmask = sq_bit[sq];
 
         if (sq_bitmask & not_rank_8) {
@@ -81,7 +81,7 @@ U64 king_attacks[64];
 
 void init_king_attacks() {
     for (int sq=0; sq<64; sq++) {
-        king_attacks[sq] = 0;
+        king_attacks[sq] = 0ULL;
         U64 sq_bitmask = sq_bit[sq];
 
         if (sq_bitmask & not_rank_8) {
@@ -100,4 +100,79 @@ void init_king_attacks() {
         }
     }
 }
+
+/*/////////////////////////////////////////////////////////////////////////////
+                                bishop attacks
+/*/////////////////////////////////////////////////////////////////////////////
+
+// index: square
+U64 bishop_relevant_bits_masks[64];
+// indices: square, magic_index
+U64 bishop_attack_tables[64][512];
+// index: square
+U64 bishop_magic_numbers[64] = {
+    0
+};
+
+void init_bishop_masks() {
+    for (int sq=0; sq<64; sq++) {
+        int x0 = sq % 8;
+        int y0 = sq / 8;
+        int x, y;
+        for (x=x0+1, y=y0+1; x<7 && y<7; x++, y++) { bishop_relevant_bits_masks[sq] |= 1ULL << (x + y*8); }
+        for (x=x0+1, y=y0-1; x<7 && y>0; x++, y--) { bishop_relevant_bits_masks[sq] |= 1ULL << (x + y*8); }
+        for (x=x0-1, y=y0+1; x>0 && y<7; x--, y++) { bishop_relevant_bits_masks[sq] |= 1ULL << (x + y*8); }
+        for (x=x0-1, y=y0-1; x>0 && y>0; x--, y--) { bishop_relevant_bits_masks[sq] |= 1ULL << (x + y*8); }
+    }
+}
+
+U64 bishop_attacks_slow(int square, U64 occupancy) {
+    U64 attacks = 0ULL;
+    int x0 = square % 8;
+    int y0 = square / 8;
+    int x, y, sq;
+
+    for (x=x0+1, y=y0+1; x<=7 && y<=7; x++, y++) {
+        sq = x + 8*y;
+        attacks |= 1ULL << sq;
+        if (sq_bit[sq] & occupancy) { break; }
+    }
+
+    for (x=x0+1, y=y0-1; x<=7 && y>=0; x++, y--) {
+        sq = x + 8*y;
+        attacks |= 1ULL << sq;
+        if (sq_bit[sq] & occupancy) { break; }
+    }
+
+    for (x=x0-1, y=y0+1; x>=0 && y<=7; x--, y++) {
+        sq = x + 8*y;
+        attacks |= 1ULL << sq;
+        if (sq_bit[sq] & occupancy) { break; }
+    }
+
+    for (x=x0-1, y=y0-1; x>=0 && y>=0; x--, y--) {
+        sq = x + 8*y;
+        attacks |= 1ULL << sq;
+        if (sq_bit[sq] & occupancy) { break; }
+    }
+    
+    return attacks;
+}
+
+U64 get_bishop_attacks(int square, U64 occupancy) {
+    U64 magic_index = ((occupancy & bishop_relevant_bits_masks[square]) * bishop_magic_numbers[square]) >> 55;
+    return bishop_attack_tables[square][magic_index];
+}
+
+void init_bishop_attacks() {
+    init_bishop_masks();
+}
+
+
+
+
+
+
+
+
 

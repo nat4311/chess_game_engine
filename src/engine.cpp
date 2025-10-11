@@ -1,20 +1,9 @@
+/* references:
+ * https://www.youtube.com/playlist?list=PLmN0neTso3Jxh8ZIylk74JpwfiWNI76Cs
+ * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+
 #include "engine.h"
 #include "attacks.cpp"
-#include <stdio.h>
-
-void print_bitboard(U64 bitboard) {
-    printf("==============================\n");
-    printf("    A  B  C  D  E  F  G  H\n\n");
-    for (int y=0; y<8; y++) {
-        printf("%d   ", 8-y);
-        for (int x=0; x<8; x++) {
-            U64 sq = 1ULL << (8*y + x);
-            printf("%c  ", (bitboard & sq)? '1' : '.');
-        }
-        printf(" %d\n", 8-y);
-    }
-    printf("\n    A  B  C  D  E  F  G  H\n");
-}
 
 class BoardState {
 public:
@@ -32,7 +21,7 @@ public:
     void reset_board() {
         turn = WHITE;
         castling_rights = WHITE_CASTLE_KINGSIDE | WHITE_CASTLE_QUEENSIDE | BLACK_CASTLE_KINGSIDE | BLACK_CASTLE_QUEENSIDE;
-        enpassant_sq = no_sq;
+        enpassant_sq = -1;
         halfmove = 0;
 
         bitboards[BLACK_PAWN] = A7 | B7 | C7 | D7 | E7 | F7 | G7 | H7;
@@ -79,7 +68,7 @@ public:
                castling_rights & WHITE_CASTLE_QUEENSIDE ? 'Q' : '-',
                castling_rights & BLACK_CASTLE_KINGSIDE ? 'k' : '-',
                castling_rights & BLACK_CASTLE_QUEENSIDE ? 'q' : '-');
-        printf("   enpassant_sq: %s\n", sq_str[enpassant_sq]);
+        printf("   enpassant_sq: %s\n", enpassant_sq == -1 ? "none" : sq_str[enpassant_sq]);
         printf("       halfmove: %d\n\n", halfmove);
     }
 
@@ -89,15 +78,13 @@ void init_engine() {
     init_pawn_attacks();
     init_knight_attacks();
     init_king_attacks();
+    init_bishop_attacks();
 }
 
 int main() {
     init_engine();
     BoardState board;
-
-    for (int sq=0; sq<64; sq++){
-        print_bitboard(king_attacks[sq]);
-    }
+    board.print_board();
 
     return 0;
 }

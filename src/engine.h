@@ -2,9 +2,48 @@
 #define ENGINE_H
 
 #include <stdint.h>
+#include <stdio.h>
 
 #define U64 uint64_t
 #define TERMINAL_DARK_MODE
+
+/*/////////////////////////////////////////////////////////////////////////////
+                                helper functions
+/*/////////////////////////////////////////////////////////////////////////////
+
+void print_bitboard(U64 bitboard) {
+    printf("==============================\n");
+    printf("    A  B  C  D  E  F  G  H\n\n");
+    for (int y=0; y<8; y++) {
+        printf("%d   ", 8-y);
+        for (int x=0; x<8; x++) {
+            U64 sq = 1ULL << (8*y + x);
+            printf("%c  ", (bitboard & sq)? '1' : '.');
+        }
+        printf(" %d\n", 8-y);
+    }
+    printf("\n    A  B  C  D  E  F  G  H\n");
+}
+
+void print_bitboard(U64 bitboard, int highlight_square) {
+    printf("==============================\n");
+    printf("    A  B  C  D  E  F  G  H\n\n");
+    for (int y=0; y<8; y++) {
+        printf("%d   ", 8-y);
+        for (int x=0; x<8; x++) {
+            if (8*y + x == highlight_square) {
+                printf("X  ");
+            }
+            else {
+                U64 sq = 1ULL << (8*y + x);
+                printf("%c  ", (bitboard & sq)? '1' : '.');
+            }
+        }
+        printf(" %d\n", 8-y);
+    }
+    printf("\n    A  B  C  D  E  F  G  H\n");
+}
+
 
 /*/////////////////////////////////////////////////////////////////////////////
                                 sides
@@ -72,7 +111,6 @@ enum {
     a3, b3, c3, d3, e3, f3, g3, h3,
     a2, b2, c2, d2, e2, f2, g2, h2,
     a1, b1, c1, d1, e1, f1, g1, h1,
-    no_sq,
 };
 
 const char* sq_str[] = {
@@ -84,7 +122,6 @@ const char* sq_str[] = {
     "a3", "b3", "c3", "d3", "e3", "f3", "g3", "h3",
     "a2", "b2", "c2", "d2", "e2", "f2", "g2", "h2",
     "a1", "b1", "c1", "d1", "e1", "f1", "g1", "h1",
-    "no_sq",
 };
 
 const U64 A8 = 1ULL<<0;
