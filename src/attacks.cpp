@@ -17,7 +17,6 @@
 // index: side, square
 static U64 pawn_attacks[2][64];
 
-// side is WHITE or BLACK
 U64 get_pawn_attacks(int side, int square) {
     return pawn_attacks[side][square];
 }
@@ -115,15 +114,28 @@ static void init_king_attacks() {
                               Section: bishop attacks
 /*///////////////////////////////////////////////////////////////////////////////
 
+static int bishop_n_relevant_occupancies[64] = {
+    6, 5, 5, 5, 5, 5, 5, 6,
+    5, 5, 5, 5, 5, 5, 5, 5,
+    5, 5, 7, 7, 7, 7, 5, 5,
+    5, 5, 7, 9, 9, 7, 5, 5,
+    5, 5, 7, 9, 9, 7, 5, 5,
+    5, 5, 7, 7, 7, 7, 5, 5,
+    5, 5, 5, 5, 5, 5, 5, 5,
+    6, 5, 5, 5, 5, 5, 5, 6,
+};
+constexpr int bishop_max_relevant_occupancies = 9;
+constexpr int bishop_magic_indices = 1<<bishop_max_relevant_occupancies;
+
 // index: square
 static U64 bishop_relevant_bits_masks[64];
 // indices: square, magic_index
-static U64 bishop_attack_tables[64][512];
+static U64 bishop_attack_tables[64][bishop_magic_indices];
 // index: square
 static U64 bishop_magic_numbers[64];
 
 U64 get_bishop_attacks(int square, U64 occupancy) {
-    U64 magic_index = ((occupancy & bishop_relevant_bits_masks[square]) * bishop_magic_numbers[square]) >> 55;
+    U64 magic_index = ((occupancy & bishop_relevant_bits_masks[square]) * bishop_magic_numbers[square]) >> (64-bishop_max_relevant_occupancies);
     return bishop_attack_tables[square][magic_index];
 }
 
@@ -172,20 +184,8 @@ static U64 get_bishop_attacks_slow(int square, U64 occupancy) {
     return attacks;
 }
 
-
-static int bishop_n_relevant_occupancies[64] = {
-    6, 5, 5, 5, 5, 5, 5, 6,
-    5, 5, 5, 5, 5, 5, 5, 5,
-    5, 5, 7, 7, 7, 7, 5, 5,
-    5, 5, 7, 9, 9, 7, 5, 5,
-    5, 5, 7, 9, 9, 7, 5, 5,
-    5, 5, 7, 7, 7, 7, 5, 5,
-    5, 5, 5, 5, 5, 5, 5, 5,
-    6, 5, 5, 5, 5, 5, 5, 6,
-};
-
 // indices: square, occupancy_index
-static U64 bishop_relevant_occupancies[64][512];
+static U64 bishop_relevant_occupancies[64][bishop_magic_indices];
 
 // for converting occupancy_index into an occupancy
 static U64 bishop_relevant_occupancy(int square, int occupancy_index) {
@@ -241,10 +241,10 @@ static void find_bishop_magic_numbers() {
             // printf("candidate: %llu\n", magic_number_candidate);
 
             int fail = 0;
-            U64 attack_table[512] = {0};
+            U64 attack_table[bishop_magic_indices] = {0};
             for (int occupancy_index=0; occupancy_index<max_occupancy_index; occupancy_index++) {
                 U64 relevant_occupancy = bishop_relevant_occupancies[sq][occupancy_index];
-                int magic_index = (relevant_occupancy * magic_number_candidate) >> 55;
+                int magic_index = (relevant_occupancy * magic_number_candidate) >> (64-bishop_max_relevant_occupancies);
                 if (attack_table[magic_index] == 0) {
                     attack_table[magic_index] = get_bishop_attacks_slow(sq, relevant_occupancy);
                 }
@@ -256,7 +256,7 @@ static void find_bishop_magic_numbers() {
             if (!fail) {
                 // printf("%.2d  0x%llx,\n", sq, magic_number_candidate);
                 bishop_magic_numbers[sq] = magic_number_candidate;
-                memcpy(bishop_attack_tables[sq], attack_table, 512 * sizeof(U64));
+                memcpy(bishop_attack_tables[sq], attack_table, bishop_magic_indices * sizeof(U64));
                 break;
             }
         }
@@ -269,21 +269,32 @@ static void init_bishop_attacks() {
     find_bishop_magic_numbers();
 }
 
-
-
 /*///////////////////////////////////////////////////////////////////////////////
                               Section: rook attacks
 /*///////////////////////////////////////////////////////////////////////////////
 
+static int rook_n_relevant_occupancies[64] = {
+    12, 11, 11, 11, 11, 11, 11, 12,
+    11, 10, 10, 10, 10, 10, 10, 11,
+    11, 10, 10, 10, 10, 10, 10, 11,
+    11, 10, 10, 10, 10, 10, 10, 11,
+    11, 10, 10, 10, 10, 10, 10, 11,
+    11, 10, 10, 10, 10, 10, 10, 11,
+    11, 10, 10, 10, 10, 10, 10, 11,
+    12, 11, 11, 11, 11, 11, 11, 12,
+};
+static constexpr int rook_max_relevant_occupancies = 12;
+static constexpr int rook_magic_indices = 1 << rook_max_relevant_occupancies;
+
 // index: square
 static U64 rook_relevant_bits_masks[64];
 // indices: square, magic_index
-static U64 rook_attack_tables[64][4096];
+static U64 rook_attack_tables[64][rook_magic_indices];
 // index: square
 static U64 rook_magic_numbers[64];
 
 U64 get_rook_attacks(int square, U64 occupancy) {
-    U64 magic_index = ((occupancy & rook_relevant_bits_masks[square]) * rook_magic_numbers[square]) >> 52;
+    U64 magic_index = ((occupancy & rook_relevant_bits_masks[square]) * rook_magic_numbers[square]) >> (64-rook_max_relevant_occupancies);
     return rook_attack_tables[square][magic_index];
 }
 
@@ -332,19 +343,8 @@ static U64 get_rook_attacks_slow(int square, U64 occupancy) {
     return attacks;
 }
 
-static int rook_n_relevant_occupancies[64] = {
-    12, 11, 11, 11, 11, 11, 11, 12,
-    11, 10, 10, 10, 10, 10, 10, 11,
-    11, 10, 10, 10, 10, 10, 10, 11,
-    11, 10, 10, 10, 10, 10, 10, 11,
-    11, 10, 10, 10, 10, 10, 10, 11,
-    11, 10, 10, 10, 10, 10, 10, 11,
-    11, 10, 10, 10, 10, 10, 10, 11,
-    12, 11, 11, 11, 11, 11, 11, 12,
-};
-
 // indices: square, occupancy_index
-static U64 rook_relevant_occupancies[64][4096];
+static U64 rook_relevant_occupancies[64][rook_magic_indices];
 
 // for converting occupancy_index into an occupancy
 static U64 rook_relevant_occupancy(int square, int occupancy_index) {
@@ -400,10 +400,10 @@ static void find_rook_magic_numbers() {
             // printf("candidate: %llu\n", magic_number_candidate);
 
             int fail = 0;
-            U64 attack_table[4096] = {0};
+            U64 attack_table[rook_magic_indices] = {0};
             for (int occupancy_index=0; occupancy_index<max_occupancy_index; occupancy_index++) {
                 U64 relevant_occupancy = rook_relevant_occupancies[sq][occupancy_index];
-                int magic_index = (relevant_occupancy * magic_number_candidate) >> 52;
+                int magic_index = (relevant_occupancy * magic_number_candidate) >> (64-rook_max_relevant_occupancies);
                 if (attack_table[magic_index] == 0) {
                     attack_table[magic_index] = get_rook_attacks_slow(sq, relevant_occupancy);
                 }
@@ -415,7 +415,7 @@ static void find_rook_magic_numbers() {
             if (!fail) {
                 // printf("%.2d  0x%llx,\n", sq, magic_number_candidate);
                 rook_magic_numbers[sq] = magic_number_candidate;
-                memcpy(rook_attack_tables[sq], attack_table, 512 * sizeof(U64));
+                memcpy(rook_attack_tables[sq], attack_table, rook_magic_indices * sizeof(U64));
                 break;
             }
         }
@@ -426,6 +426,14 @@ static void init_rook_attacks() {
     init_rook_masks();
     init_rook_relevant_occupancies();
     find_rook_magic_numbers();
+}
+
+/*/////////////////////////////////////////////////////////////////////////////
+                              Section: queen attacks
+/*/////////////////////////////////////////////////////////////////////////////
+
+U64 get_queen_attacks(int square, U64 occupancy) {
+    return get_bishop_attacks(square, occupancy) | get_rook_attacks(square, occupancy);
 }
 
 /*/////////////////////////////////////////////////////////////////////////////
@@ -441,16 +449,19 @@ void init_attacks() {
     printf("attacks initialized in TODO s\n");
 }
 
-#ifndef ENGINE_CPP
+#ifndef MAIN
 // for testing
 int main() {
     init_attacks();
 
-    // int sq = a8;
-    // U64 occupancy = 0*B7 | 0*C6 | 0*D5 | 0*E4 | 0*F3 | 0*G2 | H1 |  B8 | A3;
-    // U64 attacks = get_bishop_attacks(sq, occupancy);
-    // U64 attacks2 = get_bishop_attacks_slow(sq, occupancy);
-    // print_bitboard(attacks, sq);
+    int sq = e6;
+    U64 occupancy = B7 | C6 | D5 | E4 | F3 | G2 | H1 | B8 | A1;
+    print_bitboard(occupancy, sq);
+    U64 attacks = get_rook_attacks(sq, occupancy);
+    print_bitboard(attacks, sq);
+    U64 attacks3 = get_bishop_attacks(sq, occupancy);
+    print_bitboard(attacks3, sq);
+    // U64 attacks2 = get_rook_attacks_slow(sq, occupancy);
     // print_bitboard(attacks2, sq);
     
     return 0;

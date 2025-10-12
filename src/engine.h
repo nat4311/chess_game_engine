@@ -1,5 +1,4 @@
-#ifndef ENGINE_H
-#define ENGINE_H
+#pragma once
 
 #include <stdint.h>
 #include <stdio.h>
@@ -11,7 +10,7 @@
                                 helper functions
 /*/////////////////////////////////////////////////////////////////////////////
 
-void print_bitboard(U64 bitboard) {
+inline void print_bitboard(U64 bitboard) {
     printf("==============================\n");
     printf("    A  B  C  D  E  F  G  H\n\n");
     for (int y=0; y<8; y++) {
@@ -25,7 +24,7 @@ void print_bitboard(U64 bitboard) {
     printf("\n    A  B  C  D  E  F  G  H\n");
 }
 
-void print_bitboard(U64 bitboard, int highlight_square) {
+inline void print_bitboard(U64 bitboard, int highlight_square) {
     printf("==============================\n");
     printf("    A  B  C  D  E  F  G  H\n\n");
     for (int y=0; y<8; y++) {
@@ -64,7 +63,7 @@ enum {
     BLACK_CASTLE_QUEENSIDE = 8,
 };
 
-const int castling_rights_masks[64] = {
+constexpr int castling_rights_masks[64] = {
      7, 15, 15, 15,  3, 15, 15, 11,
     15, 15, 15, 15, 15, 15, 15, 15,
     15, 15, 15, 15, 15, 15, 15, 15,
@@ -94,9 +93,9 @@ enum {
 };
 
 #ifdef TERMINAL_DARK_MODE
-const char* unicode_pieces[12] = {"♟","♞","♝","♜","♛","♚","♙","♘","♗","♖","♕","♔",};
+constexpr const char* unicode_pieces[12] = {"♟","♞","♝","♜","♛","♚","♙","♘","♗","♖","♕","♔",};
 #else
-const char* unicode_pieces[12] = {"♙","♘","♗","♖","♕","♔","♟","♞","♝","♜","♛","♚",};
+constexpr const char* unicode_pieces[12] = {"♙","♘","♗","♖","♕","♔","♟","♞","♝","♜","♛","♚",};
 #endif
 
 /*/////////////////////////////////////////////////////////////////////////////
@@ -110,10 +109,10 @@ enum {
     a4, b4, c4, d4, e4, f4, g4, h4,
     a3, b3, c3, d3, e3, f3, g3, h3,
     a2, b2, c2, d2, e2, f2, g2, h2,
-    a1, b1, c1, d1, e1, f1, g1, h1,
+    a1, b1, c1, d1, e1, f1, g1, h1, no_sq,
 };
 
-const char* sq_str[] = {
+constexpr const char* sq_str[] = {
     "a8", "b8", "c8", "d8", "e8", "f8", "g8", "h8",
     "a7", "b7", "c7", "d7", "e7", "f7", "g7", "h7",
     "a6", "b6", "c6", "d6", "e6", "f6", "g6", "h6",
@@ -124,72 +123,72 @@ const char* sq_str[] = {
     "a1", "b1", "c1", "d1", "e1", "f1", "g1", "h1",
 };
 
-const U64 A8 = 1ULL<<0;
-const U64 B8 = 1ULL<<1;
-const U64 C8 = 1ULL<<2;
-const U64 D8 = 1ULL<<3;
-const U64 E8 = 1ULL<<4;
-const U64 F8 = 1ULL<<5;
-const U64 G8 = 1ULL<<6;
-const U64 H8 = 1ULL<<7;
-const U64 A7 = 1ULL<<8;
-const U64 B7 = 1ULL<<9;
-const U64 C7 = 1ULL<<10;
-const U64 D7 = 1ULL<<11;
-const U64 E7 = 1ULL<<12;
-const U64 F7 = 1ULL<<13;
-const U64 G7 = 1ULL<<14;
-const U64 H7 = 1ULL<<15;
-const U64 A6 = 1ULL<<16;
-const U64 B6 = 1ULL<<17;
-const U64 C6 = 1ULL<<18;
-const U64 D6 = 1ULL<<19;
-const U64 E6 = 1ULL<<20;
-const U64 F6 = 1ULL<<21;
-const U64 G6 = 1ULL<<22;
-const U64 H6 = 1ULL<<23;
-const U64 A5 = 1ULL<<24;
-const U64 B5 = 1ULL<<25;
-const U64 C5 = 1ULL<<26;
-const U64 D5 = 1ULL<<27;
-const U64 E5 = 1ULL<<28;
-const U64 F5 = 1ULL<<29;
-const U64 G5 = 1ULL<<30;
-const U64 H5 = 1ULL<<31;
-const U64 A4 = 1ULL<<32;
-const U64 B4 = 1ULL<<33;
-const U64 C4 = 1ULL<<34;
-const U64 D4 = 1ULL<<35;
-const U64 E4 = 1ULL<<36;
-const U64 F4 = 1ULL<<37;
-const U64 G4 = 1ULL<<38;
-const U64 H4 = 1ULL<<39;
-const U64 A3 = 1ULL<<40;
-const U64 B3 = 1ULL<<41;
-const U64 C3 = 1ULL<<42;
-const U64 D3 = 1ULL<<43;
-const U64 E3 = 1ULL<<44;
-const U64 F3 = 1ULL<<45;
-const U64 G3 = 1ULL<<46;
-const U64 H3 = 1ULL<<47;
-const U64 A2 = 1ULL<<48;
-const U64 B2 = 1ULL<<49;
-const U64 C2 = 1ULL<<50;
-const U64 D2 = 1ULL<<51;
-const U64 E2 = 1ULL<<52;
-const U64 F2 = 1ULL<<53;
-const U64 G2 = 1ULL<<54;
-const U64 H2 = 1ULL<<55;
-const U64 A1 = 1ULL<<56;
-const U64 B1 = 1ULL<<57;
-const U64 C1 = 1ULL<<58;
-const U64 D1 = 1ULL<<59;
-const U64 E1 = 1ULL<<60;
-const U64 F1 = 1ULL<<61;
-const U64 G1 = 1ULL<<62;
-const U64 H1 = 1ULL<<63;
+constexpr U64 A8 = 1ULL<<0;
+constexpr U64 B8 = 1ULL<<1;
+constexpr U64 C8 = 1ULL<<2;
+constexpr U64 D8 = 1ULL<<3;
+constexpr U64 E8 = 1ULL<<4;
+constexpr U64 F8 = 1ULL<<5;
+constexpr U64 G8 = 1ULL<<6;
+constexpr U64 H8 = 1ULL<<7;
+constexpr U64 A7 = 1ULL<<8;
+constexpr U64 B7 = 1ULL<<9;
+constexpr U64 C7 = 1ULL<<10;
+constexpr U64 D7 = 1ULL<<11;
+constexpr U64 E7 = 1ULL<<12;
+constexpr U64 F7 = 1ULL<<13;
+constexpr U64 G7 = 1ULL<<14;
+constexpr U64 H7 = 1ULL<<15;
+constexpr U64 A6 = 1ULL<<16;
+constexpr U64 B6 = 1ULL<<17;
+constexpr U64 C6 = 1ULL<<18;
+constexpr U64 D6 = 1ULL<<19;
+constexpr U64 E6 = 1ULL<<20;
+constexpr U64 F6 = 1ULL<<21;
+constexpr U64 G6 = 1ULL<<22;
+constexpr U64 H6 = 1ULL<<23;
+constexpr U64 A5 = 1ULL<<24;
+constexpr U64 B5 = 1ULL<<25;
+constexpr U64 C5 = 1ULL<<26;
+constexpr U64 D5 = 1ULL<<27;
+constexpr U64 E5 = 1ULL<<28;
+constexpr U64 F5 = 1ULL<<29;
+constexpr U64 G5 = 1ULL<<30;
+constexpr U64 H5 = 1ULL<<31;
+constexpr U64 A4 = 1ULL<<32;
+constexpr U64 B4 = 1ULL<<33;
+constexpr U64 C4 = 1ULL<<34;
+constexpr U64 D4 = 1ULL<<35;
+constexpr U64 E4 = 1ULL<<36;
+constexpr U64 F4 = 1ULL<<37;
+constexpr U64 G4 = 1ULL<<38;
+constexpr U64 H4 = 1ULL<<39;
+constexpr U64 A3 = 1ULL<<40;
+constexpr U64 B3 = 1ULL<<41;
+constexpr U64 C3 = 1ULL<<42;
+constexpr U64 D3 = 1ULL<<43;
+constexpr U64 E3 = 1ULL<<44;
+constexpr U64 F3 = 1ULL<<45;
+constexpr U64 G3 = 1ULL<<46;
+constexpr U64 H3 = 1ULL<<47;
+constexpr U64 A2 = 1ULL<<48;
+constexpr U64 B2 = 1ULL<<49;
+constexpr U64 C2 = 1ULL<<50;
+constexpr U64 D2 = 1ULL<<51;
+constexpr U64 E2 = 1ULL<<52;
+constexpr U64 F2 = 1ULL<<53;
+constexpr U64 G2 = 1ULL<<54;
+constexpr U64 H2 = 1ULL<<55;
+constexpr U64 A1 = 1ULL<<56;
+constexpr U64 B1 = 1ULL<<57;
+constexpr U64 C1 = 1ULL<<58;
+constexpr U64 D1 = 1ULL<<59;
+constexpr U64 E1 = 1ULL<<60;
+constexpr U64 F1 = 1ULL<<61;
+constexpr U64 G1 = 1ULL<<62;
+constexpr U64 H1 = 1ULL<<63;
 
-const U64 sq_bit[64] = {
+constexpr U64 sq_bit[64] = {
     A8, B8, C8, D8, E8, F8, G8, H8,
     A7, B7, C7, D7, E7, F7, G7, H7,
     A6, B6, C6, D6, E6, F6, G6, H6,
@@ -200,4 +199,3 @@ const U64 sq_bit[64] = {
     A1, B1, C1, D1, E1, F1, G1, H1,
 };
 
-#endif

@@ -2,11 +2,8 @@
  * https://www.youtube.com/playlist?list=PLmN0neTso3Jxh8ZIylk74JpwfiWNI76Cs
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
-#ifndef ENGINE_CPP
-#define ENGINE_CPP
-
 #include "engine.h"
-#include "attacks.cpp"
+#include "attacks.h"
 
 /*////////////////////////////////////////////////////////////////////////////////
                                Section: BoardState
@@ -17,11 +14,22 @@ void reset_BoardState(BoardState* board_state);
 
 class BoardState {
 public:
+    // side (WHITE or BLACK)
     int turn;
+
+    // WHITE_CASTLE_KINGSIDE | WHITE_CASTLE_QUEENSIDE | BLACK_CASTLE_KINGSIDE | BLACK_CASTLE_QUEENSIDE
     int castling_rights;
+
+    // 0-63 (64 for no_sq)
     int enpassant_sq;
-    int halfmove;         // for 50 move rule - 100 halfmoves without a pawn move or capture is a draw
+
+    // for 50 move rule - 100 halfmoves without a pawn move or capture is a draw
+    int halfmove;
+
+    // index: piece type (WHITE_PAWN, WHITE_KNIGHT, ... , BLACK_KING)
     U64 bitboards[12];
+
+    // index: side (WHITE, BLACK, BOTH)
     U64 occupancies[3];
 
     BoardState() {
@@ -33,7 +41,7 @@ public:
 void reset_BoardState(BoardState* board_state) {
     board_state->turn = WHITE;
     board_state->castling_rights = WHITE_CASTLE_KINGSIDE | WHITE_CASTLE_QUEENSIDE | BLACK_CASTLE_KINGSIDE | BLACK_CASTLE_QUEENSIDE;
-    board_state->enpassant_sq = -1;
+    board_state->enpassant_sq = no_sq;
     board_state->halfmove = 0;
 
     board_state->bitboards[BLACK_PAWN] = A7 | B7 | C7 | D7 | E7 | F7 | G7 | H7;
@@ -80,7 +88,7 @@ void print_BoardState(BoardState* board_state) {
            board_state->castling_rights & WHITE_CASTLE_QUEENSIDE ? 'Q' : '-',
            board_state->castling_rights & BLACK_CASTLE_KINGSIDE ? 'k' : '-',
            board_state->castling_rights & BLACK_CASTLE_QUEENSIDE ? 'q' : '-');
-    printf("   enpassant_sq: %s\n", board_state->enpassant_sq == -1 ? "none" : sq_str[board_state->enpassant_sq]);
+    printf("   enpassant_sq: %s\n", board_state->enpassant_sq == no_sq ? "none" : sq_str[board_state->enpassant_sq]);
     printf("       halfmove: %d\n\n", board_state->halfmove);
 }
 
@@ -89,23 +97,20 @@ void print_BoardState(BoardState* board_state) {
 /*////////////////////////////////////////////////////////////////////////////////
 
 void init_engine() {
-    init_pawn_attacks();
-    init_knight_attacks();
-    init_king_attacks();
-    init_bishop_attacks();
-    init_rook_attacks();
+    init_attacks();
 }
 
 int main() {
     init_engine();
     BoardState board;
-    board.halfmove = 100;
-    print_BoardState(&board);
 
-    reset_BoardState(&board);
-    print_BoardState(&board);
+    int sq = a1;
+    U64 bb0 = get_bishop_attacks(sq, board.occupancies[BOTH]);
+    U64 bb1 = get_rook_attacks(sq, board.occupancies[BOTH]);
+    U64 bb2 = get_queen_attacks(sq, board.occupancies[BOTH]);
+    print_bitboard(bb0, sq);
+    print_bitboard(bb1, sq);
+    print_bitboard(bb2, sq);
 
     return 0;
 }
-
-#endif

@@ -1,5 +1,4 @@
-#ifndef RANDOM_NUMBERS_H
-#define RANDOM_NUMBERS_H
+#pragma once
 
 #include "engine.h"
 #include <stdlib.h>
@@ -19,4 +18,3 @@ U64 random_U64_few_bits() {
     return random_U64() & random_U64() & random_U64();
 }
 
-#endif
