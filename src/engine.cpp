@@ -17,7 +17,7 @@ struct BoardState {
     // WHITE_CASTLE_KINGSIDE | WHITE_CASTLE_QUEENSIDE | BLACK_CASTLE_KINGSIDE | BLACK_CASTLE_QUEENSIDE
     int castling_rights;
 
-    // 0-63 (64 for no_sq)
+    // 0-63, 64 for no_sq
     int enpassant_sq;
 
     // for 50 move rule - 100 halfmoves without a pawn move or capture is a draw
@@ -56,6 +56,119 @@ struct BoardState {
         board->occupancies[WHITE] = rank_1 | rank_2;
         board->occupancies[BLACK] = rank_7 | rank_8;
         board->occupancies[BOTH] = rank_1 | rank_2 | rank_7 | rank_8;
+    }
+
+    //example:
+    //rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1 .
+    //                                    pieces turn cast ep hm fm
+    static void load(BoardState* board, char* fen_str) {
+        int i_fen_str = 0;
+        char c;
+        int x, y, sq;
+
+        // pieces
+        for (int i=0; i<12; i++) { board->bitboards[i] = {0}; }
+        for (int i=0; i<3; i++) { board->occupancies[i] = {0}; }
+        x = 0;
+        y = 0;
+        while (1) {
+            c = fen_str[i_fen_str++];
+            if (c>='1' && c<='8') {
+                x += c - '0';
+            }
+            else if (c == '/') {
+                y++;
+                x = 0;
+            }
+            else if (c == ' ') {
+                break;
+            }
+            else {
+                sq = x + 8*y;
+                x++;
+                board->occupancies[BOTH] |= sq_bit[sq];
+                     if (c == 'P') { board->bitboards[WHITE_PAWN]   |= sq_bit[sq]; board->occupancies[WHITE] |= sq_bit[sq]; }
+                else if (c == 'N') { board->bitboards[WHITE_KNIGHT] |= sq_bit[sq]; board->occupancies[WHITE] |= sq_bit[sq]; }
+                else if (c == 'B') { board->bitboards[WHITE_BISHOP] |= sq_bit[sq]; board->occupancies[WHITE] |= sq_bit[sq]; }
+                else if (c == 'R') { board->bitboards[WHITE_ROOK]   |= sq_bit[sq]; board->occupancies[WHITE] |= sq_bit[sq]; }
+                else if (c == 'Q') { board->bitboards[WHITE_QUEEN]  |= sq_bit[sq]; board->occupancies[WHITE] |= sq_bit[sq]; }
+                else if (c == 'K') { board->bitboards[WHITE_KING]   |= sq_bit[sq]; board->occupancies[WHITE] |= sq_bit[sq]; }
+                else if (c == 'p') { board->bitboards[BLACK_PAWN]   |= sq_bit[sq]; board->occupancies[BLACK] |= sq_bit[sq]; }
+                else if (c == 'n') { board->bitboards[BLACK_KNIGHT] |= sq_bit[sq]; board->occupancies[BLACK] |= sq_bit[sq]; }
+                else if (c == 'b') { board->bitboards[BLACK_BISHOP] |= sq_bit[sq]; board->occupancies[BLACK] |= sq_bit[sq]; }
+                else if (c == 'r') { board->bitboards[BLACK_ROOK]   |= sq_bit[sq]; board->occupancies[BLACK] |= sq_bit[sq]; }
+                else if (c == 'q') { board->bitboards[BLACK_QUEEN]  |= sq_bit[sq]; board->occupancies[BLACK] |= sq_bit[sq]; }
+                else if (c == 'k') { board->bitboards[BLACK_KING]   |= sq_bit[sq]; board->occupancies[BLACK] |= sq_bit[sq]; }
+                else { printf("invalid piece type: %c\n", c); assert(0); }
+            }
+        }
+
+        // turn
+        c = fen_str[i_fen_str++];
+        if (c == 'w') {
+            board->turn = WHITE;
+        }
+        else if (c == 'b') {
+            board->turn = BLACK;
+        }
+        else {
+            printf("invalid turn: %c\n", c);
+            assert(0);
+        }
+        i_fen_str++;
+
+        // castling rights
+        board->castling_rights = 0;
+        c = fen_str[i_fen_str++];
+        if (c == '-') {
+            i_fen_str++;
+        }
+        else {
+            if (c == 'K') {
+                board->castling_rights |= WHITE_CASTLE_KINGSIDE;
+                c = fen_str[i_fen_str++];
+            }
+            if (c == 'Q') {
+                board->castling_rights |= WHITE_CASTLE_QUEENSIDE;
+                c = fen_str[i_fen_str++];
+            }
+            if (c == 'k') {
+                board->castling_rights |= BLACK_CASTLE_KINGSIDE;
+                c = fen_str[i_fen_str++];
+            }
+            if (c == 'q') {
+                board->castling_rights |= BLACK_CASTLE_QUEENSIDE;
+                i_fen_str++;
+            }
+        }
+
+        // en passant
+        c = fen_str[i_fen_str++];
+        if (c == '-') {
+            board->enpassant_sq = no_sq;
+        }
+        else {
+            x = c - 'a';
+            c = fen_str[i_fen_str++];
+            y = '8' - c;
+            sq = x + 8*y;
+            board->enpassant_sq = sq;
+        }
+        i_fen_str++;
+
+        // halfmove
+        board->halfmove = 0;
+        while (1) {
+            c = fen_str[i_fen_str++];
+            if (c == ' ') {
+                break;
+            }
+            board->halfmove = board->halfmove * 10 + (c - '0');
+        }
+
+        // fullmove - don't care
+        
+        return;
     }
 
     static void print(BoardState* board) {
@@ -114,6 +227,7 @@ inline U32 encode_move(
     return source_sq|(target_sq<<6)|(piece_type<<12)|(promotion_type<<16)|(promotion<<18)|(double_pawn_push<<19)|(capture<<20)|(enpassant_capture<<21);
 }
 
+// TODO: test this
 struct MoveGenerator{
     constexpr static int max_move_index = 256;
     U32 move_list[max_move_index];
@@ -127,7 +241,7 @@ struct MoveGenerator{
         U64 target_sq_bit;
 
         if (board->turn == WHITE) {
-            // pawn moves TODO: test
+            // pawn moves
             U64 pawns = board->bitboards[WHITE_PAWN];
             U64 pawn_blockers = board->occupancies[BOTH];
             while (pawns) {
@@ -227,13 +341,20 @@ void init_engine() {
     init_attacks();
 }
 
+// TODO: test fen_str loader
 int main() {
     init_engine();
     BoardState board;
+    BoardState::reset(&board);
 
-    MoveGenerator moves;
-    moves.generate_pseudo_legal_moves(&board);
-    printf("%d\n", moves.moves_found);
+    char start_fen[] = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+    char fen1[] = "rnbq1bnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w Kkq a3 0 1";
+    BoardState::load(&board, fen1);
+    BoardState::print(&board);
+
+    // MoveGenerator moves;
+    // moves.generate_pseudo_legal_moves(&board);
+    // printf("%d\n", moves.moves_found);
 
     return 0;
 }
