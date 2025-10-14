@@ -10,10 +10,14 @@ const U64 not_rank_1 = ~rank_1;
 const U64 not_rank_2 = ~rank_2;
 const U64 not_rank_7 = ~rank_7;
 const U64 not_rank_8 = ~rank_8;
-const U64 not_a_file = ~(A1|A2|A3|A4|A5|A6|A7|A8);
-const U64 not_ab_file = ~(~not_a_file|B1|B2|B3|B4|B5|B6|B7|B8);
-const U64 not_h_file = ~(H1|H2|H3|H4|H5|H6|H7|H8);
-const U64 not_gh_file = ~(~not_h_file|G1|G2|G3|G4|G5|G6|G7|G8);
+const U64 a_file = A1|A2|A3|A4|A5|A6|A7|A8;
+const U64 b_file = B1|B2|B3|B4|B5|B6|B7|B8;
+const U64 not_a_file = ~a_file;
+const U64 not_ab_file = ~(a_file|b_file);
+const U64 h_file = H1|H2|H3|H4|H5|H6|H7|H8;
+const U64 g_file = G1|G2|G3|G4|G5|G6|G7|G8;
+const U64 not_h_file = ~h_file;
+const U64 not_gh_file = ~(h_file|g_file);
 
 void init_attacks();
 

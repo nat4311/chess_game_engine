@@ -144,10 +144,10 @@ static void init_bishop_masks() {
         int x0 = sq % 8;
         int y0 = sq / 8;
         int x, y;
-        for (x=x0+1, y=y0+1; x<7 && y<7; x++, y++) { bishop_relevant_bits_masks[sq] |= 1ULL << (x + y*8); }
-        for (x=x0+1, y=y0-1; x<7 && y>0; x++, y--) { bishop_relevant_bits_masks[sq] |= 1ULL << (x + y*8); }
-        for (x=x0-1, y=y0+1; x>0 && y<7; x--, y++) { bishop_relevant_bits_masks[sq] |= 1ULL << (x + y*8); }
-        for (x=x0-1, y=y0-1; x>0 && y>0; x--, y--) { bishop_relevant_bits_masks[sq] |= 1ULL << (x + y*8); }
+        for (x=x0+1, y=y0+1; x<7 && y<7; x++, y++) { bishop_relevant_bits_masks[sq] |= sq_bit[x + y*8]; }
+        for (x=x0+1, y=y0-1; x<7 && y>0; x++, y--) { bishop_relevant_bits_masks[sq] |= sq_bit[x + y*8]; }
+        for (x=x0-1, y=y0+1; x>0 && y<7; x--, y++) { bishop_relevant_bits_masks[sq] |= sq_bit[x + y*8]; }
+        for (x=x0-1, y=y0-1; x>0 && y>0; x--, y--) { bishop_relevant_bits_masks[sq] |= sq_bit[x + y*8]; }
     }
 }
 
@@ -159,25 +159,25 @@ static U64 get_bishop_attacks_slow(int square, U64 occupancy) {
 
     for (x=x0+1, y=y0+1; x<=7 && y<=7; x++, y++) {
         sq = x + 8*y;
-        attacks |= 1ULL << sq;
+        attacks |= sq_bit[sq];
         if (sq_bit[sq] & occupancy) { break; }
     }
 
     for (x=x0+1, y=y0-1; x<=7 && y>=0; x++, y--) {
         sq = x + 8*y;
-        attacks |= 1ULL << sq;
+        attacks |= sq_bit[sq];
         if (sq_bit[sq] & occupancy) { break; }
     }
 
     for (x=x0-1, y=y0+1; x>=0 && y<=7; x--, y++) {
         sq = x + 8*y;
-        attacks |= 1ULL << sq;
+        attacks |= sq_bit[sq];
         if (sq_bit[sq] & occupancy) { break; }
     }
 
     for (x=x0-1, y=y0-1; x>=0 && y>=0; x--, y--) {
         sq = x + 8*y;
-        attacks |= 1ULL << sq;
+        attacks |= sq_bit[sq];
         if (sq_bit[sq] & occupancy) { break; }
     }
     
@@ -204,7 +204,7 @@ static U64 bishop_relevant_occupancy(int square, int occupancy_index) {
     sqs_index = 0;
     while (occupancy_index) {
         if (occupancy_index & 1) {
-            relevant_occupancy |= (1ULL << sqs[sqs_index]);
+            relevant_occupancy |= sq_bit[sqs[sqs_index]];
         }
         occupancy_index >>= 1;
         sqs_index++;
@@ -303,10 +303,10 @@ static void init_rook_masks() {
         int x0 = sq % 8;
         int y0 = sq / 8;
         int x, y;
-        for (x=x0+1, y=y0; x<7; x++) { rook_relevant_bits_masks[sq] |= 1ULL << (x + y*8); }
-        for (x=x0-1, y=y0; x>0; x--) { rook_relevant_bits_masks[sq] |= 1ULL << (x + y*8); }
-        for (x=x0, y=y0+1; y<7; y++) { rook_relevant_bits_masks[sq] |= 1ULL << (x + y*8); }
-        for (x=x0, y=y0-1; y>0; y--) { rook_relevant_bits_masks[sq] |= 1ULL << (x + y*8); }
+        for (x=x0+1, y=y0; x<7; x++) { rook_relevant_bits_masks[sq] |= sq_bit[x + y*8]; }
+        for (x=x0-1, y=y0; x>0; x--) { rook_relevant_bits_masks[sq] |= sq_bit[x + y*8]; }
+        for (x=x0, y=y0+1; y<7; y++) { rook_relevant_bits_masks[sq] |= sq_bit[x + y*8]; }
+        for (x=x0, y=y0-1; y>0; y--) { rook_relevant_bits_masks[sq] |= sq_bit[x + y*8]; }
     }
 }
 
@@ -318,25 +318,25 @@ static U64 get_rook_attacks_slow(int square, U64 occupancy) {
 
     for (x=x0+1, y=y0; x<=7; x++) {
         sq = x + 8*y;
-        attacks |= 1ULL << sq;
+        attacks |= sq_bit[sq];
         if (sq_bit[sq] & occupancy) { break; }
     }
 
     for (x=x0-1, y=y0; x>=0; x--) {
         sq = x + 8*y;
-        attacks |= 1ULL << sq;
+        attacks |= sq_bit[sq];
         if (sq_bit[sq] & occupancy) { break; }
     }
 
     for (x=x0, y=y0+1; y<=7; y++) {
         sq = x + 8*y;
-        attacks |= 1ULL << sq;
+        attacks |= sq_bit[sq];
         if (sq_bit[sq] & occupancy) { break; }
     }
 
     for (x=x0, y=y0-1; y>=0; y--) {
         sq = x + 8*y;
-        attacks |= 1ULL << sq;
+        attacks |= sq_bit[sq];
         if (sq_bit[sq] & occupancy) { break; }
     }
 
@@ -363,7 +363,7 @@ static U64 rook_relevant_occupancy(int square, int occupancy_index) {
     sqs_index = 0;
     while (occupancy_index) {
         if (occupancy_index & 1) {
-            relevant_occupancy |= (1ULL << sqs[sqs_index]);
+            relevant_occupancy |= sq_bit[sqs[sqs_index]];
         }
         occupancy_index >>= 1;
         sqs_index++;
@@ -461,6 +461,8 @@ int main() {
     print_bitboard(attacks, sq);
     U64 attacks3 = get_bishop_attacks(sq, occupancy);
     print_bitboard(attacks3, sq);
+    // U64 attacks4 = get_queen_attacks(sq, occupancy);
+    // print_bitboard(attacks4, sq);
     // U64 attacks2 = get_rook_attacks_slow(sq, occupancy);
     // print_bitboard(attacks2, sq);
     

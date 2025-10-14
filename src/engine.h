@@ -4,14 +4,19 @@
 #include <stdio.h>
 
 #define U64 uint64_t
+#define U32 uint32_t
+#define U16 uint32_t
 #define TERMINAL_DARK_MODE
 
 /*/////////////////////////////////////////////////////////////////////////////
                                 helper functions
 /*/////////////////////////////////////////////////////////////////////////////
 
+#define lsb_scan(x) __builtin_ctzll(x)
+#define bit_count(x) __builtin_popcountll(x)
+#define pop_lsb(x) x &= (x-1ULL)
+
 inline void print_bitboard(U64 bitboard) {
-    printf("==============================\n");
     printf("    A  B  C  D  E  F  G  H\n\n");
     for (int y=0; y<8; y++) {
         printf("%d   ", 8-y);
@@ -25,7 +30,6 @@ inline void print_bitboard(U64 bitboard) {
 }
 
 inline void print_bitboard(U64 bitboard, int highlight_square) {
-    printf("==============================\n");
     printf("    A  B  C  D  E  F  G  H\n\n");
     for (int y=0; y<8; y++) {
         printf("%d   ", 8-y);
@@ -90,6 +94,7 @@ enum {
     BLACK_ROOK,
     BLACK_QUEEN,
     BLACK_KING,
+    NO_PIECE,
 };
 
 #ifdef TERMINAL_DARK_MODE
@@ -97,6 +102,16 @@ constexpr const char* unicode_pieces[12] = {"♟","♞","♝","♜","♛","♚",
 #else
 constexpr const char* unicode_pieces[12] = {"♙","♘","♗","♖","♕","♔","♟","♞","♝","♜","♛","♚",};
 #endif
+
+/*/////////////////////////////////////////////////////////////////////////////
+                              promotions
+/*/////////////////////////////////////////////////////////////////////////////
+enum {
+    KNIGHT_PROMOTION,
+    BISHOP_PROMOTION,
+    ROOK_PROMOTION,
+    QUEEN_PROMOTION,
+};
 
 /*/////////////////////////////////////////////////////////////////////////////
                                squares
@@ -188,7 +203,7 @@ constexpr U64 F1 = 1ULL<<61;
 constexpr U64 G1 = 1ULL<<62;
 constexpr U64 H1 = 1ULL<<63;
 
-constexpr U64 sq_bit[64] = {
+constexpr U64 sq_bit[65] = {
     A8, B8, C8, D8, E8, F8, G8, H8,
     A7, B7, C7, D7, E7, F7, G7, H7,
     A6, B6, C6, D6, E6, F6, G6, H6,
@@ -196,6 +211,6 @@ constexpr U64 sq_bit[64] = {
     A4, B4, C4, D4, E4, F4, G4, H4,
     A3, B3, C3, D3, E3, F3, G3, H3,
     A2, B2, C2, D2, E2, F2, G2, H2,
-    A1, B1, C1, D1, E1, F1, G1, H1,
+    A1, B1, C1, D1, E1, F1, G1, H1, 0
 };
 

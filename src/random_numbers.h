@@ -3,9 +3,6 @@
 #include "engine.h"
 #include <stdlib.h>
 
-#define lsb_scan(x) __builtin_ctz(x)
-#define bit_count(x) __builtin_popcountll(x)
-
 U64 random_U64() {
     U64 a, b, c , d;
     a = (U64)(random() & 0xffff);
