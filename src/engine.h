@@ -2,6 +2,7 @@
 
 #include <stdint.h>
 #include <stdio.h>
+#include <iostream>
 
 #define U64 uint64_t
 #define U32 uint32_t
@@ -9,7 +10,7 @@
 #define TERMINAL_DARK_MODE
 
 /*/////////////////////////////////////////////////////////////////////////////
-                                helper functions
+                          Section: Helper Functions
 /*/////////////////////////////////////////////////////////////////////////////
 
 #define lsb_scan(x) __builtin_ctzll(x)
@@ -47,9 +48,8 @@ inline void print_bitboard(U64 bitboard, int highlight_square) {
     printf("\n    A  B  C  D  E  F  G  H\n");
 }
 
-
 /*/////////////////////////////////////////////////////////////////////////////
-                                sides
+                                Section: sides
 /*/////////////////////////////////////////////////////////////////////////////
 enum {
     WHITE,
@@ -58,7 +58,7 @@ enum {
 };
 
 /*/////////////////////////////////////////////////////////////////////////////
-                                castling
+                                Section: castling
 /*/////////////////////////////////////////////////////////////////////////////
 enum {
     WHITE_CASTLE_KINGSIDE = 1,
@@ -79,7 +79,7 @@ constexpr int castling_rights_masks[64] = {
 };
 
 /*/////////////////////////////////////////////////////////////////////////////
-                              pieces
+                              Section: pieces
 /*/////////////////////////////////////////////////////////////////////////////
 enum {
     WHITE_PAWN,
@@ -97,6 +97,8 @@ enum {
     NO_PIECE,
 };
 
+constexpr const char piece_char[] = {'P', 'N', 'B', 'R', 'Q', 'K'};
+
 #ifdef TERMINAL_DARK_MODE
 constexpr const char* unicode_pieces[12] = {"♟","♞","♝","♜","♛","♚","♙","♘","♗","♖","♕","♔",};
 #else
@@ -104,7 +106,7 @@ constexpr const char* unicode_pieces[12] = {"♙","♘","♗","♖","♕","♔",
 #endif
 
 /*/////////////////////////////////////////////////////////////////////////////
-                              promotions
+                              Section: promotions
 /*/////////////////////////////////////////////////////////////////////////////
 enum {
     KNIGHT_PROMOTION,
@@ -114,7 +116,7 @@ enum {
 };
 
 /*/////////////////////////////////////////////////////////////////////////////
-                               squares
+                               Section: squares
 /*/////////////////////////////////////////////////////////////////////////////
 enum {
     a8, b8, c8, d8, e8, f8, g8, h8,
@@ -213,4 +215,80 @@ constexpr U64 sq_bit[65] = {
     A2, B2, C2, D2, E2, F2, G2, H2,
     A1, B1, C1, D1, E1, F1, G1, H1, 0
 };
+
+/*/////////////////////////////////////////////////////////////////////////////
+                     Section: move helper functions
+/*/////////////////////////////////////////////////////////////////////////////
+
+/* Inputs:
+   source_sq            6 bits    0-63 (a8-h1).
+   target_sq            6 bits    0-63 (a8-h1).
+   piece_type           4 bits    0-11 (WHITE_PAWN, ..., BLACK_KING).
+   promotion_type       2 bits    0-3 (KNIGHT_PROMOTION, ..., QUEEN_PROMOTION).
+   promotion            1 bit     0-1 (true or false).
+   double_pawn_push     1 bit     0-1 (true or false).
+   capture              1 bit     0-1 (true or false).
+   enpassant_capture    1 bit     0-1 (true or false).
+ */
+inline U32 encode_move(
+    int source_sq,
+    int target_sq,
+    int piece_type,
+    int promotion_type,
+    int promotion,
+    int double_pawn_push,
+    int capture,
+    int enpassant_capture
+    ) {
+    return source_sq|(target_sq<<6)|(piece_type<<12)|(promotion_type<<16)|(promotion<<18)|(double_pawn_push<<19)|(capture<<20)|(enpassant_capture<<21);
+}
+
+#define decode_move_source_sq(move)         (int(move & 63))
+#define decode_move_target_sq(move)         (int((move>>6) & 63))
+#define decode_move_piece_type(move)        (int((move>>12) & 15))
+#define decode_move_promotion_type(move)    (int((move>>16) & 3))
+#define decode_move_promotion(move)         (int((move>>18) & 1))
+#define decode_move_double_pawn_push(move)  (int((move>>19) & 1))
+#define decode_move_capture(move)           (int((move>>20) & 1))
+#define decode_move_enpassant_capture(move) (int((move>>21) & 1))
+
+inline void print_move(U32 move) {
+    int source_sq = decode_move_source_sq(move);
+    int target_sq = decode_move_target_sq(move);
+    int piece_type = decode_move_piece_type(move);
+    int promotion_type = decode_move_promotion_type(move);
+    int promotion = decode_move_promotion(move);
+    int double_pawn_push = decode_move_double_pawn_push(move);
+    int capture = decode_move_capture(move);
+    int enpassant_capture = decode_move_enpassant_capture(move);
+
+    const char* promotion_char = " ";
+    if (promotion) {
+        switch (promotion_type) {
+            case KNIGHT_PROMOTION:
+                promotion_char = "N";
+                break;
+            case BISHOP_PROMOTION:
+                promotion_char = "B";
+                break;
+            case ROOK_PROMOTION:
+                promotion_char = "R";
+                break;
+            case QUEEN_PROMOTION:
+                promotion_char = "Q";
+                break;
+        }
+    }
+
+    std::cout
+        << piece_char[piece_type]
+        << "  "
+        << sq_str[source_sq]
+        << sq_str[target_sq]
+        << promotion_char
+        << "  |  capture=" << capture
+        << "    double_push=" << double_pawn_push
+        << "    enpassant_capture=" << enpassant_capture
+        << "\n";
+}
 
