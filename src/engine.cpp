@@ -244,21 +244,23 @@ struct MoveGenerator{
                 pop_lsb(pawns);
                 source_sq_bit = sq_bit[source_sq];
                 U64 pawn_attacks = get_pawn_attacks(WHITE, source_sq);
-
-                if (source_sq_bit & rank_2) { // pawn move from start square
-                    if (~(source_sq_bit>>8 & pawn_blockers)) { // single push
+                
+                // pawn move from start square
+                if (source_sq_bit & rank_2) {
+                    if (!(source_sq_bit>>8 & pawn_blockers)) { // single push
                         target_sq = source_sq - 8;
                         // printf("%s%s\n", sq_str[source_sq], sq_str[target_sq]);
                         pl_move_list[pl_moves_found++] = encode_move(source_sq, target_sq, WHITE_PAWN, 0, 0, 0, 0, 0);
 
-                        if (~(source_sq_bit>>16 & pawn_blockers)) { // double push
+                        if (!(source_sq_bit>>16 & pawn_blockers)) { // double push
                             target_sq = source_sq - 16;
                             // printf("%s%s\n", sq_str[source_sq], sq_str[target_sq]);
                             pl_move_list[pl_moves_found++] = encode_move(source_sq, target_sq, WHITE_PAWN, 0, 0, 1, 0, 0);
                         }
                     }
 
-                    while (pawn_attacks) { // normal captures
+                    // normal captures
+                    while (pawn_attacks) {
                         target_sq = lsb_scan(pawn_attacks);
                         pop_lsb(pawn_attacks);
                         target_sq_bit = sq_bit[target_sq];
@@ -267,8 +269,9 @@ struct MoveGenerator{
                         }
                     }
                 }
-                else if (source_sq_bit & rank_7) { // pawn move to promotion square
-                    if (~(source_sq_bit>>8 & pawn_blockers)) { // single push
+                // pawn move to promotion square
+                else if (source_sq_bit & rank_7) {
+                    if (!(source_sq_bit>>8 & pawn_blockers)) { // single push
                         target_sq = source_sq - 8;
                         pl_move_list[pl_moves_found++] = encode_move(source_sq, target_sq, WHITE_PAWN, KNIGHT_PROMOTION, 1, 0, 0, 0);
                         pl_move_list[pl_moves_found++] = encode_move(source_sq, target_sq, WHITE_PAWN, BISHOP_PROMOTION, 1, 0, 0, 0);
@@ -288,7 +291,7 @@ struct MoveGenerator{
                     }
                 }
                 else { // pawn move from not start square and not to promotion
-                    if (~(source_sq_bit>>8 & pawn_blockers)) { // single push
+                    if (!(source_sq_bit>>8 & pawn_blockers)) { // single push
                         target_sq = source_sq - 8;
                         pl_move_list[pl_moves_found++] = encode_move(source_sq, target_sq, WHITE_PAWN, 0, 0, 0, 0, 0);
                     }
@@ -349,12 +352,13 @@ int main() {
     BoardState::reset(&board);
 
     // char start_fen[] = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
-    // char fen1[] = "rnbq1bnr/pppppppp/8/8/8/8/PP3P1P/RNBQKBNR w Kkq a3 0 1";
-    // BoardState::load(&board, fen1);
+    char fen1[] = "rnbqkbnr/pppppppp/8/P7/8/8/P7/RNBQKBNR w Kkq a3 0 1";
+    BoardState::load(&board, fen1);
     BoardState::print(&board);
+    board.enpassant_sq = b6;
 
     MoveGenerator moves;
-    moves.generate_moves(&board);
+    moves.generate_pl_moves(&board);
     moves.print_pl_moves();
 
     return 0;
