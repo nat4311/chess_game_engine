@@ -220,15 +220,20 @@ constexpr U64 sq_bit[65] = {
                      Section: move helper functions
 /*/////////////////////////////////////////////////////////////////////////////
 
+#ifdef OPTIMIZE
+#define encode_move TODO
+#else
 /* Inputs:
-   source_sq            6 bits    0-63 (a8-h1).
-   target_sq            6 bits    0-63 (a8-h1).
-   piece_type           4 bits    0-11 (WHITE_PAWN, ..., BLACK_KING).
-   promotion_type       2 bits    0-3 (KNIGHT_PROMOTION, ..., QUEEN_PROMOTION).
-   promotion            1 bit     0-1 (true or false).
-   double_pawn_push     1 bit     0-1 (true or false).
-   capture              1 bit     0-1 (true or false).
-   enpassant_capture    1 bit     0-1 (true or false).
+   source_sq            6 bits    0-63 (a8-h1)
+   target_sq            6 bits    0-63 (a8-h1)
+   piece_type           4 bits    0-11 (WHITE_PAWN, ..., BLACK_KING)
+   promotion_type       2 bits    0-3 (KNIGHT_PROMOTION, ..., QUEEN_PROMOTION)
+   promotion            1 bit     0-1 (true or false)
+   double_pawn_push     1 bit     0-1 (true or false)
+   capture              1 bit     0-1 (true or false)
+   enpassant_capture    1 bit     0-1 (true or false)
+   castle_kingside      1 bit     0-1 (true or false)
+   castle_queenside     1 bit     0-1 (true or false)
  */
 inline U32 encode_move(
     int source_sq,
@@ -238,10 +243,13 @@ inline U32 encode_move(
     int promotion,
     int double_pawn_push,
     int capture,
-    int enpassant_capture
-    ) {
-    return source_sq|(target_sq<<6)|(piece_type<<12)|(promotion_type<<16)|(promotion<<18)|(double_pawn_push<<19)|(capture<<20)|(enpassant_capture<<21);
+    int enpassant_capture,
+    int castle_kingside,
+    int castle_queenside
+) {
+    return source_sq|(target_sq<<6)|(piece_type<<12)|(promotion_type<<16)|(promotion<<18)|(double_pawn_push<<19)|(capture<<20)|(enpassant_capture<<21)|(castle_kingside<<22)|(castle_queenside<<23);
 }
+#endif
 
 #define decode_move_source_sq(move)         (int(move & 63))
 #define decode_move_target_sq(move)         (int((move>>6) & 63))
@@ -251,6 +259,8 @@ inline U32 encode_move(
 #define decode_move_double_pawn_push(move)  (int((move>>19) & 1))
 #define decode_move_capture(move)           (int((move>>20) & 1))
 #define decode_move_enpassant_capture(move) (int((move>>21) & 1))
+#define decode_move_castle_kingside(move)   (int((move>>22) & 1))
+#define decode_move_castle_queenside(move)  (int((move>>23) & 1))
 
 inline void print_move(U32 move) {
     int source_sq = decode_move_source_sq(move);
@@ -261,6 +271,8 @@ inline void print_move(U32 move) {
     int double_pawn_push = decode_move_double_pawn_push(move);
     int capture = decode_move_capture(move);
     int enpassant_capture = decode_move_enpassant_capture(move);
+    int castle_kingside = decode_move_castle_kingside(move);
+    int castle_queenside = decode_move_castle_queenside(move);
 
     const char* promotion_char = " ";
     if (promotion) {
@@ -282,13 +294,12 @@ inline void print_move(U32 move) {
 
     std::cout
         << piece_char[piece_type]
-        << "  "
+        << "    "
         << sq_str[source_sq]
         << sq_str[target_sq]
         << promotion_char
-        << "  |  capture=" << capture
-        << "    double_push=" << double_pawn_push
-        << "    enpassant_capture=" << enpassant_capture
+        << "   "
+        << double_pawn_push << capture << enpassant_capture << castle_kingside << castle_queenside
         << "\n";
 }
 
