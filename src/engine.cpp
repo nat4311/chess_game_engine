@@ -322,6 +322,9 @@ struct MoveGenerator{
                     target_sq = lsb_scan(knight_attacks);
                     pop_lsb(knight_attacks);
                     target_sq_bit = sq_bit[target_sq];
+                    if (board->occupancies[WHITE] & target_sq_bit) {
+                        continue;
+                    }
                     int capture = (board->occupancies[BLACK] & target_sq_bit) ? 1 : 0;
                     pl_move_list[pl_moves_found++] = encode_move(source_sq, target_sq, WHITE_KNIGHT, 0, 0, 0, capture, 0, 0, 0);
                 }
@@ -412,7 +415,179 @@ struct MoveGenerator{
 
         }
         else { // turn == BLACK
-            // TODO: all
+            // pawn moves
+            U64 pawns = board->bitboards[BLACK_PAWN];
+            U64 pawn_blockers = board->occupancies[BOTH];
+            while (pawns) {
+                source_sq = lsb_scan(pawns);
+                pop_lsb(pawns);
+                source_sq_bit = sq_bit[source_sq];
+                U64 pawn_attacks = get_pawn_attacks(BLACK, source_sq);
+                
+                // pawn move from start square
+                if (source_sq_bit & rank_2) {
+                    if (!(source_sq_bit<<8 & pawn_blockers)) { // single push
+                        target_sq = source_sq + 8;
+                        pl_move_list[pl_moves_found++] = encode_move(source_sq, target_sq, BLACK_PAWN, 0, 0, 0, 0, 0, 0, 0);
+
+                        if (!(source_sq_bit<<16 & pawn_blockers)) { // double push
+                            target_sq = source_sq + 16;
+                            pl_move_list[pl_moves_found++] = encode_move(source_sq, target_sq, BLACK_PAWN, 0, 0, 1, 0, 0, 0, 0);
+                        }
+                    }
+
+                    // normal captures
+                    while (pawn_attacks) {
+                        target_sq = lsb_scan(pawn_attacks);
+                        pop_lsb(pawn_attacks);
+                        target_sq_bit = sq_bit[target_sq];
+                        if (board->occupancies[WHITE] & target_sq_bit) {
+                            pl_move_list[pl_moves_found++] = encode_move(source_sq, target_sq, BLACK_PAWN, 0, 0, 0, 1, 0, 0, 0);
+                        }
+                    }
+                }
+                // pawn move to promotion square
+                else if (source_sq_bit & rank_2) {
+                    if (!(source_sq_bit<<8 & pawn_blockers)) { // single push
+                        target_sq = source_sq + 8;
+                        pl_move_list[pl_moves_found++] = encode_move(source_sq, target_sq, BLACK_PAWN, KNIGHT_PROMOTION, 1, 0, 0, 0, 0, 0);
+                        pl_move_list[pl_moves_found++] = encode_move(source_sq, target_sq, BLACK_PAWN, BISHOP_PROMOTION, 1, 0, 0, 0, 0, 0);
+                        pl_move_list[pl_moves_found++] = encode_move(source_sq, target_sq, BLACK_PAWN, ROOK_PROMOTION, 1, 0, 0, 0, 0, 0);
+                        pl_move_list[pl_moves_found++] = encode_move(source_sq, target_sq, BLACK_PAWN, QUEEN_PROMOTION, 1, 0, 0, 0, 0, 0);
+                    }
+                    while (pawn_attacks) { // normal captures
+                        target_sq = lsb_scan(pawn_attacks);
+                        pop_lsb(pawn_attacks);
+                        target_sq_bit = sq_bit[target_sq];
+                        if (board->occupancies[WHITE] & target_sq_bit) {
+                            pl_move_list[pl_moves_found++] = encode_move(source_sq, target_sq, BLACK_PAWN, KNIGHT_PROMOTION, 1, 0, 1, 0, 0, 0);
+                            pl_move_list[pl_moves_found++] = encode_move(source_sq, target_sq, BLACK_PAWN, BISHOP_PROMOTION, 1, 0, 1, 0, 0, 0);
+                            pl_move_list[pl_moves_found++] = encode_move(source_sq, target_sq, BLACK_PAWN, ROOK_PROMOTION, 1, 0, 1, 0, 0, 0);
+                            pl_move_list[pl_moves_found++] = encode_move(source_sq, target_sq, BLACK_PAWN, QUEEN_PROMOTION, 1, 0, 1, 0, 0, 0);
+                        }
+                    }
+                }
+                else { // pawn move from not start square and not to promotion
+                    if (!(source_sq_bit<<8 & pawn_blockers)) { // single push
+                        target_sq = source_sq + 8;
+                        pl_move_list[pl_moves_found++] = encode_move(source_sq, target_sq, BLACK_PAWN, 0, 0, 0, 0, 0, 0, 0);
+                    }
+
+                    while (pawn_attacks) {
+                        target_sq = lsb_scan(pawn_attacks);
+                        pop_lsb(pawn_attacks);
+                        target_sq_bit = sq_bit[target_sq];
+                        if (board->occupancies[WHITE] & target_sq_bit) { // normal captures
+                            pl_move_list[pl_moves_found++] = encode_move(source_sq, target_sq, BLACK_PAWN, 0, 0, 0, 1, 0, 0, 0);
+                        }
+                        else if (sq_bit[board->enpassant_sq] & target_sq_bit) { // enpassant capture
+                            pl_move_list[pl_moves_found++] = encode_move(source_sq, target_sq, BLACK_PAWN, 0, 0, 0, 1, 1, 0, 0);
+                        }
+                    }
+                }
+            }
+
+            // knight moves
+            U64 knights = board->bitboards[BLACK_KNIGHT];
+            while (knights) {
+                source_sq = lsb_scan(knights);
+                pop_lsb(knights);
+                source_sq_bit = sq_bit[source_sq];
+                U64 knight_attacks = get_knight_attacks(source_sq);
+                while (knight_attacks) {
+                    target_sq = lsb_scan(knight_attacks);
+                    pop_lsb(knight_attacks);
+                    target_sq_bit = sq_bit[target_sq];
+                    if (target_sq_bit & board->occupancies[BLACK]) {
+                        continue;
+                    }
+                    int capture = (board->occupancies[WHITE] & target_sq_bit) ? 1 : 0;
+                    pl_move_list[pl_moves_found++] = encode_move(source_sq, target_sq, BLACK_KNIGHT, 0, 0, 0, capture, 0, 0, 0);
+                }
+            }
+
+            // bishop moves
+            U64 bishops = board->bitboards[BLACK_BISHOP];
+            while (bishops) {
+                source_sq = lsb_scan(bishops);
+                pop_lsb(bishops);
+                source_sq_bit = sq_bit[source_sq];
+                U64 bishop_attacks = get_bishop_attacks(source_sq, board->occupancies[BOTH]);
+                while (bishop_attacks) {
+                    target_sq = lsb_scan(bishop_attacks);
+                    pop_lsb(bishop_attacks);
+                    target_sq_bit = sq_bit[target_sq];
+                    if (target_sq_bit & board->occupancies[BLACK]) {
+                        continue;
+                    }
+                    int capture = (board->occupancies[WHITE] & target_sq_bit) ? 1 : 0;
+                    pl_move_list[pl_moves_found++] = encode_move(source_sq, target_sq, BLACK_BISHOP, 0, 0, 0, capture, 0, 0, 0);
+                }
+            }
+
+            // rook moves
+            U64 rooks = board->bitboards[BLACK_ROOK];
+            while (rooks) {
+                source_sq = lsb_scan(rooks);
+                pop_lsb(rooks);
+                source_sq_bit = sq_bit[source_sq];
+                U64 rook_attacks = get_rook_attacks(source_sq, board->occupancies[BOTH]);
+                while (rook_attacks) {
+                    target_sq = lsb_scan(rook_attacks);
+                    pop_lsb(rook_attacks);
+                    target_sq_bit = sq_bit[target_sq];
+                    if (target_sq_bit & board->occupancies[BLACK]) {
+                        continue;
+                    }
+                    int capture = (board->occupancies[WHITE] & target_sq_bit) ? 1 : 0;
+                    pl_move_list[pl_moves_found++] = encode_move(source_sq, target_sq, BLACK_ROOK, 0, 0, 0, capture, 0, 0, 0);
+                }
+            }
+
+            // queen moves
+            U64 queens = board->bitboards[BLACK_QUEEN];
+            while (queens) {
+                source_sq = lsb_scan(queens);
+                pop_lsb(queens);
+                source_sq_bit = sq_bit[source_sq];
+                U64 queen_attacks = get_queen_attacks(source_sq, board->occupancies[BOTH]);
+                while (queen_attacks) {
+                    target_sq = lsb_scan(queen_attacks);
+                    pop_lsb(queen_attacks);
+                    target_sq_bit = sq_bit[target_sq];
+                    if (target_sq_bit & board->occupancies[BLACK]) {
+                        continue;
+                    }
+                    int capture = (board->occupancies[WHITE] & target_sq_bit) ? 1 : 0;
+                    pl_move_list[pl_moves_found++] = encode_move(source_sq, target_sq, BLACK_QUEEN, 0, 0, 0, capture, 0, 0, 0);
+                }
+            }
+            
+            // king moves
+            source_sq = lsb_scan(board->bitboards[BLACK_KING]);
+            source_sq_bit = sq_bit[source_sq];
+            U64 king_attacks = get_king_attacks(source_sq);
+            while (king_attacks) {
+                target_sq = lsb_scan(king_attacks);
+                pop_lsb(king_attacks);
+                target_sq_bit = sq_bit[target_sq];
+                if (target_sq_bit & board->occupancies[BLACK]) {
+                    continue;
+                }
+                int capture = (board->occupancies[WHITE] & target_sq_bit) ? 1 : 0;
+                pl_move_list[pl_moves_found++] = encode_move(source_sq, target_sq, BLACK_KING, 0, 0, 0, capture, 0, 0, 0);
+            }
+            //castling
+            if (board->castling_rights & BLACK_CASTLE_KINGSIDE) {
+                if (!(board->occupancies[BOTH] & (F8|G8))) {
+                    pl_move_list[pl_moves_found++] = encode_move(source_sq, g8, BLACK_KING, 0, 0, 0, 0, 0, 1, 0);
+                }
+            }
+            if (board->castling_rights & BLACK_CASTLE_QUEENSIDE) {
+                if (!(board->occupancies[BOTH] & (B8|C8|D8))) {
+                    pl_move_list[pl_moves_found++] = encode_move(source_sq, c8, BLACK_KING, 0, 0, 0, 0, 0, 0, 1);
+                }
+            }
         }
 
         assert (pl_moves_found <= max_pl_move_index);
@@ -451,14 +626,14 @@ int main() {
     BoardState::reset(&board);
 
     // char start_fen[] = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
-    char fen1[] = "rnbqkbnr/pppppppp/8/8/8/1p6/4pPPP/R3K2R w KQkq a3 0 1";
+    char fen1[] = "rnbqkbnr/pppppppp/8/8/8/1p6/4pPPP/R3KN1R w KQkq a3 0 1";
     BoardState::load(&board, fen1);
     BoardState::print(&board);
     // board.enpassant_sq = b6;
 
     MoveGenerator moves;
     moves.generate_pl_moves(&board);
-    moves.print_pl_moves(WHITE_KING);
+    moves.print_pl_moves(WHITE_KNIGHT);
 
     return 0;
 }
