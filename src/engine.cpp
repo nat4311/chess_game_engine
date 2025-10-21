@@ -197,6 +197,7 @@ struct BoardState {
 
     // TODO: implement this
     // TODO: add move/capture stacks for unmake
+    // TODO: check for checks after move (if king move, check for check before, and through if castle)
     static void make(BoardState* board, U32 move) {
         // encode_move(source_sq, target_sq, piece_type, promotion_type, promotion, double_pawn_push, capture, enpassant_capture)
         int source_sq = decode_move_source_sq(move);
