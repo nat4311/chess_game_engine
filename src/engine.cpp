@@ -425,7 +425,7 @@ struct MoveGenerator{
                 U64 pawn_attacks = get_pawn_attacks(BLACK, source_sq);
                 
                 // pawn move from start square
-                if (source_sq_bit & rank_2) {
+                if (source_sq_bit & rank_7) {
                     if (!(source_sq_bit<<8 & pawn_blockers)) { // single push
                         target_sq = source_sq + 8;
                         pl_move_list[pl_moves_found++] = encode_move(source_sq, target_sq, BLACK_PAWN, 0, 0, 0, 0, 0, 0, 0);
@@ -600,7 +600,7 @@ struct MoveGenerator{
     }
 
     void print_pl_moves(int piece_type) {
-        printf("             dcekq\n");
+        printf("PL MOVES     dcekq\n------------------\n");
         for (int i=0; i<pl_moves_found; i++) {
             U32 move = pl_move_list[i];
             if (piece_type == NO_PIECE || decode_move_piece_type(move) == piece_type) {
@@ -626,14 +626,16 @@ int main() {
     BoardState::reset(&board);
 
     // char start_fen[] = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
-    char fen1[] = "rnbqkbnr/pppppppp/8/8/8/1p6/4pPPP/R3KN1R w KQkq a3 0 1";
+    char fen1[] = "1111k2r/4P3/5p1p/8/pbp5/8/PPPPPPPP/R3KN1R b KQ b3 0 1";
     BoardState::load(&board, fen1);
     BoardState::print(&board);
     // board.enpassant_sq = b6;
 
     MoveGenerator moves;
     moves.generate_pl_moves(&board);
-    moves.print_pl_moves(WHITE_KNIGHT);
+    moves.print_pl_moves(BLACK_KING);
+    // printf("==================\n");
+    // moves.print_pl_moves(WHITE_PAWN);
 
     return 0;
 }

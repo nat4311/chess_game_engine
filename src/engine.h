@@ -97,7 +97,7 @@ enum {
     NO_PIECE,
 };
 
-constexpr const char piece_char[] = {'P', 'N', 'B', 'R', 'Q', 'K'};
+constexpr const char piece_char[] = {'P', 'N', 'B', 'R', 'Q', 'K', 'p', 'n', 'b', 'r', 'q', 'k'};
 
 #ifdef TERMINAL_DARK_MODE
 constexpr const char* unicode_pieces[12] = {"♟","♞","♝","♜","♛","♚","♙","♘","♗","♖","♕","♔",};
