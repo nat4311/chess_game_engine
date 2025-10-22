@@ -29,6 +29,9 @@ struct BoardState {
     // index: side (WHITE, BLACK, BOTH)
     U64 occupancies[3];
 
+    // for unmake - encodes the irreversible aspects of a position when a move is made with make
+    U32 irreversibilities;
+
     static void reset(BoardState* board) {
         board->turn = WHITE;
         board->castling_rights = WHITE_CASTLE_KINGSIDE | WHITE_CASTLE_QUEENSIDE | BLACK_CASTLE_KINGSIDE | BLACK_CASTLE_QUEENSIDE;
@@ -196,20 +199,92 @@ struct BoardState {
     }
 
     // TODO: implement this
-    // TODO: add move/capture stacks for unmake
     // TODO: check for checks after move (if king move, check for check before, and through if castle)
     static void make(BoardState* board, U32 move) {
-        // encode_move(source_sq, target_sq, piece_type, promotion_type, promotion, double_pawn_push, capture, enpassant_capture)
         int source_sq = decode_move_source_sq(move);
         int target_sq = decode_move_target_sq(move);
         int piece_type = decode_move_piece_type(move);
         int promotion = decode_move_promotion(move);
         int capture = decode_move_capture(move);
+        int captured_piece = NO_PIECE;
+
+        if (capture) {
+            if (board->turn == WHITE) {
+                if (board->bitboards[BLACK_PAWN] & target_sq) {
+                    captured_piece = BLACK_PAWN;
+                    goto CAPTURED_PIECE_FOUND;
+                }
+                if (board->bitboards[BLACK_KNIGHT] & target_sq) {
+                    captured_piece = BLACK_KNIGHT;
+                    goto CAPTURED_PIECE_FOUND;
+                }
+                if (board->bitboards[BLACK_BISHOP] & target_sq) {
+                    captured_piece = BLACK_BISHOP;
+                    goto CAPTURED_PIECE_FOUND;
+                }
+                if (board->bitboards[BLACK_ROOK] & target_sq) {
+                    captured_piece = BLACK_ROOK;
+                    goto CAPTURED_PIECE_FOUND;
+                }
+                if (board->bitboards[BLACK_QUEEN] & target_sq) {
+                    captured_piece = BLACK_QUEEN;
+                    goto CAPTURED_PIECE_FOUND;
+                }
+                printf("move has capture flag set but no captured_piece was found\n");
+                std::cout << "move: " << move << "\n";
+                assert(0);
+            }
+            else { // board->turn == BLACK
+                if (board->bitboards[WHITE_PAWN] & target_sq) {
+                    captured_piece = WHITE_PAWN;
+                    goto CAPTURED_PIECE_FOUND;
+                }
+                if (board->bitboards[WHITE_KNIGHT] & target_sq) {
+                    captured_piece = WHITE_KNIGHT;
+                    goto CAPTURED_PIECE_FOUND;
+                }
+                if (board->bitboards[WHITE_BISHOP] & target_sq) {
+                    captured_piece = WHITE_BISHOP;
+                    goto CAPTURED_PIECE_FOUND;
+                }
+                if (board->bitboards[WHITE_ROOK] & target_sq) {
+                    captured_piece = WHITE_ROOK;
+                    goto CAPTURED_PIECE_FOUND;
+                }
+                if (board->bitboards[WHITE_QUEEN] & target_sq) {
+                    captured_piece = WHITE_QUEEN;
+                    goto CAPTURED_PIECE_FOUND;
+                }
+                printf("move has capture flag set but no captured_piece was found\n");
+                std::cout << "move: " << move << "\n";
+                assert(0);
+            }
+        }
+        CAPTURED_PIECE_FOUND:
+
+        board->irreversibilities = encode_irreversibilities(captured_piece, board->enpassant_sq, board->castling_rights, board->halfmove);
+
+        // if castling, check that target_sq and sq moved through are not attacked by opponent
+
+        // if noncastling king move, check that target_sq isn't attacked by opponent
+
+        // update the board
+
+        // check for checks
+
+        // unmake if check after move
+
+        // check for checkmate
     }
     
     // TODO: implement this
     static void unmake(BoardState* board) {
 
+    }
+
+    // TODO: implement this
+    static bool is_it_checkmate(BoardState* board) {
+        return 1;
     }
 };
 
