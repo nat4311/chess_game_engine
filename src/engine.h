@@ -320,4 +320,3 @@ inline void print_move(U32 move) {
         << double_pawn_push << capture << enpassant_capture << castle_kingside << castle_queenside
         << "\n";
 }
-

@@ -31,10 +31,10 @@ U64 get_knight_attacks(int square);
 U64 get_king_attacks(int square);
 
 // square is 0-63, occupancy is for both sides
-U64 get_bishop_attacks(int square, U64 occupancy);
+U64 get_bishop_attacks(int square, U64 occupancy_both);
 
 // square is 0-63, occupancy is for both sides
-U64 get_rook_attacks(int square, U64 occupancy);
+U64 get_rook_attacks(int square, U64 occupancy_both);
 
 // square is 0-63, occupancy is for both sides
-U64 get_queen_attacks(int square, U64 occupancy);
+U64 get_queen_attacks(int square, U64 occupancy_both);

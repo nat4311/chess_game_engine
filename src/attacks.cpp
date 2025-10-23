@@ -27,8 +27,6 @@ static void init_pawn_attacks() {
         pawn_attacks[BLACK][sq] = 0ULL;
         U64 sq_bitmask = sq_bit[sq];
 
-        if ((sq_bitmask & rank_8) || (sq_bitmask & rank_1)) { continue; }
-
         if (sq_bitmask & not_a_file) {
             pawn_attacks[WHITE][sq] |= sq_bitmask >> 9;
             pawn_attacks[BLACK][sq] |= sq_bitmask << 7;
@@ -134,8 +132,8 @@ static U64 bishop_attack_tables[64][bishop_magic_indices];
 // index: square
 static U64 bishop_magic_numbers[64];
 
-U64 get_bishop_attacks(int square, U64 occupancy) {
-    U64 magic_index = ((occupancy & bishop_relevant_bits_masks[square]) * bishop_magic_numbers[square]) >> (64-bishop_max_relevant_occupancies);
+U64 get_bishop_attacks(int square, U64 occupancy_both) {
+    U64 magic_index = ((occupancy_both & bishop_relevant_bits_masks[square]) * bishop_magic_numbers[square]) >> (64-bishop_max_relevant_occupancies);
     return bishop_attack_tables[square][magic_index];
 }
 
@@ -151,7 +149,7 @@ static void init_bishop_masks() {
     }
 }
 
-static U64 get_bishop_attacks_slow(int square, U64 occupancy) {
+static U64 get_bishop_attacks_slow(int square, U64 occupancy_both) {
     U64 attacks = 0ULL;
     int x0 = square % 8;
     int y0 = square / 8;
@@ -160,25 +158,25 @@ static U64 get_bishop_attacks_slow(int square, U64 occupancy) {
     for (x=x0+1, y=y0+1; x<=7 && y<=7; x++, y++) {
         sq = x + 8*y;
         attacks |= sq_bit[sq];
-        if (sq_bit[sq] & occupancy) { break; }
+        if (sq_bit[sq] & occupancy_both) { break; }
     }
 
     for (x=x0+1, y=y0-1; x<=7 && y>=0; x++, y--) {
         sq = x + 8*y;
         attacks |= sq_bit[sq];
-        if (sq_bit[sq] & occupancy) { break; }
+        if (sq_bit[sq] & occupancy_both) { break; }
     }
 
     for (x=x0-1, y=y0+1; x>=0 && y<=7; x--, y++) {
         sq = x + 8*y;
         attacks |= sq_bit[sq];
-        if (sq_bit[sq] & occupancy) { break; }
+        if (sq_bit[sq] & occupancy_both) { break; }
     }
 
     for (x=x0-1, y=y0-1; x>=0 && y>=0; x--, y--) {
         sq = x + 8*y;
         attacks |= sq_bit[sq];
-        if (sq_bit[sq] & occupancy) { break; }
+        if (sq_bit[sq] & occupancy_both) { break; }
     }
     
     return attacks;
@@ -293,8 +291,8 @@ static U64 rook_attack_tables[64][rook_magic_indices];
 // index: square
 static U64 rook_magic_numbers[64];
 
-U64 get_rook_attacks(int square, U64 occupancy) {
-    U64 magic_index = ((occupancy & rook_relevant_bits_masks[square]) * rook_magic_numbers[square]) >> (64-rook_max_relevant_occupancies);
+U64 get_rook_attacks(int square, U64 occupancy_both) {
+    U64 magic_index = ((occupancy_both & rook_relevant_bits_masks[square]) * rook_magic_numbers[square]) >> (64-rook_max_relevant_occupancies);
     return rook_attack_tables[square][magic_index];
 }
 
@@ -310,7 +308,7 @@ static void init_rook_masks() {
     }
 }
 
-static U64 get_rook_attacks_slow(int square, U64 occupancy) {
+static U64 get_rook_attacks_slow(int square, U64 occupancy_both) {
     U64 attacks = 0ULL;
     int x0 = square % 8;
     int y0 = square / 8;
@@ -319,25 +317,25 @@ static U64 get_rook_attacks_slow(int square, U64 occupancy) {
     for (x=x0+1, y=y0; x<=7; x++) {
         sq = x + 8*y;
         attacks |= sq_bit[sq];
-        if (sq_bit[sq] & occupancy) { break; }
+        if (sq_bit[sq] & occupancy_both) { break; }
     }
 
     for (x=x0-1, y=y0; x>=0; x--) {
         sq = x + 8*y;
         attacks |= sq_bit[sq];
-        if (sq_bit[sq] & occupancy) { break; }
+        if (sq_bit[sq] & occupancy_both) { break; }
     }
 
     for (x=x0, y=y0+1; y<=7; y++) {
         sq = x + 8*y;
         attacks |= sq_bit[sq];
-        if (sq_bit[sq] & occupancy) { break; }
+        if (sq_bit[sq] & occupancy_both) { break; }
     }
 
     for (x=x0, y=y0-1; y>=0; y--) {
         sq = x + 8*y;
         attacks |= sq_bit[sq];
-        if (sq_bit[sq] & occupancy) { break; }
+        if (sq_bit[sq] & occupancy_both) { break; }
     }
 
     return attacks;
@@ -432,8 +430,8 @@ static void init_rook_attacks() {
                               Section: queen attacks
 /*/////////////////////////////////////////////////////////////////////////////
 
-U64 get_queen_attacks(int square, U64 occupancy) {
-    return get_bishop_attacks(square, occupancy) | get_rook_attacks(square, occupancy);
+U64 get_queen_attacks(int square, U64 occupancy_both) {
+    return get_bishop_attacks(square, occupancy_both) | get_rook_attacks(square, occupancy_both);
 }
 
 /*/////////////////////////////////////////////////////////////////////////////
@@ -455,11 +453,11 @@ int main() {
     init_attacks();
 
     int sq = e6;
-    U64 occupancy = B7 | C6 | D5 | E4 | F3 | G2 | H1 | B8 | A1;
-    print_bitboard(occupancy, sq);
-    U64 attacks = get_rook_attacks(sq, occupancy);
+    U64 occupancy_both = B7 | C6 | D5 | E4 | F3 | G2 | H1 | B8 | A1;
+    print_bitboard(occupancy_both, sq);
+    U64 attacks = get_rook_attacks(sq, occupancy_both);
     print_bitboard(attacks, sq);
-    U64 attacks3 = get_bishop_attacks(sq, occupancy);
+    U64 attacks3 = get_bishop_attacks(sq, occupancy_both);
     print_bitboard(attacks3, sq);
     // U64 attacks4 = get_queen_attacks(sq, occupancy);
     // print_bitboard(attacks4, sq);
