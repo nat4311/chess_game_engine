@@ -280,7 +280,7 @@ inline U32 encode_irreversibilities(
 #define decode_irreversibility_castling_rights(irreversibility) (int((irreversibility>>11) & 15))
 #define decode_irreversibility_halfmove(irreversibility)        (int((irreversibility>>15) & 128))
 
-inline void print_move(U32 move) {
+inline void print_move(U32 move, bool verbose) {
     int source_sq = decode_move_source_sq(move);
     int target_sq = decode_move_target_sq(move);
     int piece_type = decode_move_piece_type(move);
@@ -310,13 +310,32 @@ inline void print_move(U32 move) {
         }
     }
 
-    std::cout
-        << piece_char[piece_type]
-        << "    "
-        << sq_str[source_sq]
-        << sq_str[target_sq]
-        << promotion_char
-        << "   "
-        << double_pawn_push << capture << enpassant_capture << castle_kingside << castle_queenside
-        << "\n";
+    if (verbose) {
+        std::cout
+            << "===============================\n"
+            << "       print_move: " << move << "\n"
+            << "       piece type: " << piece_char[piece_type] << "\n"
+            << "        source_sq: " << sq_str[source_sq] << "\n"
+            << "        target_sq: " << sq_str[target_sq] << "\n"
+            << "   promotion_type: " << piece_char[promotion_type] << "\n"
+            << "        promotion: " << promotion << "\n"
+            << " double_pawn_push: " << double_pawn_push << "\n"
+            << "          capture: " << capture << "\n"
+            << "enpassant_capture: " << enpassant_capture << "\n"
+            << "  castle_kingside: " << castle_kingside << "\n"
+            << " castle_queenside: " << castle_queenside << "\n"
+            << "===============================\n"
+            << "\n";
+    }
+    else {
+        std::cout
+            << piece_char[piece_type]
+            << "    "
+            << sq_str[source_sq]
+            << sq_str[target_sq]
+            << promotion_char
+            << "   "
+            << double_pawn_push << capture << enpassant_capture << castle_kingside << castle_queenside
+            << "\n";
+    }
 }

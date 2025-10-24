@@ -5,6 +5,7 @@
 #include "engine.h"
 #include "attacks.h"
 #include <assert.h>
+#include <unistd.h>
 
 /*////////////////////////////////////////////////////////////////////////////////
                                Section: BoardState
@@ -95,7 +96,10 @@ struct BoardState {
                 else if (c == 'r') { board->bitboards[BLACK_ROOK]   |= sq_bit[sq]; board->occupancies[BLACK] |= sq_bit[sq]; }
                 else if (c == 'q') { board->bitboards[BLACK_QUEEN]  |= sq_bit[sq]; board->occupancies[BLACK] |= sq_bit[sq]; }
                 else if (c == 'k') { board->bitboards[BLACK_KING]   |= sq_bit[sq]; board->occupancies[BLACK] |= sq_bit[sq]; }
-                else { printf("invalid piece type: %c\n", c); assert(0); }
+                else {
+                    printf("invalid piece type: %c\n", c); assert(0);
+                    throw std::runtime_error("invalid piece type: " + std::to_string(c) + "\n");
+                }
             }
         }
 
@@ -185,17 +189,16 @@ struct BoardState {
             printf(" %d\n", 8-y);
         }
         printf("\n    A  B  C  D  E  F  G  H\n\n");
-        printf("           turn: %s\n", board->turn == WHITE ? "white" : "black");
-        printf("castling_rights: %c%c%c%c\n",
+        printf("               turn: %s\n", board->turn == WHITE ? "white" : "black");
+        printf("    castling_rights: %c%c%c%c\n",
                board->castling_rights & WHITE_CASTLE_KINGSIDE ? 'K' : '-',
                board->castling_rights & WHITE_CASTLE_QUEENSIDE ? 'Q' : '-',
                board->castling_rights & BLACK_CASTLE_KINGSIDE ? 'k' : '-',
                board->castling_rights & BLACK_CASTLE_QUEENSIDE ? 'q' : '-');
-        printf("   enpassant_sq: %s\n", board->enpassant_sq == no_sq ? "none" : sq_str[board->enpassant_sq]);
-        printf("       halfmove: %d\n\n", board->halfmove);
+        printf("       enpassant_sq: %s\n", board->enpassant_sq == no_sq ? "none" : sq_str[board->enpassant_sq]);
+        printf("           halfmove: %d\n\n", board->halfmove);
     }
 
-    // TODO: test this.
     // attempt to make a pl move.
     // returns 0 if move is illegal due to checks, 1 if legal.
     static bool make(BoardState* board, U32 move) {
@@ -204,6 +207,7 @@ struct BoardState {
         int moving_piece_type = decode_move_piece_type(move);
         int promotion = decode_move_promotion(move);
         int capture = decode_move_capture(move);
+        int enpassant_capture = decode_move_enpassant_capture(move);
         int castle_kingside = decode_move_castle_kingside(move);
         int castle_queenside = decode_move_castle_queenside(move);
         int double_pawn_push = decode_move_double_pawn_push(move);
@@ -251,68 +255,82 @@ struct BoardState {
                 king_sq_after_move = c8;
             }
         }
-        else { // normal move
-            U64 source_and_target_sq_bits = sq_bit[source_sq] | sq_bit[target_sq];
+        else { // non-castling move
+            U64 source_sq_bit = sq_bit[source_sq];
+            U64 target_sq_bit = sq_bit[target_sq];
+            U64 source_and_target_sq_bits = source_sq_bit | target_sq_bit;
             board->bitboards[moving_piece_type] ^= source_and_target_sq_bits;
             board->occupancies[board->turn] ^= source_and_target_sq_bits;
             king_sq_after_move = lsb_scan(board->turn==WHITE? board->bitboards[WHITE_KING] : board->bitboards[BLACK_KING]);
 
-            if (capture) {
+            if (enpassant_capture) {
+                board->occupancies[BOTH] ^= sq_bit[source_sq];
+                int capture_sq_bit = sq_bit[target_sq];
                 if (board->turn == WHITE) {
-                    if (board->bitboards[BLACK_PAWN] & target_sq) {
+                    capture_sq_bit <<= 8;
+                    board->bitboards[BLACK_PAWN] ^= capture_sq_bit;
+                    board->occupancies[BLACK] ^= capture_sq_bit;
+                }
+                else {
+                    capture_sq_bit >>= 8;
+                    board->bitboards[WHITE_PAWN] ^= capture_sq_bit;
+                    board->occupancies[WHITE] ^= capture_sq_bit;
+                }
+            }
+            else if (capture) {
+                if (board->turn == WHITE) {
+                    if (board->bitboards[BLACK_PAWN] & target_sq_bit) {
                         captured_piece_type = BLACK_PAWN;
                         goto CAPTURED_PIECE_FOUND;
                     }
-                    if (board->bitboards[BLACK_KNIGHT] & target_sq) {
+                    if (board->bitboards[BLACK_KNIGHT] & target_sq_bit) {
                         captured_piece_type = BLACK_KNIGHT;
                         goto CAPTURED_PIECE_FOUND;
                     }
-                    if (board->bitboards[BLACK_BISHOP] & target_sq) {
+                    if (board->bitboards[BLACK_BISHOP] & target_sq_bit) {
                         captured_piece_type = BLACK_BISHOP;
                         goto CAPTURED_PIECE_FOUND;
                     }
-                    if (board->bitboards[BLACK_ROOK] & target_sq) {
+                    if (board->bitboards[BLACK_ROOK] & target_sq_bit) {
                         captured_piece_type = BLACK_ROOK;
                         goto CAPTURED_PIECE_FOUND;
                     }
-                    if (board->bitboards[BLACK_QUEEN] & target_sq) {
+                    if (board->bitboards[BLACK_QUEEN] & target_sq_bit) {
                         captured_piece_type = BLACK_QUEEN;
                         goto CAPTURED_PIECE_FOUND;
                     }
-                    printf("move has capture flag set but no captured_piece was found\n");
-                    std::cout << "move: " << move << "\n";
-                    assert(0);
+                    print_move(move, 1);
+                    throw std::runtime_error("move has capture flag set but no captured_piece was found\n");
                 }
                 else { // board->turn == BLACK
-                    if (board->bitboards[WHITE_PAWN] & target_sq) {
+                    if (board->bitboards[WHITE_PAWN] & target_sq_bit) {
                         captured_piece_type = WHITE_PAWN;
                         goto CAPTURED_PIECE_FOUND;
                     }
-                    if (board->bitboards[WHITE_KNIGHT] & target_sq) {
+                    if (board->bitboards[WHITE_KNIGHT] & target_sq_bit) {
                         captured_piece_type = WHITE_KNIGHT;
                         goto CAPTURED_PIECE_FOUND;
                     }
-                    if (board->bitboards[WHITE_BISHOP] & target_sq) {
+                    if (board->bitboards[WHITE_BISHOP] & target_sq_bit) {
                         captured_piece_type = WHITE_BISHOP;
                         goto CAPTURED_PIECE_FOUND;
                     }
-                    if (board->bitboards[WHITE_ROOK] & target_sq) {
+                    if (board->bitboards[WHITE_ROOK] & target_sq_bit) {
                         captured_piece_type = WHITE_ROOK;
                         goto CAPTURED_PIECE_FOUND;
                     }
-                    if (board->bitboards[WHITE_QUEEN] & target_sq) {
+                    if (board->bitboards[WHITE_QUEEN] & target_sq_bit) {
                         captured_piece_type = WHITE_QUEEN;
                         goto CAPTURED_PIECE_FOUND;
                     }
-                    printf("move has capture flag set but no captured_piece was found\n");
-                    std::cout << "move: " << move << "\n";
-                    assert(0);
+                    print_move(move, 1);
+                    throw std::runtime_error("move has capture flag set but no captured_piece was found\n");
                 }
 
                 CAPTURED_PIECE_FOUND:
-                board->occupancies[BOTH] ^= sq_bit[source_sq];
-                board->occupancies[captured_piece_type] ^= sq_bit[target_sq];
-                board->occupancies[!board->turn] ^= sq_bit[target_sq];
+                board->occupancies[BOTH] ^= source_sq_bit;
+                board->bitboards[captured_piece_type] ^= target_sq_bit;
+                board->occupancies[!board->turn] ^= target_sq_bit;
             }
             else { // no capture
                 board->occupancies[BOTH] ^= source_and_target_sq_bits;
@@ -320,7 +338,7 @@ struct BoardState {
         }
         // check for checks after piece update
         if (sq_is_attacked(king_sq_after_move, !board->turn, board)) {
-            unmake(source_sq, target_sq, moving_piece_type, captured_piece_type, castle_kingside, castle_queenside, board);
+            unmake(source_sq, target_sq, moving_piece_type, enpassant_capture, captured_piece_type, castle_kingside, castle_queenside, board);
             return 0;
         }
 
@@ -377,9 +395,8 @@ struct BoardState {
         return 0;
     }
     
-    // TODO: test this.
     // assumes that only the pieces have been moved, board state variables have not updated yet (turn, ep, castling, halfmove, etc)
-    static void unmake(int source_sq, int target_sq, int moved_piece_type, int captured_piece_type, int castle_kingside, int castle_queenside, BoardState* board) {
+    static void unmake(int source_sq, int target_sq, int moved_piece_type, int enpassant_capture, int captured_piece_type, int castle_kingside, int castle_queenside, BoardState* board) {
         if (castle_kingside) {
             if (board->turn == WHITE) {
                 board->bitboards[WHITE_KING] ^= (E1|G1);
@@ -414,6 +431,23 @@ struct BoardState {
             board->occupancies[board->turn] ^= source_and_target_sq_bits;
             if (captured_piece_type == NO_PIECE) {
                 board->occupancies[BOTH] ^= source_and_target_sq_bits;
+            }
+            else if (enpassant_capture) {
+                int capture_sq_bit = sq_bit[target_sq];
+                if (board->turn == WHITE) {
+                    assert (captured_piece_type == BLACK_PAWN);
+                    capture_sq_bit <<= 8;
+                    board->occupancies[BOTH] ^= sq_bit[source_sq];
+                    board->bitboards[BLACK_PAWN] ^= capture_sq_bit;
+                    board->occupancies[BLACK] ^= capture_sq_bit;
+                }
+                else {
+                    assert (captured_piece_type == WHITE_PAWN);
+                    capture_sq_bit >>= 8;
+                    board->occupancies[BOTH] ^= sq_bit[source_sq];
+                    board->bitboards[WHITE_PAWN] ^= capture_sq_bit;
+                    board->occupancies[WHITE] ^= capture_sq_bit;
+                }
             }
             else {
                 assert (captured_piece_type >= WHITE_PAWN && captured_piece_type <= BLACK_KING);
@@ -811,7 +845,7 @@ struct MoveGenerator{
         for (int i=0; i<pl_moves_found; i++) {
             U32 move = pl_move_list[i];
             if (piece_type == NO_PIECE || decode_move_piece_type(move) == piece_type) {
-                print_move(pl_move_list[i]);
+                print_move(pl_move_list[i], 0);
             }
         }
     }
@@ -830,19 +864,35 @@ void init_engine() {
 int main() {
     init_engine();
     BoardState board;
+    MoveGenerator moves;
     BoardState::reset(&board);
 
-    // char start_fen[] = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
-    char fen1[] = "1111kppr/4P3/53/8/8/8/PPPPPPPP/R3KN1P b KQ b3 0 1";
-    BoardState::load(&board, fen1);
-    BoardState::print(&board);
-    // board.enpassant_sq = b6;
+    // print_bitboard(board.bitboards[WHITE_PAWN]);
 
-    MoveGenerator moves;
+    // char start_fen[] = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+    // char fen1[] = "rnbqk2r/p1pppppp/2B5/Pp6/8/8/8/R3K2R b KQkq b6 0 1";
+    char fen1[] = "rnbqk2r/3p4/2B5/P7/8/8/8/R3K2R b KQkq b6 0 1";
+    BoardState::load(&board, fen1);
+    std::cout << "==============================\n" << "start: \n\n";
+    BoardState::print(&board);
+
+    U64 sleep_time = .5*1000000ULL;
     moves.generate_pl_moves(&board);
-    // moves.print_pl_moves(BLACK_KING);
-    // printf("==================\n");
-    moves.print_pl_moves(BLACK_PAWN);
+    for (int i=0; i<moves.pl_moves_found; i++) {
+        U32 move = moves.pl_move_list[i];
+        if (decode_move_piece_type(move) == BLACK_PAWN) {
+            BoardState board_copy = board;
+            if(!BoardState::make(&board_copy, move)) {
+                continue;
+            }
+            usleep(sleep_time);
+            std::cout << "==============================\n" << move << "\n\n";
+            BoardState::print(&board_copy);
+        }
+    }
+    usleep(sleep_time);
+    std::cout << "==============================\n" << "start again" << "\n\n";
+    BoardState::print(&board);
 
     return 0;
 }
