@@ -468,10 +468,6 @@ struct MoveGenerator{
     U32 pl_move_list[max_pl_move_index];
     int pl_moves_found;
 
-    constexpr static int max_move_index = 256;
-    U32 move_list[max_move_index];
-    int moves_found;
-
     // generate pseudo-legal moves.
     // moves stored in pl_move_list.
     // max index pl_moves_found.
@@ -840,6 +836,18 @@ struct MoveGenerator{
         assert (pl_moves_found <= max_pl_move_index);
     }
 
+    int count_l_moves(BoardState* board) {
+        int l_moves_found = 0;
+        generate_pl_moves(board);
+        for (int move_index=0; move_index<pl_moves_found; move_index++) {
+            BoardState board_copy = *board;
+            if (BoardState::make(&board_copy, pl_move_list[move_index])) {
+                l_moves_found++;
+            }
+        }
+        return l_moves_found;
+    }
+
     void print_pl_moves(int piece_type) {
         printf("PL MOVES     dcekq\n------------------\n");
         for (int i=0; i<pl_moves_found; i++) {
@@ -851,7 +859,56 @@ struct MoveGenerator{
     }
 };
 
-// TODO: perft test
+/*////////////////////////////////////////////////////////////////////////////////
+                             Section: perft testing
+/*////////////////////////////////////////////////////////////////////////////////
+
+char perft_initial_position[] = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+
+// TODO: implement this
+U64 perft(BoardState *board, int depth) {
+    MoveGenerator moves;
+    if (depth == 1) {
+        return moves.count_l_moves(board);
+    }
+    else {
+        U64 nodes = 0;
+        moves.generate_pl_moves(board);
+        for (int move_index=0; move_index<moves.pl_moves_found; move_index++) {
+            BoardState board_copy = *board;
+            if (BoardState::make(&board_copy, moves.pl_move_list[move_index])) {
+                nodes += perft(&board_copy, depth-1);
+            }
+        }
+        return nodes;
+    }
+}
+
+void perft_test(char start_fen[], int depth) {
+    // initialize
+    auto t0 = timestamp();
+    BoardState board;
+    MoveGenerator moves;
+    BoardState::load(&board, start_fen);
+
+    // generate nodes
+    U64 nodes = perft(&board, depth);
+
+    // print timing info
+    auto t1 = timestamp();
+    U64 time_elapsed;
+    std::string time_elapsed_str;
+    if (delta_timestamp_s(t0,t1) > 0) { time_elapsed = delta_timestamp_s(t0, t1); time_elapsed_str = " s\n"; }
+    else if (delta_timestamp_ms(t0,t1) > 0) { time_elapsed = delta_timestamp_ms(t0, t1); time_elapsed_str = " ms\n"; }
+    else { time_elapsed = delta_timestamp_us(t0, t1); time_elapsed_str = " us\n"; }
+    std::cout
+        << "============================\n"
+        << "perft_test complete\n"
+        << "nodes: " << nodes << "\n"
+        << "time: " << time_elapsed << time_elapsed_str
+        << "depth: " << depth << "\n";
+    return;
+}
 
 /*////////////////////////////////////////////////////////////////////////////////
                              Section: init and main
@@ -865,34 +922,34 @@ int main() {
     init_engine();
     BoardState board;
     MoveGenerator moves;
-    BoardState::reset(&board);
 
-    // print_bitboard(board.bitboards[WHITE_PAWN]);
+    perft_test(perft_initial_position, 4);
 
-    // char start_fen[] = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
-    // char fen1[] = "rnbqk2r/p1pppppp/2B5/Pp6/8/8/8/R3K2R b KQkq b6 0 1";
-    char fen1[] = "rnbqk2r/3p4/2B5/P7/8/8/8/R3K2R b KQkq b6 0 1";
-    BoardState::load(&board, fen1);
-    std::cout << "==============================\n" << "start: \n\n";
-    BoardState::print(&board);
-
-    U64 sleep_time = .5*1000000ULL;
-    moves.generate_pl_moves(&board);
-    for (int i=0; i<moves.pl_moves_found; i++) {
-        U32 move = moves.pl_move_list[i];
-        if (decode_move_piece_type(move) == BLACK_PAWN) {
-            BoardState board_copy = board;
-            if(!BoardState::make(&board_copy, move)) {
-                continue;
-            }
-            usleep(sleep_time);
-            std::cout << "==============================\n" << move << "\n\n";
-            BoardState::print(&board_copy);
-        }
-    }
-    usleep(sleep_time);
-    std::cout << "==============================\n" << "start again" << "\n\n";
-    BoardState::print(&board);
+    // // manual move check
+    //
+    // // char fen1[] = "rnbqk2r/p1pppppp/2B5/Pp6/8/8/8/R3K2R b KQkq b6 0 1";
+    // char fen1[] = "rnbqk2r/3p4/2B5/P7/8/8/8/R3K2R b KQkq b6 0 1";
+    // BoardState::load(&board, fen1);
+    // std::cout << "==============================\n" << "start: \n\n";
+    // BoardState::print(&board);
+    //
+    // U64 sleep_time = .5*1000000ULL;
+    // moves.generate_pl_moves(&board);
+    // for (int i=0; i<moves.pl_moves_found; i++) {
+    //     U32 move = moves.pl_move_list[i];
+    //     if (decode_move_piece_type(move) == BLACK_PAWN) {
+    //         BoardState board_copy = board;
+    //         if(!BoardState::make(&board_copy, move)) {
+    //             continue;
+    //         }
+    //         usleep(sleep_time);
+    //         std::cout << "==============================\n" << move << "\n\n";
+    //         BoardState::print(&board_copy);
+    //     }
+    // }
+    // usleep(sleep_time);
+    // std::cout << "==============================\n" << "start again" << "\n\n";
+    // BoardState::print(&board);
 
     return 0;
 }
