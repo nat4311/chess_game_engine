@@ -439,12 +439,15 @@ U64 get_queen_attacks(int square, U64 occupancy_both) {
 /*/////////////////////////////////////////////////////////////////////////////
 
 void init_attacks() {
+
+    auto t0 = timestamp();
     init_pawn_attacks();
     init_knight_attacks();
     init_king_attacks();
     init_bishop_attacks();
     init_rook_attacks();
-    printf("attacks initialized in TODO s\n");
+    auto t1 = timestamp();
+    std::cout << "attacks initialized in " << delta_timestamp_ms(t0, t1) << " ms\n";
 }
 
 #ifndef MAIN

@@ -3,11 +3,25 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <iostream>
+#include <chrono>
 
 #define U64 uint64_t
 #define U32 uint32_t
 #define U16 uint32_t
 #define TERMINAL_DARK_MODE
+
+/*/////////////////////////////////////////////////////////////////////////////
+                          Section: Timing Helper Functions
+/*/////////////////////////////////////////////////////////////////////////////
+
+// returns a time_point object
+#define timestamp() std::chrono::high_resolution_clock::now()
+// returns integer type in seconds (just use auto)
+#define delta_timestamp_s(t0, t1) std::chrono::duration_cast<std::chrono::seconds>(t1 - t0).count()
+// returns integer type in milliseconds (just use auto)
+#define delta_timestamp_ms(t0, t1) std::chrono::duration_cast<std::chrono::milliseconds>(t1 - t0).count()
+// returns integer type in microseconds (just use auto)
+#define delta_timestamp_us(t0, t1) std::chrono::duration_cast<std::chrono::microseconds>(t1 - t0).count()
 
 /*/////////////////////////////////////////////////////////////////////////////
                           Section: Helper Functions
