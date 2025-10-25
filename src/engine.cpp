@@ -217,7 +217,7 @@ struct BoardState {
         // update the pieces (unless trying to castle out of or through check)
         if (castle_kingside) {
             if (board->turn == WHITE) {
-                if (sq_is_attacked(e1, BLACK, board) || sq_is_attacked(f1, BLACK, board)) { return 0; }
+                if (is_sq_attacked(e1, BLACK, board) || is_sq_attacked(f1, BLACK, board)) { return 0; }
 
                 board->bitboards[WHITE_KING] ^= (E1|G1);
                 board->bitboards[WHITE_ROOK] ^= (H1|F1);
@@ -226,7 +226,7 @@ struct BoardState {
                 king_sq_after_move = g1;
             }
             else { // board->turn == BLACK 
-                if (sq_is_attacked(e8, WHITE, board) || sq_is_attacked(f8, WHITE, board)) { return 0; }
+                if (is_sq_attacked(e8, WHITE, board) || is_sq_attacked(f8, WHITE, board)) { return 0; }
 
                 board->bitboards[BLACK_KING] ^= (E8|G8);
                 board->bitboards[BLACK_ROOK] ^= (H8|F8);
@@ -237,7 +237,7 @@ struct BoardState {
         }
         else if (castle_queenside) {
             if (board->turn == WHITE) {
-                if (sq_is_attacked(e1, BLACK, board) || sq_is_attacked(d1, BLACK, board)) { return 0; }
+                if (is_sq_attacked(e1, BLACK, board) || is_sq_attacked(d1, BLACK, board)) { return 0; }
 
                 board->bitboards[WHITE_KING] ^= (E1|C1);
                 board->bitboards[WHITE_ROOK] ^= (A1|D1);
@@ -246,7 +246,7 @@ struct BoardState {
                 king_sq_after_move = c1;
             }
             else { // board->turn == BLACK
-                if (sq_is_attacked(e8, WHITE, board) || sq_is_attacked(d8, WHITE, board)) { return 0; }
+                if (is_sq_attacked(e8, WHITE, board) || is_sq_attacked(d8, WHITE, board)) { return 0; }
 
                 board->bitboards[BLACK_KING] ^= (E8|C8);
                 board->bitboards[BLACK_ROOK] ^= (A8|D8);
@@ -340,7 +340,7 @@ struct BoardState {
             king_sq_after_move = lsb_scan(board->turn==WHITE? board->bitboards[WHITE_KING] : board->bitboards[BLACK_KING]);
         }
         // check for checks after piece update
-        if (sq_is_attacked(king_sq_after_move, !board->turn, board)) {
+        if (is_sq_attacked(king_sq_after_move, !board->turn, board)) {
             unmake(source_sq, target_sq, moving_piece_type, enpassant_capture, captured_piece_type, castle_kingside, castle_queenside, board);
             return 0;
         }
@@ -379,7 +379,7 @@ struct BoardState {
     }
 
     // for checking for checks
-    static bool sq_is_attacked(int sq, int by_side, BoardState* board) {
+    static bool is_sq_attacked(int sq, int by_side, BoardState* board) {
         assert (sq >= 0 && sq <= 63);
         if (by_side == WHITE) {
             if (get_pawn_attacks(BLACK, sq) & board->bitboards[WHITE_PAWN]) { return 1; }
