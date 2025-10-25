@@ -259,9 +259,6 @@ struct BoardState {
             U64 source_sq_bit = sq_bit[source_sq];
             U64 target_sq_bit = sq_bit[target_sq];
             U64 source_and_target_sq_bits = source_sq_bit | target_sq_bit;
-            board->bitboards[moving_piece_type] ^= source_and_target_sq_bits;
-            board->occupancies[board->turn] ^= source_and_target_sq_bits;
-            king_sq_after_move = lsb_scan(board->turn==WHITE? board->bitboards[WHITE_KING] : board->bitboards[BLACK_KING]);
 
             if (enpassant_capture) {
                 board->occupancies[BOTH] ^= sq_bit[source_sq];
@@ -299,6 +296,7 @@ struct BoardState {
                         captured_piece_type = BLACK_QUEEN;
                         goto CAPTURED_PIECE_FOUND;
                     }
+                    BoardState::print(board);
                     print_move(move, 1);
                     throw std::runtime_error("move has capture flag set but no captured_piece was found\n");
                 }
@@ -323,6 +321,7 @@ struct BoardState {
                         captured_piece_type = WHITE_QUEEN;
                         goto CAPTURED_PIECE_FOUND;
                     }
+                    BoardState::print(board);
                     print_move(move, 1);
                     throw std::runtime_error("move has capture flag set but no captured_piece was found\n");
                 }
@@ -335,6 +334,10 @@ struct BoardState {
             else { // no capture
                 board->occupancies[BOTH] ^= source_and_target_sq_bits;
             }
+
+            board->bitboards[moving_piece_type] ^= source_and_target_sq_bits;
+            board->occupancies[board->turn] ^= source_and_target_sq_bits;
+            king_sq_after_move = lsb_scan(board->turn==WHITE? board->bitboards[WHITE_KING] : board->bitboards[BLACK_KING]);
         }
         // check for checks after piece update
         if (sq_is_attacked(king_sq_after_move, !board->turn, board)) {
@@ -382,6 +385,7 @@ struct BoardState {
             if (get_pawn_attacks(BLACK, sq) & board->bitboards[WHITE_PAWN]) { return 1; }
             if (get_knight_attacks(sq) & board->bitboards[WHITE_KNIGHT]) { return 1; }
             if (get_bishop_attacks(sq, board->occupancies[BOTH]) & board->bitboards[WHITE_BISHOP]) { return 1; }
+            if (get_rook_attacks(sq, board->occupancies[BOTH]) & board->bitboards[WHITE_ROOK]) { return 1; }
             if (get_queen_attacks(sq, board->occupancies[BOTH]) & board->bitboards[WHITE_QUEEN]) { return 1; }
             if (get_king_attacks(sq) & board->bitboards[WHITE_KING]) { return 1; }
         }
@@ -389,6 +393,7 @@ struct BoardState {
             if (get_pawn_attacks(WHITE, sq) & board->bitboards[BLACK_PAWN]) { return 1; }
             if (get_knight_attacks(sq) & board->bitboards[BLACK_KNIGHT]) { return 1; }
             if (get_bishop_attacks(sq, board->occupancies[BOTH]) & board->bitboards[BLACK_BISHOP]) { return 1; }
+            if (get_rook_attacks(sq, board->occupancies[BOTH]) & board->bitboards[BLACK_ROOK]) { return 1; }
             if (get_queen_attacks(sq, board->occupancies[BOTH]) & board->bitboards[BLACK_QUEEN]) { return 1; }
             if (get_king_attacks(sq) & board->bitboards[BLACK_KING]) { return 1; }
         }
@@ -865,7 +870,8 @@ struct MoveGenerator{
 
 char perft_initial_position[] = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 
-// TODO: implement this
+// TODO: test this with chessprogramming.org/Perft_Results
+// TODO:: ensure you don't need to check for mate 
 U64 perft(BoardState *board, int depth) {
     MoveGenerator moves;
     if (depth == 1) {
@@ -914,42 +920,50 @@ void perft_test(char start_fen[], int depth) {
                              Section: init and main
 /*////////////////////////////////////////////////////////////////////////////////
 
+void manual_move_check() {
+    BoardState board;
+    MoveGenerator moves;
+
+    // char fen1[] = "rnbqk2r/p1pppppp/2B5/Pp6/8/8/8/R3K2R b KQkq b6 0 1";
+    char fen1[] = "rnbq1bnr/ppp1pppp/2kp4/8/P7/2R5/1PPPPPPP/1NBQKBNR b KQ - 3 1";
+    BoardState::load(&board, fen1);
+    std::cout << "==============================\n" << "start: \n\n";
+    BoardState::print(&board);
+
+    U64 sleep_time = .5*1000000ULL;
+    moves.generate_pl_moves(&board);
+    for (int i=0; i<moves.pl_moves_found; i++) {
+        U32 move = moves.pl_move_list[i];
+        if (decode_move_piece_type(move) == BLACK_PAWN) {
+            BoardState board_copy = board;
+            if(!BoardState::make(&board_copy, move)) {
+                continue;
+            }
+            usleep(sleep_time);
+            std::cout << "==============================\n" << move << "\n\n";
+            BoardState::print(&board_copy);
+        }
+    }
+    usleep(sleep_time);
+    std::cout << "==============================\n" << "start again" << "\n\n";
+    BoardState::print(&board);
+}
+
 void init_engine() {
     init_attacks();
 }
 
 int main() {
     init_engine();
-    BoardState board;
-    MoveGenerator moves;
 
-    perft_test(perft_initial_position, 4);
+    // perft test debugging
+    // depth 6: I get 119059985
+    //      should be 119060324
+    for (int depth = 6; depth <= 7; depth++) {
+        perft_test(perft_initial_position, depth);
+    }
 
-    // // manual move check
-    //
-    // // char fen1[] = "rnbqk2r/p1pppppp/2B5/Pp6/8/8/8/R3K2R b KQkq b6 0 1";
-    // char fen1[] = "rnbqk2r/3p4/2B5/P7/8/8/8/R3K2R b KQkq b6 0 1";
-    // BoardState::load(&board, fen1);
-    // std::cout << "==============================\n" << "start: \n\n";
-    // BoardState::print(&board);
-    //
-    // U64 sleep_time = .5*1000000ULL;
-    // moves.generate_pl_moves(&board);
-    // for (int i=0; i<moves.pl_moves_found; i++) {
-    //     U32 move = moves.pl_move_list[i];
-    //     if (decode_move_piece_type(move) == BLACK_PAWN) {
-    //         BoardState board_copy = board;
-    //         if(!BoardState::make(&board_copy, move)) {
-    //             continue;
-    //         }
-    //         usleep(sleep_time);
-    //         std::cout << "==============================\n" << move << "\n\n";
-    //         BoardState::print(&board_copy);
-    //     }
-    // }
-    // usleep(sleep_time);
-    // std::cout << "==============================\n" << "start again" << "\n\n";
-    // BoardState::print(&board);
+    // manual_move_check();
 
     return 0;
 }
