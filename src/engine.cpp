@@ -205,6 +205,7 @@ struct BoardState {
         int source_sq = decode_move_source_sq(move);
         int target_sq = decode_move_target_sq(move);
         int moving_piece_type = decode_move_piece_type(move);
+        // TODO: promotion is not dealt with lmao
         int promotion = decode_move_promotion(move);
         int capture = decode_move_capture(move);
         int enpassant_capture = decode_move_enpassant_capture(move);
@@ -369,9 +370,14 @@ struct BoardState {
             if (moving_piece_type == WHITE_PAWN) {
                 board->enpassant_sq = target_sq+8;
             }
-            else {
-                assert(moving_piece_type == BLACK_PAWN);
+            else if (moving_piece_type == BLACK_PAWN) {
                 board->enpassant_sq = target_sq-8;
+            }
+            else {
+                std::cout << "double_pawn_push invalid moving_piece_type: " << moving_piece_type << "\n";
+                print(board);
+                print_move(move, true);
+                throw std::runtime_error("double_pawn_push error");
             }
         }
         else {
@@ -1032,7 +1038,7 @@ U64 perft_position_3_results[][5] = {
 };
 U64 perft_position_4_results[][5] = {
     6,         0,         0,     0,        0,
-    264,       87,        0,     0,        48,
+    264,       87,        0,     6,        48,
     9467,      1021,      4,     0,        120,
     422333,    131393,    0,     7795,     60032,
     15833292,  2046173,   6512,  0,        329464,
