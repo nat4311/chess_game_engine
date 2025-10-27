@@ -205,8 +205,8 @@ struct BoardState {
         int source_sq = decode_move_source_sq(move);
         int target_sq = decode_move_target_sq(move);
         int moving_piece_type = decode_move_piece_type(move);
-        // TODO: promotion is not dealt with lmao
         int promotion = decode_move_promotion(move);
+        int promotion_piece_type = decode_move_promotion_type(move);
         int capture = decode_move_capture(move);
         int enpassant_capture = decode_move_enpassant_capture(move);
         int castle_kingside = decode_move_castle_kingside(move);
@@ -256,10 +256,20 @@ struct BoardState {
                 king_sq_after_move = c8;
             }
         }
-        else { // non-castling move
+        else { // not castling or promotion move
             U64 source_sq_bit = sq_bit[source_sq];
             U64 target_sq_bit = sq_bit[target_sq];
             U64 source_and_target_sq_bits = source_sq_bit | target_sq_bit;
+
+            if (promotion) {
+                board->bitboards[moving_piece_type] ^= source_sq_bit;
+                board->occupancies[board->turn] ^= source_and_target_sq_bits;
+                board->bitboards[promotion_piece_type] ^= target_sq_bit;
+            }
+            else {
+                board->bitboards[moving_piece_type] ^= source_and_target_sq_bits;
+                board->occupancies[board->turn] ^= source_and_target_sq_bits;
+            }
 
             if (enpassant_capture) {
                 board->occupancies[BOTH] ^= source_sq_bit;
@@ -337,13 +347,11 @@ struct BoardState {
                 board->occupancies[BOTH] ^= source_and_target_sq_bits;
             }
 
-            board->bitboards[moving_piece_type] ^= source_and_target_sq_bits;
-            board->occupancies[board->turn] ^= source_and_target_sq_bits;
             king_sq_after_move = lsb_scan(board->turn==WHITE? board->bitboards[WHITE_KING] : board->bitboards[BLACK_KING]);
         }
         // check for checks after piece update
         if (sq_is_attacked(king_sq_after_move, !board->turn, board)) {
-            unmake(source_sq, target_sq, moving_piece_type, enpassant_capture, captured_piece_type, castle_kingside, castle_queenside, board);
+            unmake(source_sq, target_sq, moving_piece_type, enpassant_capture, captured_piece_type, castle_kingside, castle_queenside, promotion_piece_type, board);
             return 0;
         }
 
@@ -413,7 +421,7 @@ struct BoardState {
     }
     
     // assumes that only the pieces have been moved, board state variables have not updated yet (turn, ep, castling, halfmove, etc)
-    static void unmake(int source_sq, int target_sq, int moved_piece_type, int enpassant_capture, int captured_piece_type, int castle_kingside, int castle_queenside, int promotion_piece, BoardState* board) {
+    static void unmake(int source_sq, int target_sq, int moved_piece_type, int enpassant_capture, int captured_piece_type, int castle_kingside, int castle_queenside, int promotion_piece_type, BoardState* board) {
         if (castle_kingside) {
             if (board->turn == WHITE) {
                 board->bitboards[WHITE_KING] ^= (E1|G1);
@@ -442,12 +450,12 @@ struct BoardState {
                 board->occupancies[BOTH] ^= (A8|C8|D8|E8);
             }
         }
-        else if (promotion_piece != NO_PIECE) {
+        else if (promotion_piece_type != NO_PIECE) {
             U64 source_sq_bit = sq_bit[source_sq];
             U64 target_sq_bit = sq_bit[target_sq];
             U64 source_and_target_sq_bits = source_sq_bit | target_sq_bit;
             board->bitboards[moved_piece_type] ^= source_sq_bit;
-            board->bitboards[promotion_piece] ^= target_sq_bit;
+            board->bitboards[promotion_piece_type] ^= target_sq_bit;
             board->bitboards[board->turn] ^= source_and_target_sq_bits;
             if (captured_piece_type == NO_PIECE) {
                 board->bitboards[BOTH] ^= source_and_target_sq_bits;
@@ -928,8 +936,6 @@ void manual_move_check(char fen[], int piece_type, float sleep_time_s) {
     BoardState::print(&board);
 }
 
-// TODO: test this with chessprogramming.org/Perft_Results
-// TODO:: ensure you don't need to check for mate 
 struct PerftResults {
     U64 nodes = 0;
     U64 captures = 0;
@@ -1175,6 +1181,7 @@ void init_engine() {
 int main() {
     init_engine();
 
+    // TODO: debug perft results
     perft_suite(false);
 
     ////////////////////    debug single position
