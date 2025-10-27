@@ -413,7 +413,7 @@ struct BoardState {
     }
     
     // assumes that only the pieces have been moved, board state variables have not updated yet (turn, ep, castling, halfmove, etc)
-    static void unmake(int source_sq, int target_sq, int moved_piece_type, int enpassant_capture, int captured_piece_type, int castle_kingside, int castle_queenside, BoardState* board) {
+    static void unmake(int source_sq, int target_sq, int moved_piece_type, int enpassant_capture, int captured_piece_type, int castle_kingside, int castle_queenside, int promotion_piece, BoardState* board) {
         if (castle_kingside) {
             if (board->turn == WHITE) {
                 board->bitboards[WHITE_KING] ^= (E1|G1);
@@ -442,35 +442,53 @@ struct BoardState {
                 board->occupancies[BOTH] ^= (A8|C8|D8|E8);
             }
         }
-        else { // normal move
-            U64 source_and_target_sq_bits = sq_bit[source_sq] | sq_bit[target_sq];
+        else if (promotion_piece != NO_PIECE) {
+            U64 source_sq_bit = sq_bit[source_sq];
+            U64 target_sq_bit = sq_bit[target_sq];
+            U64 source_and_target_sq_bits = source_sq_bit | target_sq_bit;
+            board->bitboards[moved_piece_type] ^= source_sq_bit;
+            board->bitboards[promotion_piece] ^= target_sq_bit;
+            board->bitboards[board->turn] ^= source_and_target_sq_bits;
+            if (captured_piece_type == NO_PIECE) {
+                board->bitboards[BOTH] ^= source_and_target_sq_bits;
+            }
+            else {
+                board->bitboards[captured_piece_type] ^= target_sq_bit;
+                board->bitboards[!board->turn] ^= target_sq_bit;
+                board->bitboards[BOTH] ^= source_sq_bit;
+            }
+        }
+        else { // not castling or promotion move
+            U64 source_sq_bit = sq_bit[source_sq];
+            U64 target_sq_bit = sq_bit[target_sq];
+            U64 source_and_target_sq_bits = source_sq_bit | target_sq_bit;
             board->bitboards[moved_piece_type] ^= source_and_target_sq_bits;
             board->occupancies[board->turn] ^= source_and_target_sq_bits;
             if (captured_piece_type == NO_PIECE) {
                 board->occupancies[BOTH] ^= source_and_target_sq_bits;
             }
             else if (enpassant_capture) {
-                int capture_sq_bit = sq_bit[target_sq];
+                int capture_sq_bit = target_sq_bit;
                 if (board->turn == WHITE) {
                     assert (captured_piece_type == BLACK_PAWN);
                     capture_sq_bit <<= 8;
-                    board->occupancies[BOTH] ^= sq_bit[source_sq];
+                    board->occupancies[BOTH] ^= source_sq_bit;
                     board->bitboards[BLACK_PAWN] ^= capture_sq_bit;
                     board->occupancies[BLACK] ^= capture_sq_bit;
                 }
                 else {
                     assert (captured_piece_type == WHITE_PAWN);
                     capture_sq_bit >>= 8;
-                    board->occupancies[BOTH] ^= sq_bit[source_sq];
+                    board->occupancies[BOTH] ^= source_sq_bit;
                     board->bitboards[WHITE_PAWN] ^= capture_sq_bit;
                     board->occupancies[WHITE] ^= capture_sq_bit;
                 }
             }
             else {
                 assert (captured_piece_type >= WHITE_PAWN && captured_piece_type <= BLACK_KING);
-                board->occupancies[BOTH] ^= sq_bit[source_sq];
-                board->bitboards[captured_piece_type] ^= sq_bit[target_sq];
-                board->occupancies[!board->turn] ^= sq_bit[target_sq];
+                board->occupancies[BOTH] ^= source_sq_bit;
+                board->bitboards[captured_piece_type] ^= target_sq_bit;
+                board->occupancies[!board->turn] ^= target_sq_bit;
             }
         }
     }
