@@ -6,6 +6,15 @@
 #include "attacks.h"
 #include <assert.h>
 #include <unistd.h>
+#include <iostream>
+#include <fstream>
+
+/*////////////////////////////////////////////////////////////////////////////////
+                               Section: Debug file
+/*////////////////////////////////////////////////////////////////////////////////
+
+#define DEBUG_PERFT
+std::ofstream debug_file("debug_file.txt");
 
 /*////////////////////////////////////////////////////////////////////////////////
                                Section: BoardState
@@ -921,6 +930,39 @@ struct MoveGenerator{
                              Section: perft testing
 /*////////////////////////////////////////////////////////////////////////////////
 
+void write_debug_file(BoardState* board, U32 move) {
+    U64 white_pawn_bb = board->bitboards[WHITE_PAWN];
+    U64 white_knight_bb = board->bitboards[WHITE_KNIGHT];
+    U64 white_bishop_bb = board->bitboards[WHITE_BISHOP];
+    U64 white_rook_bb = board->bitboards[WHITE_ROOK];
+    U64 white_queen_bb = board->bitboards[WHITE_QUEEN];
+    U64 white_king_bb = board->bitboards[WHITE_KING];
+    U64 black_pawn_bb = board->bitboards[BLACK_PAWN];
+    U64 black_knight_bb = board->bitboards[BLACK_KNIGHT];
+    U64 black_bishop_bb = board->bitboards[BLACK_BISHOP];
+    U64 black_rook_bb = board->bitboards[BLACK_ROOK];
+    U64 black_queen_bb = board->bitboards[BLACK_QUEEN];
+    U64 black_king_bb = board->bitboards[BLACK_KING];
+    int source_sq = decode_move_source_sq(move);
+    int target_sq = decode_move_target_sq(move);
+
+    debug_file
+        << white_pawn_bb << ","
+        << white_knight_bb << ","
+        << white_bishop_bb << ","
+        << white_rook_bb << ","
+        << white_queen_bb << ","
+        << white_king_bb << ","
+        << black_pawn_bb << ","
+        << black_knight_bb << ","
+        << black_bishop_bb << ","
+        << black_rook_bb << ","
+        << black_queen_bb << ","
+        << black_king_bb << ","
+        << source_sq << ","
+        << target_sq << std::endl;
+}
+
 void manual_move_check(char fen[], int piece_type, float sleep_time_s) {
     BoardState board;
     MoveGenerator moves;
@@ -1011,6 +1053,9 @@ void perft(PerftResults* results, BoardState *board, int depth, bool include_pie
                         results->king_moves++;
                     }
                 }
+                #ifdef DEBUG_PERFT
+                write_debug_file(board, move);
+                #endif
             }
         }
 
@@ -1054,7 +1099,7 @@ void perft_test(char start_fen[], int depth, bool include_piece_types) {
     else if (delta_timestamp_ms(t0,t1) > 0) { time_elapsed = delta_timestamp_ms(t0, t1); time_elapsed_str = " ms\n"; }
     else { time_elapsed = delta_timestamp_us(t0, t1); time_elapsed_str = " us\n"; }
     std::cout
-        << "============================\n"
+        << "--------------------------\n"
         << "perft_test complete\n"
         << "depth: " << depth << "\n\n"
         << "nodes: " << results.nodes << "\n"
@@ -1248,7 +1293,12 @@ void init_engine() {
     auto t1 = timestamp();
     std::cout << "attacks initialized in " << delta_timestamp_ms(t0, t1) << " ms\n";
 
-    std::cout << "\n";
+    if (!debug_file) {
+        std::cout << "Error: Unable to open debug_file.txt" << std::endl;
+    }
+    else {
+        std::cout << "opened debug_file.txt" << std::endl;
+    }
 }
 
 int main() {
@@ -1275,5 +1325,6 @@ int main() {
     // depth 5 too many nodes
     // perft_test(perft_position_3, 2);
 
+    debug_file.close();
     return 0;
 }
