@@ -11,7 +11,7 @@ class BoardReconstruction:
             while bb:
                 if bb % 2:
                     x = sq % 8
-                    y = 7 - int(sq//8)
+                    y = int(sq//8)
                     assert(self.board[y][x] == ".")
                     self.board[y][x] = piece
                 bb >>= 1

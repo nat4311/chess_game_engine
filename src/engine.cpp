@@ -271,7 +271,7 @@ struct BoardState {
             U64 source_and_target_sq_bits = source_sq_bit | target_sq_bit;
 
             if (enpassant_capture) {
-                board->occupancies[BOTH] ^= source_sq_bit;
+                board->occupancies[BOTH] ^= source_and_target_sq_bits;
                 if (board->turn == WHITE) {
                     U64 capture_sq_bit = target_sq_bit << 8;
                     board->bitboards[BLACK_PAWN] ^= capture_sq_bit;
@@ -973,6 +973,7 @@ void manual_move_check(char fen[], int piece_type, float sleep_time_s) {
 
     U64 sleep_time_us = sleep_time_s*1000000ULL;
     moves.generate_pl_moves(&board);
+    std::cout << "pl moves found: " << moves.pl_moves_found << std::endl;
     for (int i=0; i<moves.pl_moves_found; i++) {
         U32 move = moves.pl_move_list[i];
         if (piece_type == NO_PIECE || decode_move_piece_type(move) == piece_type) {
@@ -1054,7 +1055,23 @@ void perft(PerftResults* results, BoardState *board, int depth, bool include_pie
                     }
                 }
                 #ifdef DEBUG_PERFT
-                write_debug_file(board, move);
+                // write_debug_file(board, move);
+                if ((board->occupancies[WHITE] == (D5|E5|E4|C3|F3|B2|C2|D2|E2|F2|G2|H2|A1|E1|H1)) && (decode_move_target_sq(move) == a4) && (decode_move_source_sq(move) == a1) && (board->bitboards[BLACK_PAWN] & A3)) {
+                    std::cout << "------------------------------\n";
+                    std::cout << "DEBUG!!!!!!!!!!!\n\n";
+                    BoardState::print(board);
+                    std::cout << "PL MOVES FOUND: " << moves.pl_moves_found << std::endl;
+                    U64 check_plus = 0;
+                    U64 check_or = 0;
+                    for (int i = 0; i<=11; i++) {
+                        check_plus += board->bitboards[i];
+                        check_or |= board->bitboards[i];
+                    }
+                    std::cout << check_plus << std::endl;
+                    std::cout << check_or << std::endl;
+                    std::cout << (check_or - board->occupancies[BOTH]) << std::endl;
+                    // print_move(move, true);
+                }
                 #endif
             }
         }
@@ -1307,9 +1324,22 @@ int main() {
     // // TODO: debug perft results
     // perft_suite(false);
 
-    ////////////////////    debug single position
-    // char fen[] = "8/2p5/3p4/KP5r/1R2Pp1k/8/411P1/8 b - e3 0 1 ";
-    // manual_move_check(fen, BLACK_PAWN, .7);
+// source square: a1
+// target square: a5
+// 8 r . . . k . . r
+// 7 p . p p q p b .
+// 6 b n . . p n p .
+// 5 . . . P N . . .
+// 4 . . . . P . . .
+// 3 p . N . . Q . p
+// 2 . P P B B P P P
+// 1 R . . . K . . R
+//   a b c d e f g h
+
+    //////////////////    debug single position
+    char fen[] = "r3k2r/p1ppqpb1/bn2pnp1/3PN3/4P3/p1N2Q1p/1PPBBPPP/R3K2R w - - 0 1 ";
+    // manual_move_check(fen, WHITE_ROOK, .7);
+    perft_test(perft_position_2, 3, true);
 
     ////////////////////    perft test debugging
     //                       me
@@ -1317,7 +1347,7 @@ int main() {
 
     // nodes at depth 5: 4865596 -> not enough captures
     //                   4865609
-    perft_test(perft_position_2, 3, true);
+    // perft_test(perft_position_2, 3, true);
 
     // depth 4: too many nodes, captures, castles, (ep and promos good)
     // perft_test(perft_position_2, 4);
