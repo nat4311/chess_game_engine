@@ -120,16 +120,6 @@ constexpr const char* unicode_pieces[12] = {"♙","♘","♗","♖","♕","♔",
 #endif
 
 /*/////////////////////////////////////////////////////////////////////////////
-                              Section: promotions
-/*/////////////////////////////////////////////////////////////////////////////
-enum {
-    KNIGHT_PROMOTION,
-    BISHOP_PROMOTION,
-    ROOK_PROMOTION,
-    QUEEN_PROMOTION,
-};
-
-/*/////////////////////////////////////////////////////////////////////////////
                                Section: squares
 /*/////////////////////////////////////////////////////////////////////////////
 enum {
@@ -237,22 +227,22 @@ constexpr U64 sq_bit[65] = {
 // TODO: are the encoding functions faster as #define?
 
 /* Inputs:
-   source_sq            6 bits (0-5)      0-63 (a8-h1)
-   target_sq            6 bits (6-11)     0-63 (a8-h1)
-   piece_type           4 bits (12-15)    0-11 (WHITE_PAWN, ..., BLACK_KING)
-   promotion_type       2 bits (16-17)    0-3 (KNIGHT_PROMOTION, ..., QUEEN_PROMOTION)
-   promotion            1 bit  (18)       0-1 (true or false)
-   double_pawn_push     1 bit  (19)       0-1 (true or false)
-   capture              1 bit  (20)       0-1 (true or false)
-   enpassant_capture    1 bit  (21)       0-1 (true or false)
-   castle_kingside      1 bit  (22)       0-1 (true or false)
-   castle_queenside     1 bit  (23)       0-1 (true or false)
+   source_sq            6 bits (0-5)      0-63     (a8-h1)
+   target_sq            6 bits (6-11)     0-63     (a8-h1)
+   piece_type           4 bits (12-15)    0-11     (WHITE_PAWN, ..., BLACK_KING)
+   promotion_type       4 bits (16-19)    1-4,7-10 (WHITE_KNIGHT, ..., WHITE_QUEEN, BLACK_KNIGHT, ..., BLACK_QUEEN)
+   promotion            1 bit  (20)       0-1      (true or false)
+   double_pawn_push     1 bit  (21)       0-1      (true or false)
+   capture              1 bit  (22)       0-1      (true or false)
+   enpassant_capture    1 bit  (23)       0-1      (true or false)
+   castle_kingside      1 bit  (24)       0-1      (true or false)
+   castle_queenside     1 bit  (25)       0-1      (true or false)
  */
 inline U32 encode_move(
     int source_sq,
     int target_sq,
     int piece_type,
-    int promotion_type,
+    int promotion_piece_type,
     int promotion,
     int double_pawn_push,
     int capture,
@@ -260,19 +250,29 @@ inline U32 encode_move(
     int castle_kingside,
     int castle_queenside
 ) {
-    return source_sq|(target_sq<<6)|(piece_type<<12)|(promotion_type<<16)|(promotion<<18)|(double_pawn_push<<19)|(capture<<20)|(enpassant_capture<<21)|(castle_kingside<<22)|(castle_queenside<<23);
+    return
+                     source_sq |
+                (target_sq<<6) |
+              (piece_type<<12) |
+    (promotion_piece_type<<16) | 
+               (promotion<<20) |
+        (double_pawn_push<<21) |
+                 (capture<<22) |
+       (enpassant_capture<<23) |
+         (castle_kingside<<24) |
+        (castle_queenside<<25);
 }
 
-#define decode_move_source_sq(move)         (int(move & 63))
-#define decode_move_target_sq(move)         (int((move>>6) & 63))
-#define decode_move_piece_type(move)        (int((move>>12) & 15))
-#define decode_move_promotion_type(move)    (int((move>>16) & 3))
-#define decode_move_promotion(move)         (int((move>>18) & 1))
-#define decode_move_double_pawn_push(move)  (int((move>>19) & 1))
-#define decode_move_capture(move)           (int((move>>20) & 1))
-#define decode_move_enpassant_capture(move) (int((move>>21) & 1))
-#define decode_move_castle_kingside(move)   (int((move>>22) & 1))
-#define decode_move_castle_queenside(move)  (int((move>>23) & 1))
+#define decode_move_source_sq(move)               (int(move & 63))
+#define decode_move_target_sq(move)               (int((move>>6) & 63))
+#define decode_move_piece_type(move)              (int((move>>12) & 15))
+#define decode_move_promotion_piece_type(move)    (int((move>>16) & 15))
+#define decode_move_promotion(move)               (int((move>>20) & 1))
+#define decode_move_double_pawn_push(move)        (int((move>>21) & 1))
+#define decode_move_capture(move)                 (int((move>>22) & 1))
+#define decode_move_enpassant_capture(move)       (int((move>>23) & 1))
+#define decode_move_castle_kingside(move)         (int((move>>24) & 1))
+#define decode_move_castle_queenside(move)        (int((move>>25) & 1))
 
 /* Inputs:
    captured_piece       4 bits (0-3)       0-11,12 (WHITE_PAWN - BLACK_KING, NO_PIECE)
@@ -298,7 +298,7 @@ inline void print_move(U32 move, bool verbose) {
     int source_sq = decode_move_source_sq(move);
     int target_sq = decode_move_target_sq(move);
     int piece_type = decode_move_piece_type(move);
-    int promotion_type = decode_move_promotion_type(move);
+    int promotion_type = decode_move_promotion_piece_type(move);
     int promotion = decode_move_promotion(move);
     int double_pawn_push = decode_move_double_pawn_push(move);
     int capture = decode_move_capture(move);
@@ -306,27 +306,8 @@ inline void print_move(U32 move, bool verbose) {
     int castle_kingside = decode_move_castle_kingside(move);
     int castle_queenside = decode_move_castle_queenside(move);
 
-    const char* promotion_char = " ";
-    if (promotion) {
-        switch (promotion_type) {
-            case KNIGHT_PROMOTION:
-                promotion_char = "N";
-                break;
-            case BISHOP_PROMOTION:
-                promotion_char = "B";
-                break;
-            case ROOK_PROMOTION:
-                promotion_char = "R";
-                break;
-            case QUEEN_PROMOTION:
-                promotion_char = "Q";
-                break;
-        }
-    }
-
     if (verbose) {
         std::cout
-            << "===============================\n"
             << "       print_move: " << move << "\n"
             << "       piece type: " << piece_char[piece_type] << "\n"
             << "        source_sq: " << sq_str[source_sq] << "\n"
@@ -338,7 +319,6 @@ inline void print_move(U32 move, bool verbose) {
             << "enpassant_capture: " << enpassant_capture << "\n"
             << "  castle_kingside: " << castle_kingside << "\n"
             << " castle_queenside: " << castle_queenside << "\n"
-            << "===============================\n"
             << "\n";
     }
     else {
@@ -347,7 +327,7 @@ inline void print_move(U32 move, bool verbose) {
             << "    "
             << sq_str[source_sq]
             << sq_str[target_sq]
-            << promotion_char
+            << piece_char[promotion_type]
             << "   "
             << double_pawn_push << capture << enpassant_capture << castle_kingside << castle_queenside
             << "\n";

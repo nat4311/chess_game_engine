@@ -206,7 +206,7 @@ struct BoardState {
         int target_sq = decode_move_target_sq(move);
         int moving_piece_type = decode_move_piece_type(move);
         int promotion = decode_move_promotion(move);
-        int promotion_piece_type = decode_move_promotion_type(move);
+        int promotion_piece_type = decode_move_promotion_piece_type(move);
         int capture = decode_move_capture(move);
         int enpassant_capture = decode_move_enpassant_capture(move);
         int castle_kingside = decode_move_castle_kingside(move);
@@ -260,16 +260,6 @@ struct BoardState {
             U64 source_sq_bit = sq_bit[source_sq];
             U64 target_sq_bit = sq_bit[target_sq];
             U64 source_and_target_sq_bits = source_sq_bit | target_sq_bit;
-
-            if (promotion) {
-                board->bitboards[moving_piece_type] ^= source_sq_bit;
-                board->occupancies[board->turn] ^= source_and_target_sq_bits;
-                board->bitboards[promotion_piece_type] ^= target_sq_bit;
-            }
-            else {
-                board->bitboards[moving_piece_type] ^= source_and_target_sq_bits;
-                board->occupancies[board->turn] ^= source_and_target_sq_bits;
-            }
 
             if (enpassant_capture) {
                 board->occupancies[BOTH] ^= source_sq_bit;
@@ -345,6 +335,31 @@ struct BoardState {
             }
             else { // no capture
                 board->occupancies[BOTH] ^= source_and_target_sq_bits;
+            }
+
+            if (promotion) {
+                if (
+                    promotion_piece_type != WHITE_QUEEN &&
+                    promotion_piece_type != WHITE_ROOK &&
+                    promotion_piece_type != WHITE_KNIGHT &&
+                    promotion_piece_type != WHITE_BISHOP &&
+                    promotion_piece_type != BLACK_QUEEN &&
+                    promotion_piece_type != BLACK_ROOK &&
+                    promotion_piece_type != BLACK_KNIGHT &&
+                    promotion_piece_type != BLACK_BISHOP
+                ) {
+                    std::cout << "promotion_piece_type invalid: " << promotion_piece_type << "\n";
+                    print_move(move, true);
+                    std::cout << (source_sq_bit & rank_2) << " debug\n";
+                    throw std::runtime_error("invalid promotion_piece_type\n");
+                }
+                board->bitboards[moving_piece_type] ^= source_sq_bit;
+                board->occupancies[board->turn] ^= source_and_target_sq_bits;
+                board->bitboards[promotion_piece_type] ^= target_sq_bit;
+            }
+            else {
+                board->bitboards[moving_piece_type] ^= source_and_target_sq_bits;
+                board->occupancies[board->turn] ^= source_and_target_sq_bits;
             }
 
             king_sq_after_move = lsb_scan(board->turn==WHITE? board->bitboards[WHITE_KING] : board->bitboards[BLACK_KING]);
@@ -560,20 +575,20 @@ struct MoveGenerator{
                 else if (source_sq_bit & rank_7) {
                     if (!(source_sq_bit>>8 & pawn_blockers)) { // single push
                         target_sq = source_sq - 8;
-                        pl_move_list[pl_moves_found++] = encode_move(source_sq, target_sq, WHITE_PAWN, KNIGHT_PROMOTION, 1, 0, 0, 0, 0, 0);
-                        pl_move_list[pl_moves_found++] = encode_move(source_sq, target_sq, WHITE_PAWN, BISHOP_PROMOTION, 1, 0, 0, 0, 0, 0);
-                        pl_move_list[pl_moves_found++] = encode_move(source_sq, target_sq, WHITE_PAWN, ROOK_PROMOTION, 1, 0, 0, 0, 0, 0);
-                        pl_move_list[pl_moves_found++] = encode_move(source_sq, target_sq, WHITE_PAWN, QUEEN_PROMOTION, 1, 0, 0, 0, 0, 0);
+                        pl_move_list[pl_moves_found++] = encode_move(source_sq, target_sq, WHITE_PAWN, WHITE_KNIGHT, 1, 0, 0, 0, 0, 0);
+                        pl_move_list[pl_moves_found++] = encode_move(source_sq, target_sq, WHITE_PAWN, WHITE_BISHOP, 1, 0, 0, 0, 0, 0);
+                        pl_move_list[pl_moves_found++] = encode_move(source_sq, target_sq, WHITE_PAWN, WHITE_ROOK, 1, 0, 0, 0, 0, 0);
+                        pl_move_list[pl_moves_found++] = encode_move(source_sq, target_sq, WHITE_PAWN, WHITE_QUEEN, 1, 0, 0, 0, 0, 0);
                     }
                     while (pawn_attacks) { // normal captures
                         target_sq = lsb_scan(pawn_attacks);
                         pop_lsb(pawn_attacks);
                         target_sq_bit = sq_bit[target_sq];
                         if (board->occupancies[BLACK] & target_sq_bit) {
-                            pl_move_list[pl_moves_found++] = encode_move(source_sq, target_sq, WHITE_PAWN, KNIGHT_PROMOTION, 1, 0, 1, 0, 0, 0);
-                            pl_move_list[pl_moves_found++] = encode_move(source_sq, target_sq, WHITE_PAWN, BISHOP_PROMOTION, 1, 0, 1, 0, 0, 0);
-                            pl_move_list[pl_moves_found++] = encode_move(source_sq, target_sq, WHITE_PAWN, ROOK_PROMOTION, 1, 0, 1, 0, 0, 0);
-                            pl_move_list[pl_moves_found++] = encode_move(source_sq, target_sq, WHITE_PAWN, QUEEN_PROMOTION, 1, 0, 1, 0, 0, 0);
+                            pl_move_list[pl_moves_found++] = encode_move(source_sq, target_sq, WHITE_PAWN, WHITE_KNIGHT, 1, 0, 1, 0, 0, 0);
+                            pl_move_list[pl_moves_found++] = encode_move(source_sq, target_sq, WHITE_PAWN, WHITE_BISHOP, 1, 0, 1, 0, 0, 0);
+                            pl_move_list[pl_moves_found++] = encode_move(source_sq, target_sq, WHITE_PAWN, WHITE_ROOK, 1, 0, 1, 0, 0, 0);
+                            pl_move_list[pl_moves_found++] = encode_move(source_sq, target_sq, WHITE_PAWN, WHITE_QUEEN, 1, 0, 1, 0, 0, 0);
                         }
                     }
                 }
@@ -736,20 +751,20 @@ struct MoveGenerator{
                 else if (source_sq_bit & rank_2) {
                     if (!(source_sq_bit<<8 & pawn_blockers)) { // single push
                         target_sq = source_sq + 8;
-                        pl_move_list[pl_moves_found++] = encode_move(source_sq, target_sq, BLACK_PAWN, KNIGHT_PROMOTION, 1, 0, 0, 0, 0, 0);
-                        pl_move_list[pl_moves_found++] = encode_move(source_sq, target_sq, BLACK_PAWN, BISHOP_PROMOTION, 1, 0, 0, 0, 0, 0);
-                        pl_move_list[pl_moves_found++] = encode_move(source_sq, target_sq, BLACK_PAWN, ROOK_PROMOTION, 1, 0, 0, 0, 0, 0);
-                        pl_move_list[pl_moves_found++] = encode_move(source_sq, target_sq, BLACK_PAWN, QUEEN_PROMOTION, 1, 0, 0, 0, 0, 0);
+                        pl_move_list[pl_moves_found++] = encode_move(source_sq, target_sq, BLACK_PAWN, BLACK_KNIGHT, 1, 0, 0, 0, 0, 0);
+                        pl_move_list[pl_moves_found++] = encode_move(source_sq, target_sq, BLACK_PAWN, BLACK_BISHOP, 1, 0, 0, 0, 0, 0);
+                        pl_move_list[pl_moves_found++] = encode_move(source_sq, target_sq, BLACK_PAWN, BLACK_ROOK, 1, 0, 0, 0, 0, 0);
+                        pl_move_list[pl_moves_found++] = encode_move(source_sq, target_sq, BLACK_PAWN, BLACK_QUEEN, 1, 0, 0, 0, 0, 0);
                     }
                     while (pawn_attacks) { // normal captures
                         target_sq = lsb_scan(pawn_attacks);
                         pop_lsb(pawn_attacks);
                         target_sq_bit = sq_bit[target_sq];
                         if (board->occupancies[WHITE] & target_sq_bit) {
-                            pl_move_list[pl_moves_found++] = encode_move(source_sq, target_sq, BLACK_PAWN, KNIGHT_PROMOTION, 1, 0, 1, 0, 0, 0);
-                            pl_move_list[pl_moves_found++] = encode_move(source_sq, target_sq, BLACK_PAWN, BISHOP_PROMOTION, 1, 0, 1, 0, 0, 0);
-                            pl_move_list[pl_moves_found++] = encode_move(source_sq, target_sq, BLACK_PAWN, ROOK_PROMOTION, 1, 0, 1, 0, 0, 0);
-                            pl_move_list[pl_moves_found++] = encode_move(source_sq, target_sq, BLACK_PAWN, QUEEN_PROMOTION, 1, 0, 1, 0, 0, 0);
+                            pl_move_list[pl_moves_found++] = encode_move(source_sq, target_sq, BLACK_PAWN, BLACK_KNIGHT, 1, 0, 1, 0, 0, 0);
+                            pl_move_list[pl_moves_found++] = encode_move(source_sq, target_sq, BLACK_PAWN, BLACK_BISHOP, 1, 0, 1, 0, 0, 0);
+                            pl_move_list[pl_moves_found++] = encode_move(source_sq, target_sq, BLACK_PAWN, BLACK_ROOK, 1, 0, 1, 0, 0, 0);
+                            pl_move_list[pl_moves_found++] = encode_move(source_sq, target_sq, BLACK_PAWN, BLACK_QUEEN, 1, 0, 1, 0, 0, 0);
                         }
                     }
                 }
@@ -943,9 +958,15 @@ struct PerftResults {
     U64 castles = 0;
     U64 promotions = 0;
     U64 prev_checkmates = 0;
+    U64 pawn_moves = 0;
+    U64 knight_moves = 0;
+    U64 bishop_moves = 0;
+    U64 rook_moves = 0;
+    U64 queen_moves = 0;
+    U64 king_moves = 0;
 };
 
-void perft(PerftResults* results, BoardState *board, int depth) {
+void perft(PerftResults* results, BoardState *board, int depth, bool include_piece_types) {
     MoveGenerator moves;
     if (depth == 1) {
         int l_moves = 0;
@@ -969,6 +990,27 @@ void perft(PerftResults* results, BoardState *board, int depth) {
                 if (decode_move_promotion(move)) {
                     results->promotions++;
                 }
+                if (include_piece_types) {
+                    int piece_type = decode_move_piece_type(move);
+                    if (piece_type == WHITE_PAWN || piece_type == BLACK_PAWN) {
+                        results->pawn_moves++;
+                    }
+                    else if (piece_type == WHITE_KNIGHT || piece_type == BLACK_KNIGHT) {
+                        results->knight_moves++;
+                    }
+                    else if (piece_type == WHITE_BISHOP || piece_type == WHITE_BISHOP) {
+                        results->bishop_moves++;
+                    }
+                    else if (piece_type == WHITE_ROOK || piece_type == BLACK_ROOK) {
+                        results->rook_moves++;
+                    }
+                    else if (piece_type == WHITE_QUEEN || piece_type == BLACK_QUEEN) {
+                        results->queen_moves++;
+                    }
+                    else if (piece_type == WHITE_KING || piece_type == BLACK_KING) {
+                        results->king_moves++;
+                    }
+                }
             }
         }
 
@@ -984,13 +1026,13 @@ void perft(PerftResults* results, BoardState *board, int depth) {
         for (int move_index=0; move_index<moves.pl_moves_found; move_index++) {
             BoardState board_copy = *board;
             if (BoardState::make(&board_copy, moves.pl_move_list[move_index])) {
-                perft(results, &board_copy, depth-1);
+                perft(results, &board_copy, depth-1, include_piece_types);
             }
         }
     }
 }
 
-void perft_test(char start_fen[], int depth) {
+void perft_test(char start_fen[], int depth, bool include_piece_types) {
     // initialize
     auto t0 = timestamp();
     BoardState board;
@@ -1002,7 +1044,7 @@ void perft_test(char start_fen[], int depth) {
 
     // generate nodes
     PerftResults results;
-    perft(&results, &board, depth);
+    perft(&results, &board, depth, include_piece_types);
 
     // print timing info
     auto t1 = timestamp();
@@ -1020,8 +1062,18 @@ void perft_test(char start_fen[], int depth) {
         << "enpassants: " << results.enpassants << "\n"
         << "castles: " << results.castles << "\n"
         << "promotions: " << results.promotions << "\n"
-        << "checkmates (depth-1): " << results.prev_checkmates << "\n"
-        << "\ntime: " << time_elapsed << time_elapsed_str;
+        << "checkmates (depth-1): " << results.prev_checkmates << "\n";
+    if (include_piece_types) {
+        std::cout
+            << "pawn moves: " << results.pawn_moves << "\n"
+            << "knight moves: " << results.knight_moves << "\n"
+            << "bishop moves: " << results.bishop_moves << "\n"
+            << "rook moves: " << results.rook_moves << "\n"
+            << "queen moves: " << results.queen_moves << "\n"
+            << "king moves: " << results.king_moves << "\n";
+    }
+
+    std::cout << "\ntime: " << time_elapsed << time_elapsed_str;
     return;
 }
 
@@ -1031,6 +1083,8 @@ char perft_position_2[] = "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K
 char perft_position_3[] = "8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1 ";
 char perft_position_4a[] = "r3k2r/Pppp1ppp/1b3nbN/nP6/BBP1P3/q4N2/Pp1P2PP/R2Q1RK1 w kq - 0 1";
 char perft_position_4b[] = "r2q1rk1/pP1p2pp/Q4n2/bbp1p3/Np6/1B3NBn/pPPP1PPP/R3K2R b KQ - 0 1";
+char perft_position_5[] = "rnbq1k1r/pp1Pbppp/2p5/8/2B5/8/PPP1NnPP/RNBQK2R w KQ - 1 8";
+
 
 // nodes, captures, ep, castles, promotions
 U64 perft_position_1_results[][5] = {
@@ -1068,14 +1122,20 @@ U64 perft_position_4_results[][5] = {
     15833292,  2046173,   6512,  0,        329464,
     706045033, 210369132, 212,   10882006, 81102984
 };
+U64 perft_position_5_results[][5] = {
+    44,       0, 0, 0, 0,
+    1486,     0, 0, 0, 0,
+    62379,    0, 0, 0, 0,
+    2103487,  0, 0, 0, 0,
+    89941194, 0, 0, 0, 0
+};
 
-bool perft_suite_single_position(char perft_position[], U64 perft_position_results[][5], bool slow_test) {
-    bool suite_fail = false;
+bool perft_suite_single_position(char perft_position[], U64 perft_position_results[][5], bool nodes_only, bool slow_test, bool include_piece_types) {
+    bool any_fail = false;
     BoardState board;
     MoveGenerator moves;
     int max_depth;
 
-    // position 3
     BoardState::load(&board, perft_position);
     BoardState::print(&board);
     for (int depth=1; depth<=10; depth++) {
@@ -1089,7 +1149,7 @@ bool perft_suite_single_position(char perft_position[], U64 perft_position_resul
 
         // generate nodes
         PerftResults results;
-        perft(&results, &board, depth);
+        perft(&results, &board, depth, include_piece_types);
 
         // compare to known results
         if (perft_position_results[depth-1][0] != results.nodes) {
@@ -1098,32 +1158,32 @@ bool perft_suite_single_position(char perft_position[], U64 perft_position_resul
                 << "    nodes: " << results.nodes << "\n"
                 << "should be: " << perft_position_results[depth-1][0] << "\n";
         }
-        if (perft_position_results[depth-1][1] != results.captures) {
+        if (!nodes_only && perft_position_results[depth-1][1] != results.captures) {
             fail = true;
             std::cout
                 << " captures: " << results.captures << "\n"
                 << "should be: " << perft_position_results[depth-1][1] << "\n";
         }
-        if (perft_position_results[depth-1][2] != results.enpassants) {
+        if (!nodes_only && perft_position_results[depth-1][2] != results.enpassants) {
             fail = true;
             std::cout
                 << "enpassants: " << results.enpassants << "\n"
                 << " should be: " << perft_position_results[depth-1][2] << "\n";
         }
-        if (perft_position_results[depth-1][3] != results.castles) {
+        if (!nodes_only && perft_position_results[depth-1][3] != results.castles) {
             fail = true;
             std::cout
                 << "  castles: " << results.castles << "\n"
                 << "should be: " << perft_position_results[depth-1][3] << "\n";
         }
-        if (perft_position_results[depth-1][4] != results.promotions) {
+        if (!nodes_only && perft_position_results[depth-1][4] != results.promotions) {
             fail = true;
             std::cout
                 << "promotions: " << results.promotions << "\n"
                 << " should be: " << perft_position_results[depth-1][4] << "\n";
         }
 
-        suite_fail |= fail;
+        any_fail |= fail;
 
         auto t1 = timestamp();
         U64 time_elapsed;
@@ -1133,33 +1193,46 @@ bool perft_suite_single_position(char perft_position[], U64 perft_position_resul
         else { time_elapsed = delta_timestamp_us(t0, t1); time_elapsed_str = " us\n"; }
 
         std::cout
-            << "depth " << depth << (fail? ": FAIL" : ": PASS")
+            << (fail? "\n" : "") << "depth " << depth << (fail? ": FAIL" : ": PASS")
             << "\ntime: " << time_elapsed << time_elapsed_str;
     }
 
-    return suite_fail;
+    return any_fail;
 }
 
 void perft_suite(bool slow_test) {
+    auto t0 = timestamp();
+    bool fail = false;
+
     std::cout << "======================================\n";
     std::cout << "perft position 1\n\n";
-    perft_suite_single_position(perft_position_1, perft_position_1_results, slow_test);
+    fail |= perft_suite_single_position(perft_position_1, perft_position_1_results, false, slow_test, false);
 
     std::cout << "======================================\n";
     std::cout << "perft position 2\n\n";
-    perft_suite_single_position(perft_position_2, perft_position_2_results, slow_test);
+    fail |= perft_suite_single_position(perft_position_2, perft_position_2_results, false, slow_test, false);
 
     std::cout << "======================================\n";
     std::cout << "perft position 3\n\n";
-    perft_suite_single_position(perft_position_3, perft_position_3_results, slow_test);
+    fail |= perft_suite_single_position(perft_position_3, perft_position_3_results, false, slow_test, false);
 
     std::cout << "======================================\n";
     std::cout << "perft position 4a\n\n";
-    perft_suite_single_position(perft_position_4a, perft_position_4_results, slow_test);
+    fail |= perft_suite_single_position(perft_position_4a, perft_position_4_results, false, slow_test, false);
 
     std::cout << "======================================\n";
     std::cout << "perft position 4b\n\n";
-    perft_suite_single_position(perft_position_4b, perft_position_4_results, slow_test);
+    fail |= perft_suite_single_position(perft_position_4b, perft_position_4_results, false, slow_test, false);
+
+    std::cout << "======================================\n";
+    std::cout << "perft position 5\n\n";
+    fail |= perft_suite_single_position(perft_position_5, perft_position_5_results, true, slow_test, false);
+
+    auto t1 = timestamp();
+    std::cout << "======================================\n\n\n";
+    std::cout << "perft_suite " << (fail? "FAIL\n" : "PASS\n");
+    std::cout << "time: " << delta_timestamp_s(t0,t1) << " s\n";
+
 }
 
 
@@ -1181,13 +1254,12 @@ void init_engine() {
 int main() {
     init_engine();
 
-    // TODO: debug perft results
-    perft_suite(false);
+    // // TODO: debug perft results
+    // perft_suite(false);
 
     ////////////////////    debug single position
     // char fen[] = "8/2p5/3p4/KP5r/1R2Pp1k/8/411P1/8 b - e3 0 1 ";
     // manual_move_check(fen, BLACK_PAWN, .7);
-
 
     ////////////////////    perft test debugging
     //                       me
@@ -1195,15 +1267,13 @@ int main() {
 
     // nodes at depth 5: 4865596 -> not enough captures
     //                   4865609
-    // perft_test(perft_position_1, 5);
+    perft_test(perft_position_2, 3, true);
 
     // depth 4: too many nodes, captures, castles, (ep and promos good)
     // perft_test(perft_position_2, 4);
 
     // depth 5 too many nodes
     // perft_test(perft_position_3, 2);
-
-
 
     return 0;
 }
