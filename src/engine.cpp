@@ -1322,7 +1322,7 @@ int main() {
     init_engine();
 
     // // TODO: debug perft results
-    // perft_suite(false);
+    perft_suite(false);
 
 // source square: a1
 // target square: a5
@@ -1339,7 +1339,7 @@ int main() {
     //////////////////    debug single position
     char fen[] = "r3k2r/p1ppqpb1/bn2pnp1/3PN3/4P3/p1N2Q1p/1PPBBPPP/R3K2R w - - 0 1 ";
     // manual_move_check(fen, WHITE_ROOK, .7);
-    perft_test(perft_position_2, 3, true);
+    // perft_test(perft_position_2, 3, true);
 
     ////////////////////    perft test debugging
     //                       me
