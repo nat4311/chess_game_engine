@@ -13,7 +13,7 @@
                                Section: Debug file
 /*////////////////////////////////////////////////////////////////////////////////
 
-#define DEBUG_PERFT
+// #define DEBUG_PERFT
 std::ofstream debug_file("debug_file.txt");
 
 /*////////////////////////////////////////////////////////////////////////////////
@@ -1074,22 +1074,6 @@ void perft(PerftResults* results, BoardState *board, int depth, bool include_pie
                 }
                 #ifdef DEBUG_PERFT
                 write_debug_file(board, move);
-                // if ((board->occupancies[WHITE] == (D5|E5|E4|C3|F3|B2|C2|D2|E2|F2|G2|H2|A1|E1|H1)) && (decode_move_target_sq(move) == a4) && (decode_move_source_sq(move) == a1) && (board->bitboards[BLACK_PAWN] & A3)) {
-                //     std::cout << "------------------------------\n";
-                //     std::cout << "DEBUG!!!!!!!!!!!\n\n";
-                //     BoardState::print(board);
-                //     std::cout << "PL MOVES FOUND: " << moves.pl_moves_found << std::endl;
-                //     U64 check_plus = 0;
-                //     U64 check_or = 0;
-                //     for (int i = 0; i<=11; i++) {
-                //         check_plus += board->bitboards[i];
-                //         check_or |= board->bitboards[i];
-                //     }
-                //     std::cout << check_plus << std::endl;
-                //     std::cout << check_or << std::endl;
-                //     std::cout << (check_or - board->occupancies[BOTH]) << std::endl;
-                //     // print_move(move, true);
-                // }
                 #endif
             }
         }
@@ -1174,7 +1158,8 @@ U64 perft_position_1_results[][5] = {
     197281,     1576,      0,      0,      0,
     4865609,    82719,     258,    0,      0,
     119060324,  2812008,   5248,   0,      0,
-    3195901860, 108329926, 319617, 883453, 0
+    3195901860, 108329926, 319617, 883453, 0,
+    0
 };
 U64 perft_position_2_results[][5] = {
     48,         8,          0,       2,         0,
@@ -1182,7 +1167,8 @@ U64 perft_position_2_results[][5] = {
     97862,      17102,      45,      3162,      0,
     4085603,    757163,     1929,    128013,    15172,
     193690690,  35043416,   73365,   4993637,   8392,
-    8031647685, 1558445089, 3577504, 184513607, 56627920
+    8031647685, 1558445089, 3577504, 184513607, 56627920,
+    0
 };
 U64 perft_position_3_results[][5] = {
     14,         1,          0,       0, 0,
@@ -1193,6 +1179,7 @@ U64 perft_position_3_results[][5] = {
     11030083,   940350,     33325,   0, 7552,
     178633661,  14519036,   294874,  0, 140024,
     3009794393, 267586558,  8009239, 0, 6578076,
+    0
 };
 U64 perft_position_4_results[][5] = {
     6,         0,         0,     0,        0,
@@ -1200,14 +1187,16 @@ U64 perft_position_4_results[][5] = {
     9467,      1021,      4,     0,        120,
     422333,    131393,    0,     7795,     60032,
     15833292,  2046173,   6512,  0,        329464,
-    706045033, 210369132, 212,   10882006, 81102984
+    706045033, 210369132, 212,   10882006, 81102984,
+    0
 };
 U64 perft_position_5_results[][5] = {
     44,       0, 0, 0, 0,
     1486,     0, 0, 0, 0,
     62379,    0, 0, 0, 0,
     2103487,  0, 0, 0, 0,
-    89941194, 0, 0, 0, 0
+    89941194, 0, 0, 0, 0,
+    0
 };
 
 bool perft_suite_single_position(char perft_position[], U64 perft_position_results[][5], bool nodes_only, bool slow_test, bool include_piece_types) {
@@ -1219,7 +1208,9 @@ bool perft_suite_single_position(char perft_position[], U64 perft_position_resul
     BoardState::load(&board, perft_position);
     BoardState::print(&board);
     for (int depth=1; depth<=10; depth++) {
-        if (!slow_test && perft_position_results[depth-1][0] > 100000000) { break; }
+        if ((!slow_test && perft_position_results[depth-1][0] > 100000000) || perft_position_results[depth-1][0] == 0) {
+            break;
+        }
         std::cout << "----------------------------\n";
 
         // init
@@ -1320,6 +1311,10 @@ void perft_suite(bool slow_test) {
                              Section: init and main
 /*////////////////////////////////////////////////////////////////////////////////
 
+void unit_tests() {
+    perft_suite(true);
+}
+
 void init_engine() {
     std::cout << "--------------------------\n";
 
@@ -1328,20 +1323,22 @@ void init_engine() {
     auto t1 = timestamp();
     std::cout << "attacks initialized in " << delta_timestamp_ms(t0, t1) << " ms\n";
 
+    #ifdef DEBUG_PERFT
     if (!debug_file) {
         std::cout << "Error: Unable to open debug_file.txt" << std::endl;
     }
     else {
         std::cout << "opened debug_file.txt" << std::endl;
     }
+    #endif
 }
 
 int main() {
     init_engine();
 
-    ///////////////// TODO: debug perft results
-    // perft_suite(false);
-    perft_test(perft_position_5, 3, true);
+    ///////////////// debug perft results
+    perft_suite(true);
+    // perft_test(perft_position_5, 3, true);
 
     //////////////////    debug single position
     // char fen[] = "r3k2r/p1ppqpb1/bn2pnp1/3PN3/4P3/p1N2Q1p/1PPBBPPP/R3K2R w - - 0 1 ";
