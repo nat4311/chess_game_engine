@@ -224,7 +224,7 @@ struct BoardState {
         int captured_piece_type = NO_PIECE;
         int king_sq_after_move = no_sq;
 
-        // update the pieces (unless trying to castle out of or through check)
+        ////////////// update the pieces (unless trying to castle out of or through check)
         if (castle_kingside) {
             if (board->turn == WHITE) {
                 if (sq_is_attacked(e1, BLACK, board) || sq_is_attacked(f1, BLACK, board)) { return 0; }
@@ -373,22 +373,22 @@ struct BoardState {
 
             king_sq_after_move = lsb_scan(board->turn==WHITE? board->bitboards[WHITE_KING] : board->bitboards[BLACK_KING]);
         }
-        // check for checks after piece update
+        /////////////// check for checks after piece update
         if (sq_is_attacked(king_sq_after_move, !board->turn, board)) {
             unmake(source_sq, target_sq, moving_piece_type, enpassant_capture, captured_piece_type, castle_kingside, castle_queenside, promotion_piece_type, board);
             return 0;
         }
 
-        // std::cout << "debug:\n";
-        // // if (get_rook_attacks(sq, board->occupancies[BOTH]) & board->bitboards[WHITE_ROOK]) { return 1; }
-        // print_bitboard(board->occupancies[BOTH]);
-        // // print_bitboard(get_rook_attacks(king_sq_after_move, board->occupancies[BOTH] & board->bitboards[WHITE_ROOK]));
-
-        // update turn
+        /////////////// board state updates
         board->turn = !board->turn;
-        // update castling rights
-        if (moving_piece_type == WHITE_KING) { board->castling_rights &= (BLACK_CASTLE_KINGSIDE | BLACK_CASTLE_QUEENSIDE); }
-        else if (moving_piece_type == BLACK_KING) { board->castling_rights &= (WHITE_CASTLE_KINGSIDE | WHITE_CASTLE_QUEENSIDE); }
+
+        // update castling rights (moving a king/rook)
+        if (moving_piece_type == WHITE_KING) {
+            board->castling_rights &= (BLACK_CASTLE_KINGSIDE | BLACK_CASTLE_QUEENSIDE);
+        }
+        else if (moving_piece_type == BLACK_KING) {
+            board->castling_rights &= (WHITE_CASTLE_KINGSIDE | WHITE_CASTLE_QUEENSIDE);
+        }
         else if (moving_piece_type == WHITE_ROOK) {
             if (source_sq == a1) { board->castling_rights &= (WHITE_CASTLE_KINGSIDE|BLACK_CASTLE_KINGSIDE | BLACK_CASTLE_QUEENSIDE); }
             else if (source_sq == h1) { board->castling_rights &= (WHITE_CASTLE_QUEENSIDE|BLACK_CASTLE_KINGSIDE | BLACK_CASTLE_QUEENSIDE); }
@@ -397,6 +397,24 @@ struct BoardState {
             if (source_sq == a8) { board->castling_rights &= (BLACK_CASTLE_KINGSIDE|WHITE_CASTLE_KINGSIDE | WHITE_CASTLE_QUEENSIDE); }
             else if (source_sq == h8) { board->castling_rights &= (BLACK_CASTLE_QUEENSIDE|WHITE_CASTLE_KINGSIDE | WHITE_CASTLE_QUEENSIDE); }
         }
+        // update castling rights (capturing a rook)
+        if (captured_piece_type == WHITE_ROOK) {
+            if (target_sq == a1) {
+                board->castling_rights &= (BLACK_CASTLE_KINGSIDE | BLACK_CASTLE_QUEENSIDE | WHITE_CASTLE_KINGSIDE);
+            }
+            else if (target_sq == h1) {
+                board->castling_rights &= (BLACK_CASTLE_KINGSIDE | BLACK_CASTLE_QUEENSIDE | WHITE_CASTLE_QUEENSIDE);
+            }
+        }
+        else if (captured_piece_type == BLACK_ROOK) {
+            if (target_sq == a8) {
+                board->castling_rights &= (WHITE_CASTLE_KINGSIDE | WHITE_CASTLE_QUEENSIDE | BLACK_CASTLE_KINGSIDE);
+            }
+            else if (target_sq == h8) {
+                board->castling_rights &= (WHITE_CASTLE_KINGSIDE | WHITE_CASTLE_QUEENSIDE | BLACK_CASTLE_QUEENSIDE);
+            }
+        }
+        
         // update enpassant_sq
         if (double_pawn_push) {
             if (moving_piece_type == WHITE_PAWN) {
@@ -1055,23 +1073,23 @@ void perft(PerftResults* results, BoardState *board, int depth, bool include_pie
                     }
                 }
                 #ifdef DEBUG_PERFT
-                // write_debug_file(board, move);
-                if ((board->occupancies[WHITE] == (D5|E5|E4|C3|F3|B2|C2|D2|E2|F2|G2|H2|A1|E1|H1)) && (decode_move_target_sq(move) == a4) && (decode_move_source_sq(move) == a1) && (board->bitboards[BLACK_PAWN] & A3)) {
-                    std::cout << "------------------------------\n";
-                    std::cout << "DEBUG!!!!!!!!!!!\n\n";
-                    BoardState::print(board);
-                    std::cout << "PL MOVES FOUND: " << moves.pl_moves_found << std::endl;
-                    U64 check_plus = 0;
-                    U64 check_or = 0;
-                    for (int i = 0; i<=11; i++) {
-                        check_plus += board->bitboards[i];
-                        check_or |= board->bitboards[i];
-                    }
-                    std::cout << check_plus << std::endl;
-                    std::cout << check_or << std::endl;
-                    std::cout << (check_or - board->occupancies[BOTH]) << std::endl;
-                    // print_move(move, true);
-                }
+                write_debug_file(board, move);
+                // if ((board->occupancies[WHITE] == (D5|E5|E4|C3|F3|B2|C2|D2|E2|F2|G2|H2|A1|E1|H1)) && (decode_move_target_sq(move) == a4) && (decode_move_source_sq(move) == a1) && (board->bitboards[BLACK_PAWN] & A3)) {
+                //     std::cout << "------------------------------\n";
+                //     std::cout << "DEBUG!!!!!!!!!!!\n\n";
+                //     BoardState::print(board);
+                //     std::cout << "PL MOVES FOUND: " << moves.pl_moves_found << std::endl;
+                //     U64 check_plus = 0;
+                //     U64 check_or = 0;
+                //     for (int i = 0; i<=11; i++) {
+                //         check_plus += board->bitboards[i];
+                //         check_or |= board->bitboards[i];
+                //     }
+                //     std::cout << check_plus << std::endl;
+                //     std::cout << check_or << std::endl;
+                //     std::cout << (check_or - board->occupancies[BOTH]) << std::endl;
+                //     // print_move(move, true);
+                // }
                 #endif
             }
         }
@@ -1321,39 +1339,13 @@ void init_engine() {
 int main() {
     init_engine();
 
-    // // TODO: debug perft results
-    perft_suite(false);
-
-// source square: a1
-// target square: a5
-// 8 r . . . k . . r
-// 7 p . p p q p b .
-// 6 b n . . p n p .
-// 5 . . . P N . . .
-// 4 . . . . P . . .
-// 3 p . N . . Q . p
-// 2 . P P B B P P P
-// 1 R . . . K . . R
-//   a b c d e f g h
+    ///////////////// TODO: debug perft results
+    // perft_suite(false);
+    perft_test(perft_position_5, 3, true);
 
     //////////////////    debug single position
-    char fen[] = "r3k2r/p1ppqpb1/bn2pnp1/3PN3/4P3/p1N2Q1p/1PPBBPPP/R3K2R w - - 0 1 ";
+    // char fen[] = "r3k2r/p1ppqpb1/bn2pnp1/3PN3/4P3/p1N2Q1p/1PPBBPPP/R3K2R w - - 0 1 ";
     // manual_move_check(fen, WHITE_ROOK, .7);
-    // perft_test(perft_position_2, 3, true);
-
-    ////////////////////    perft test debugging
-    //                       me
-    //                       right ans
-
-    // nodes at depth 5: 4865596 -> not enough captures
-    //                   4865609
-    // perft_test(perft_position_2, 3, true);
-
-    // depth 4: too many nodes, captures, castles, (ep and promos good)
-    // perft_test(perft_position_2, 4);
-
-    // depth 5 too many nodes
-    // perft_test(perft_position_3, 2);
 
     debug_file.close();
     return 0;
