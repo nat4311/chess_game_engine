@@ -548,6 +548,7 @@ struct BoardState {
                              Section: move generator
 /*////////////////////////////////////////////////////////////////////////////////
 
+// generates moves and stores them inside struct
 struct MoveGenerator{
     constexpr static int max_pl_move_index = 256;
     U32 pl_move_list[max_pl_move_index];
