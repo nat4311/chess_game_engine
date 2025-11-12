@@ -7,7 +7,6 @@
 #include <assert.h>
 #include <unistd.h>
 #include <iostream>
-#include <fstream>
 
 /*////////////////////////////////////////////////////////////////////////////////
                                Section: BoardState
@@ -1284,6 +1283,7 @@ void init_engine() {
 
 int main() {
     init_engine();
+    unit_tests();
 
     return 0;
 }
