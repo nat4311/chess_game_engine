@@ -322,12 +322,19 @@ inline void print_move(U32 move, bool verbose) {
             << "\n";
     }
     else {
+        char promotion_piece_char;
+        if (promotion) {
+            promotion_piece_char = piece_char[promotion_type];
+        }
+        else {
+            promotion_piece_char = ' ';
+        }
         std::cout
             << piece_char[piece_type]
             << "    "
             << sq_str[source_sq]
             << sq_str[target_sq]
-            << piece_char[promotion_type]
+            << promotion_piece_char
             << "   "
             << double_pawn_push << capture << enpassant_capture << castle_kingside << castle_queenside
             << "\n";
