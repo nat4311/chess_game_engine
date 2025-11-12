@@ -1,0 +1,40 @@
+[
+  {
+    "arguments": [
+      "/usr/bin/g++",
+      "-c",
+      "-DMAIN",
+      "-O3",
+      "-Wall",
+      "-std=c++11",
+      "-fPIC",
+      "-I/usr/include/python3.13",
+      "-I/home/nhsu/python_venvs/default-env/lib/python3.13/site-packages/pybind11/include",
+      "-o",
+      "python_code/game_engine.cpython-313-x86_64-linux-gnu.so",
+      "cpp_code/engine.cpp"
+    ],
+    "directory": "/home/nhsu/coding/projects/chess_game_engine",
+    "file": "/home/nhsu/coding/projects/chess_game_engine/cpp_code/engine.cpp",
+    "output": "/home/nhsu/coding/projects/chess_game_engine/python_code/game_engine.cpython-313-x86_64-linux-gnu.so"
+  },
+  {
+    "arguments": [
+      "/usr/bin/g++",
+      "-c",
+      "-DMAIN",
+      "-O3",
+      "-Wall",
+      "-std=c++11",
+      "-fPIC",
+      "-I/usr/include/python3.13",
+      "-I/home/nhsu/python_venvs/default-env/lib/python3.13/site-packages/pybind11/include",
+      "-o",
+      "python_code/game_engine.cpython-313-x86_64-linux-gnu.so",
+      "cpp_code/attacks.cpp"
+    ],
+    "directory": "/home/nhsu/coding/projects/chess_game_engine",
+    "file": "/home/nhsu/coding/projects/chess_game_engine/cpp_code/attacks.cpp",
+    "output": "/home/nhsu/coding/projects/chess_game_engine/python_code/game_engine.cpython-313-x86_64-linux-gnu.so"
+  }
+]

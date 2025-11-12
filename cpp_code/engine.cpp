@@ -7,6 +7,8 @@
 #include <assert.h>
 #include <unistd.h>
 #include <iostream>
+#include <pybind11/pybind11.h>
+namespace py = pybind11;
 
 /*////////////////////////////////////////////////////////////////////////////////
                                Section: BoardState
@@ -1057,7 +1059,6 @@ void perft_test(char start_fen[], int depth, bool include_piece_types) {
     // initialize
     auto t0 = timestamp();
     BoardState board;
-    MoveGenerator moves;
     BoardState::load(&board, start_fen);
     std::cout << "============================\n";
     std::cout << "initial board state\n\n";
@@ -1159,8 +1160,6 @@ U64 perft_position_5_results[][5] = {
 bool perft_suite_single_position(char perft_position[], U64 perft_position_results[][5], bool nodes_only, bool slow_test, bool include_piece_types) {
     bool any_fail = false;
     BoardState board;
-    MoveGenerator moves;
-    int max_depth;
 
     BoardState::load(&board, perft_position);
     BoardState::print(&board);
@@ -1272,12 +1271,12 @@ void unit_tests() {
 }
 
 void init_engine() {
-    std::cout << "--------------------------\n";
+    std::cout << "initializing engine..." << std::endl;
 
     auto t0 = timestamp();
     init_attacks();
     auto t1 = timestamp();
-    std::cout << "attacks initialized in " << delta_timestamp_ms(t0, t1) << " ms\n";
+    std::cout << "attacks initialized in " << delta_timestamp_ms(t0, t1) << " ms\n\n";
 }
 
 int main() {
@@ -1286,3 +1285,15 @@ int main() {
 
     return 0;
 }
+
+/*////////////////////////////////////////////////////////////////////////////////
+                             Section: pybind
+/*////////////////////////////////////////////////////////////////////////////////
+
+// TODO: DO THE PYBIND CODE
+PYBIND11_MODULE(game_engine, m, py::mod_gil_not_used()) {
+    m.doc() = "chess game engine with pybind11"; // optional module docstring
+
+    m.def("init_engine", &init_engine, "initialize the game engine");
+}
+

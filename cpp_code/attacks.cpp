@@ -219,13 +219,13 @@ static void init_bishop_relevant_occupancies() {
     }
 }
 
-static void bishop_visual_test(int sq) {
-    init_bishop_relevant_occupancies();
-    for (int i=0; i<(1<<bishop_n_relevant_occupancies[sq]); i++) {
-        print_bitboard(bishop_relevant_occupancies[sq][i], sq);
-        usleep(100000);
-    }
-}
+// static void bishop_visual_test(int sq) {
+//     init_bishop_relevant_occupancies();
+//     for (int i=0; i<(1<<bishop_n_relevant_occupancies[sq]); i++) {
+//         print_bitboard(bishop_relevant_occupancies[sq][i], sq);
+//         usleep(100000);
+//     }
+// }
 
 static void find_bishop_magic_numbers() {
     for (int sq=0; sq<64; sq++) {
@@ -378,13 +378,13 @@ static void init_rook_relevant_occupancies() {
     }
 }
 
-static void rook_visual_test(int sq) {
-    init_rook_relevant_occupancies();
-    for (int i=0; i<(1<<rook_n_relevant_occupancies[sq]); i++) {
-        print_bitboard(rook_relevant_occupancies[sq][i], sq);
-        usleep(10000);
-    }
-}
+// static void rook_visual_test(int sq) {
+//     init_rook_relevant_occupancies();
+//     for (int i=0; i<(1<<rook_n_relevant_occupancies[sq]); i++) {
+//         print_bitboard(rook_relevant_occupancies[sq][i], sq);
+//         usleep(10000);
+//     }
+// }
 
 static void find_rook_magic_numbers() {
     for (int sq=0; sq<64; sq++) {
