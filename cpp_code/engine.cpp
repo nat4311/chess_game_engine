@@ -1275,11 +1275,9 @@ void init_engine() {
     std::cout << "attacks initialized in " << delta_timestamp_ms(t0, t1) << " ms\n\n";
 }
 
-#ifndef BINDINGS_CPP
 int main() {
     init_engine();
     unit_tests();
 
     return 0;
 }
-#endif
