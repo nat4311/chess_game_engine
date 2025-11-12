@@ -925,7 +925,7 @@ struct MoveGenerator{
     //     return l_moves_found;
     // }
 
-    void print_pl_moves(int piece_type) {
+    void print_pl_moves(int piece_type = NO_PIECE) {
         printf("PL MOVES     dcekq\n------------------\n");
         for (int i=0; i<pl_moves_found; i++) {
             U32 move = pl_move_list[i];
