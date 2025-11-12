@@ -1,14 +1,11 @@
 /* references:
  * https://www.youtube.com/playlist?list=PLmN0neTso3Jxh8ZIylk74JpwfiWNI76Cs
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-
 #include "engine.h"
 #include "attacks.h"
 #include <assert.h>
 #include <unistd.h>
 #include <iostream>
-#include <pybind11/pybind11.h>
-namespace py = pybind11;
 
 /*////////////////////////////////////////////////////////////////////////////////
                                Section: BoardState
@@ -943,6 +940,63 @@ struct MoveGenerator{
                              Section: perft testing
 /*////////////////////////////////////////////////////////////////////////////////
 
+// from https://www.chessprogramming.org/Perft_Results
+char perft_position_1[] = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+char perft_position_2[] = "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1";
+char perft_position_3[] = "8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1 ";
+char perft_position_4a[] = "r3k2r/Pppp1ppp/1b3nbN/nP6/BBP1P3/q4N2/Pp1P2PP/R2Q1RK1 w kq - 0 1";
+char perft_position_4b[] = "r2q1rk1/pP1p2pp/Q4n2/bbp1p3/Np6/1B3NBn/pPPP1PPP/R3K2R b KQ - 0 1";
+char perft_position_5[] = "rnbq1k1r/pp1Pbppp/2p5/8/2B5/8/PPP1NnPP/RNBQK2R w KQ - 1 8";
+
+// nodes, captures, ep, castles, promotions
+U64 perft_position_1_results[][5] = {
+    20,         0,         0,      0,      0,
+    400,        0,         0,      0,      0,
+    8902,       34,        0,      0,      0,
+    197281,     1576,      0,      0,      0,
+    4865609,    82719,     258,    0,      0,
+    119060324,  2812008,   5248,   0,      0,
+    3195901860, 108329926, 319617, 883453, 0,
+    0
+};
+U64 perft_position_2_results[][5] = {
+    48,         8,          0,       2,         0,
+    2039,       351,        1,       91,        0,
+    97862,      17102,      45,      3162,      0,
+    4085603,    757163,     1929,    128013,    15172,
+    193690690,  35043416,   73365,   4993637,   8392,
+    8031647685, 1558445089, 3577504, 184513607, 56627920,
+    0
+};
+U64 perft_position_3_results[][5] = {
+    14,         1,          0,       0, 0,
+    191,        14,         0,       0, 0,
+    2812,       209,        2,       0, 0,
+    43238,      3348,       123,     0, 0,
+    674624,     52051,      1165,    0, 0,
+    11030083,   940350,     33325,   0, 7552,
+    178633661,  14519036,   294874,  0, 140024,
+    3009794393, 267586558,  8009239, 0, 6578076,
+    0
+};
+U64 perft_position_4_results[][5] = {
+    6,         0,         0,     0,        0,
+    264,       87,        0,     6,        48,
+    9467,      1021,      4,     0,        120,
+    422333,    131393,    0,     7795,     60032,
+    15833292,  2046173,   6512,  0,        329464,
+    706045033, 210369132, 212,   10882006, 81102984,
+    0
+};
+U64 perft_position_5_results[][5] = {
+    44,       0, 0, 0, 0,
+    1486,     0, 0, 0, 0,
+    62379,    0, 0, 0, 0,
+    2103487,  0, 0, 0, 0,
+    89941194, 0, 0, 0, 0,
+    0
+};
+
 void manual_move_check(char fen[], int piece_type, float sleep_time_s) {
     BoardState board;
     MoveGenerator moves;
@@ -1099,64 +1153,6 @@ void perft_test(char start_fen[], int depth, bool include_piece_types) {
     return;
 }
 
-// from https://www.chessprogramming.org/Perft_Results
-char perft_position_1[] = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
-char perft_position_2[] = "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1";
-char perft_position_3[] = "8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1 ";
-char perft_position_4a[] = "r3k2r/Pppp1ppp/1b3nbN/nP6/BBP1P3/q4N2/Pp1P2PP/R2Q1RK1 w kq - 0 1";
-char perft_position_4b[] = "r2q1rk1/pP1p2pp/Q4n2/bbp1p3/Np6/1B3NBn/pPPP1PPP/R3K2R b KQ - 0 1";
-char perft_position_5[] = "rnbq1k1r/pp1Pbppp/2p5/8/2B5/8/PPP1NnPP/RNBQK2R w KQ - 1 8";
-
-
-// nodes, captures, ep, castles, promotions
-U64 perft_position_1_results[][5] = {
-    20,         0,         0,      0,      0,
-    400,        0,         0,      0,      0,
-    8902,       34,        0,      0,      0,
-    197281,     1576,      0,      0,      0,
-    4865609,    82719,     258,    0,      0,
-    119060324,  2812008,   5248,   0,      0,
-    3195901860, 108329926, 319617, 883453, 0,
-    0
-};
-U64 perft_position_2_results[][5] = {
-    48,         8,          0,       2,         0,
-    2039,       351,        1,       91,        0,
-    97862,      17102,      45,      3162,      0,
-    4085603,    757163,     1929,    128013,    15172,
-    193690690,  35043416,   73365,   4993637,   8392,
-    8031647685, 1558445089, 3577504, 184513607, 56627920,
-    0
-};
-U64 perft_position_3_results[][5] = {
-    14,         1,          0,       0, 0,
-    191,        14,         0,       0, 0,
-    2812,       209,        2,       0, 0,
-    43238,      3348,       123,     0, 0,
-    674624,     52051,      1165,    0, 0,
-    11030083,   940350,     33325,   0, 7552,
-    178633661,  14519036,   294874,  0, 140024,
-    3009794393, 267586558,  8009239, 0, 6578076,
-    0
-};
-U64 perft_position_4_results[][5] = {
-    6,         0,         0,     0,        0,
-    264,       87,        0,     6,        48,
-    9467,      1021,      4,     0,        120,
-    422333,    131393,    0,     7795,     60032,
-    15833292,  2046173,   6512,  0,        329464,
-    706045033, 210369132, 212,   10882006, 81102984,
-    0
-};
-U64 perft_position_5_results[][5] = {
-    44,       0, 0, 0, 0,
-    1486,     0, 0, 0, 0,
-    62379,    0, 0, 0, 0,
-    2103487,  0, 0, 0, 0,
-    89941194, 0, 0, 0, 0,
-    0
-};
-
 bool perft_suite_single_position(char perft_position[], U64 perft_position_results[][5], bool nodes_only, bool slow_test, bool include_piece_types) {
     bool any_fail = false;
     BoardState board;
@@ -1279,21 +1275,11 @@ void init_engine() {
     std::cout << "attacks initialized in " << delta_timestamp_ms(t0, t1) << " ms\n\n";
 }
 
+#ifndef BINDINGS_CPP
 int main() {
     init_engine();
     unit_tests();
 
     return 0;
 }
-
-/*////////////////////////////////////////////////////////////////////////////////
-                             Section: pybind
-/*////////////////////////////////////////////////////////////////////////////////
-
-// TODO: DO THE PYBIND CODE
-PYBIND11_MODULE(game_engine, m, py::mod_gil_not_used()) {
-    m.doc() = "chess game engine with pybind11"; // optional module docstring
-
-    m.def("init_engine", &init_engine, "initialize the game engine");
-}
-
+#endif
