@@ -1209,7 +1209,7 @@ bool perft_suite_single_position(char perft_position[], U64 perft_position_resul
     BoardState::load(&board, perft_position);
     BoardState::print(&board);
     for (int depth=1; depth<=10; depth++) {
-        if ((slow_test && perft_position_results[depth-1][0] > 100000000) || perft_position_results[depth-1][0] == 0) {
+        if ((!slow_test && perft_position_results[depth-1][0] > 100000000) || perft_position_results[depth-1][0] == 0) {
             break;
         }
         std::cout << "----------------------------\n";
@@ -1338,7 +1338,7 @@ int main() {
     init_engine();
 
     ///////////////// debug perft results
-    perft_suite(false);
+    perft_suite(true);
     // perft_test(perft_position_5, 3, true);
 
     //////////////////    debug single position
