@@ -10,13 +10,6 @@
 #include <fstream>
 
 /*////////////////////////////////////////////////////////////////////////////////
-                               Section: Debug file
-/*////////////////////////////////////////////////////////////////////////////////
-
-// #define DEBUG_PERFT
-std::ofstream debug_file("debug_file.txt");
-
-/*////////////////////////////////////////////////////////////////////////////////
                                Section: BoardState
 /*////////////////////////////////////////////////////////////////////////////////
 
@@ -347,21 +340,21 @@ struct BoardState {
             }
 
             if (promotion) {
-                if (
-                    promotion_piece_type != WHITE_QUEEN &&
-                    promotion_piece_type != WHITE_ROOK &&
-                    promotion_piece_type != WHITE_KNIGHT &&
-                    promotion_piece_type != WHITE_BISHOP &&
-                    promotion_piece_type != BLACK_QUEEN &&
-                    promotion_piece_type != BLACK_ROOK &&
-                    promotion_piece_type != BLACK_KNIGHT &&
-                    promotion_piece_type != BLACK_BISHOP
-                ) {
-                    std::cout << "promotion_piece_type invalid: " << promotion_piece_type << "\n";
-                    print_move(move, true);
-                    std::cout << (source_sq_bit & rank_2) << " debug\n";
-                    throw std::runtime_error("invalid promotion_piece_type\n");
-                }
+                // if (
+                //     promotion_piece_type != WHITE_QUEEN &&
+                //     promotion_piece_type != WHITE_ROOK &&
+                //     promotion_piece_type != WHITE_KNIGHT &&
+                //     promotion_piece_type != WHITE_BISHOP &&
+                //     promotion_piece_type != BLACK_QUEEN &&
+                //     promotion_piece_type != BLACK_ROOK &&
+                //     promotion_piece_type != BLACK_KNIGHT &&
+                //     promotion_piece_type != BLACK_BISHOP
+                // ) {
+                //     std::cout << "promotion_piece_type invalid: " << promotion_piece_type << "\n";
+                //     print_move(move, true);
+                //     std::cout << (source_sq_bit & rank_2) << " debug\n";
+                //     throw std::runtime_error("invalid promotion_piece_type\n");
+                // }
                 board->bitboards[moving_piece_type] ^= source_sq_bit;
                 board->occupancies[board->turn] ^= source_and_target_sq_bits;
                 board->bitboards[promotion_piece_type] ^= target_sq_bit;
@@ -949,39 +942,6 @@ struct MoveGenerator{
                              Section: perft testing
 /*////////////////////////////////////////////////////////////////////////////////
 
-void write_debug_file(BoardState* board, U32 move) {
-    U64 white_pawn_bb = board->bitboards[WHITE_PAWN];
-    U64 white_knight_bb = board->bitboards[WHITE_KNIGHT];
-    U64 white_bishop_bb = board->bitboards[WHITE_BISHOP];
-    U64 white_rook_bb = board->bitboards[WHITE_ROOK];
-    U64 white_queen_bb = board->bitboards[WHITE_QUEEN];
-    U64 white_king_bb = board->bitboards[WHITE_KING];
-    U64 black_pawn_bb = board->bitboards[BLACK_PAWN];
-    U64 black_knight_bb = board->bitboards[BLACK_KNIGHT];
-    U64 black_bishop_bb = board->bitboards[BLACK_BISHOP];
-    U64 black_rook_bb = board->bitboards[BLACK_ROOK];
-    U64 black_queen_bb = board->bitboards[BLACK_QUEEN];
-    U64 black_king_bb = board->bitboards[BLACK_KING];
-    int source_sq = decode_move_source_sq(move);
-    int target_sq = decode_move_target_sq(move);
-
-    debug_file
-        << white_pawn_bb << ","
-        << white_knight_bb << ","
-        << white_bishop_bb << ","
-        << white_rook_bb << ","
-        << white_queen_bb << ","
-        << white_king_bb << ","
-        << black_pawn_bb << ","
-        << black_knight_bb << ","
-        << black_bishop_bb << ","
-        << black_rook_bb << ","
-        << black_queen_bb << ","
-        << black_king_bb << ","
-        << source_sq << ","
-        << target_sq << std::endl;
-}
-
 void manual_move_check(char fen[], int piece_type, float sleep_time_s) {
     BoardState board;
     MoveGenerator moves;
@@ -1073,9 +1033,6 @@ void perft(PerftResults* results, BoardState *board, int depth, bool include_pie
                         results->king_moves++;
                     }
                 }
-                #ifdef DEBUG_PERFT
-                write_debug_file(board, move);
-                #endif
             }
         }
 
@@ -1323,28 +1280,10 @@ void init_engine() {
     init_attacks();
     auto t1 = timestamp();
     std::cout << "attacks initialized in " << delta_timestamp_ms(t0, t1) << " ms\n";
-
-    #ifdef DEBUG_PERFT
-    if (!debug_file) {
-        std::cout << "Error: Unable to open debug_file.txt" << std::endl;
-    }
-    else {
-        std::cout << "opened debug_file.txt" << std::endl;
-    }
-    #endif
 }
 
 int main() {
     init_engine();
 
-    ///////////////// debug perft results
-    perft_suite(true);
-    // perft_test(perft_position_5, 3, true);
-
-    //////////////////    debug single position
-    // char fen[] = "r3k2r/p1ppqpb1/bn2pnp1/3PN3/4P3/p1N2Q1p/1PPBBPPP/R3K2R w - - 0 1 ";
-    // manual_move_check(fen, WHITE_ROOK, .7);
-
-    debug_file.close();
     return 0;
 }
