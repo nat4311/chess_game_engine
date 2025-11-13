@@ -7,10 +7,18 @@ py::array_t<U32> get_pl_move_list(MoveGenerator &self, BoardState* board) {
     self.generate_pl_moves(board);
     size_t size = self.pl_moves_found;
     const U32* data_ptr = self.pl_move_list;
-    return py::array_t<U32>(
-        size,
-        data_ptr
-    );
+    return py::array_t<U32>(size, data_ptr);
+}
+
+py::array_t<bool> get_bitboards(BoardState &self) {
+    // piece_type, sq
+    bool data[12][64];
+    for (int piece=0; piece<=11; piece++) {
+        for (int sq = 0; sq <= 63; sq++) {
+            data[piece][sq] = 1 & (self.bitboards[piece] >> sq);
+        }
+    }
+    return py::array_t<bool>({12, 64}, &data[0][0]);
 }
 
 PYBIND11_MODULE(game_engine, m, py::mod_gil_not_used()) {
@@ -28,6 +36,7 @@ PYBIND11_MODULE(game_engine, m, py::mod_gil_not_used()) {
         .def("print", &BoardState::print, "print the board state to terminal")
         .def("reset", &BoardState::reset, "reset the board state to start position")
         .def("load", &BoardState::load, "load a fen string", py::arg("fen_str"))
+        .def("get_bitboards", &get_bitboards, "get all 12 piece bitboards as 8x8x12 bool array")
         .def("__repr__", [](const BoardState &a){ return "<BoardState object>"; } );
 
     py::class_<MoveGenerator>(m, "MoveGenerator")
