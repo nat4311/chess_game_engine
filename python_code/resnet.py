@@ -3,6 +3,7 @@ TODO:
     preallocate giant np array for inputs?
         119x64xN where N is max plausible number of chess turns - can allocate more if needed in rare cases
         is this actually faster?
+    cache the conversion from U32 move to 73x8x8 index (d,y,x)
 """
 
 import torch
@@ -10,6 +11,8 @@ import torch.nn as nn
 import torch.nn.functional as F
 import random
 import numpy as np
+
+batch_size = 1
 
 # 14*8 (12 bitboards + 2 repetition, 1 current + 7 past) + 7 (1 turn + 1 total_moves + 4 castling + 1 halfmove)
 feature_channels = 14*8 + 7
@@ -70,15 +73,16 @@ class OutputHeads(nn.Module):
         p = self.p_bn0(p)
         p = F.relu(p)
         p = self.p_conv1(p)
-        p = self.p_lsm(p).exp()
+        p = self.p_lsm(p).exp() # output is (batch_size, 73, 8, 8)
 
         v = self.v_conv(x)
         v = self.v_bn(v)
         v = F.relu(v)
+        v = v.view(batch_size, -1)
         v = self.v_lin0(v)
         v = F.relu(v)
         v = self.v_lin1(v)
-        v = F.tanh(v)
+        v = F.tanh(v) # output is (batch_size, 1)
 
         return p, v
 
@@ -117,16 +121,30 @@ class ResNet(nn.Module):
 
 
 
+def test_net_shapes():
+    model = ResNet()
+    model.eval()  # set to eval mode as default for testing
 
+    input_tensor = torch.randn(batch_size, 119, 8, 8)
 
+    # Forward pass through model
+    policy_output, value_output = model(input_tensor)
 
+    # Check shapes
+    print()
+    print("Input shape:", input_tensor.shape)
+    print("Policy output shape:", policy_output.shape)  # expected (1, 73, 8, 8)
+    print("Value output shape:", value_output.shape)    # expected (1, 1)
 
+    # To get final policy as (64 x 73), reshape and permute policy output:
+    # policy_output shape is (batch, 73, 8, 8)
+    # Reshape to (batch, 73, 64) then permute to (batch, 64, 73)
+    policy_reshaped = policy_output.reshape(batch_size, 73, 64)
+    print()
+    print(f"Policy reshaped shape (should be {batch_size} x 73 x 64):", policy_reshaped.shape)
 
-
-
-
-
-
-
+    # Value should be (batch, 1), verify the scalar value
+    print()
+    print("Value output:", value_output)
 
 
