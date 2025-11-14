@@ -3,7 +3,9 @@ import numpy as np
 
 board = game_engine.BoardState()
 moves = game_engine.MoveGenerator()
+board.print()
 board.reset()
+board.print()
 
 # moves.generate_pl_moves(board)
 # moves.print_pl_moves()
