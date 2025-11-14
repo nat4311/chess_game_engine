@@ -7,8 +7,7 @@
     is this actually faster?
 - implement GameStateNode stuff needed for MCTS in BoardState
     functions
-        new_node() should return a new BoardState
-        model_input() as 21x8x8 = 14x8x8 + 7x8x8 (see feature_channels description below)
+        model_input() as 21x8x8 = 14x8x8 + 7x8x8 (see feature_channels description)
             NOTE: update the indexing values if time_history is reduced
             this will write to the preallocated giant tensor at [(half_turn+7)*14:that+21, :, :]
             the actual model input will be giant_tensor[half_turn*14:that+119, :, :]

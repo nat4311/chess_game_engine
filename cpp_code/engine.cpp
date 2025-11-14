@@ -31,28 +31,36 @@ struct BoardState {
     U64 occupancies[3];
 
     BoardState() {
-        turn = WHITE;
-        castling_rights = WHITE_CASTLE_KINGSIDE | WHITE_CASTLE_QUEENSIDE | BLACK_CASTLE_KINGSIDE | BLACK_CASTLE_QUEENSIDE;
-        enpassant_sq = no_sq;
-        halfmove = 0;
+        reset(this);
+    }
 
-        bitboards[BLACK_PAWN] = rank_7;
-        bitboards[BLACK_ROOK] = A8 | H8;
-        bitboards[BLACK_KNIGHT] = B8 | G8;
-        bitboards[BLACK_BISHOP] = C8 | F8;
-        bitboards[BLACK_QUEEN] = D8;
-        bitboards[BLACK_KING] = E8;
+    static void reset(BoardState* board) {
+        board->turn = WHITE;
+        board->castling_rights = WHITE_CASTLE_KINGSIDE | WHITE_CASTLE_QUEENSIDE | BLACK_CASTLE_KINGSIDE | BLACK_CASTLE_QUEENSIDE;
+        board->enpassant_sq = no_sq;
+        board->halfmove = 0;
 
-        bitboards[WHITE_PAWN] = rank_2;
-        bitboards[WHITE_ROOK] = A1 | H1;
-        bitboards[WHITE_KNIGHT] = B1 | G1;
-        bitboards[WHITE_BISHOP] = C1 | F1;
-        bitboards[WHITE_QUEEN] = D1;
-        bitboards[WHITE_KING] = E1;
+        board->bitboards[BLACK_PAWN] = rank_7;
+        board->bitboards[BLACK_ROOK] = A8 | H8;
+        board->bitboards[BLACK_KNIGHT] = B8 | G8;
+        board->bitboards[BLACK_BISHOP] = C8 | F8;
+        board->bitboards[BLACK_QUEEN] = D8;
+        board->bitboards[BLACK_KING] = E8;
 
-        occupancies[WHITE] = rank_1 | rank_2;
-        occupancies[BLACK] = rank_7 | rank_8;
-        occupancies[BOTH] = rank_1 | rank_2 | rank_7 | rank_8;
+        board->bitboards[WHITE_PAWN] = rank_2;
+        board->bitboards[WHITE_ROOK] = A1 | H1;
+        board->bitboards[WHITE_KNIGHT] = B1 | G1;
+        board->bitboards[WHITE_BISHOP] = C1 | F1;
+        board->bitboards[WHITE_QUEEN] = D1;
+        board->bitboards[WHITE_KING] = E1;
+
+        board->occupancies[WHITE] = rank_1 | rank_2;
+        board->occupancies[BLACK] = rank_7 | rank_8;
+        board->occupancies[BOTH] = rank_1 | rank_2 | rank_7 | rank_8;
+    }
+
+    static BoardState copy(BoardState* board) {
+        return *board;
     }
 
     // example:
@@ -940,48 +948,48 @@ struct MoveGenerator{
                              Section: GameStateNodes
 /*////////////////////////////////////////////////////////////////////////////////
 
-struct GameStateNodeAlphazero {
-    BoardState board_state;
-    MoveGenerator move_generator;
-    GameStateNodeAlphazero* parent;
-    U32 prev_move;
-    static const int max_n_children = 256; // maximum number of pseudo legal moves in a position probably
-    GameStateNodeAlphazero* children[max_n_children];
-    int n_children; // n_children-1 is max index of children array
-    float prior; // prior probability of selecting this node in mcts
-    bool valid; // is the node a legal position
-
-    GameStateNodeAlphazero(GameStateNodeAlphazero* parent = nullptr, U32 prev_move = 0):
-        parent(parent),
-        prev_move(prev_move),
-        n_children(0)
-    {
-        if (parent) { // new potential child node
-            this->board_state = parent->board_state;
-            this->valid = BoardState::make(&this->board_state, prev_move);
-        }
-        else { // start position
-            this->board_state = BoardState();
-            this->valid = true;
-            this->prior = 0;
-        }
-    }
-
-    // reset the mcts variables for so we can reuse this node as a root node
-    static void make_root(GameStateNodeAlphazero* node) {
-        node->prior = 0;
-        node->parent = nullptr;
-        // node->prev_move = 0;
-    }
-
-    static void add_pl_child(GameStateNodeAlphazero* node, GameStateNodeAlphazero* child) {
-        if (child->valid) {
-            node->children[node->n_children++] = child;
-            assert (node->n_children < max_n_children); // todo: move this to expand function in python
-        }
-    }
-
-};
+// struct GameStateNodeAlphazero {
+//     BoardState board_state;
+//     MoveGenerator move_generator;
+//     GameStateNodeAlphazero* parent;
+//     U32 prev_move;
+//     static const int max_n_children = 256; // maximum number of pseudo legal moves in a position probably
+//     GameStateNodeAlphazero* children[max_n_children];
+//     int n_children; // n_children-1 is max index of children array
+//     float prior; // prior probability of selecting this node in mcts
+//     bool valid; // is the node a legal position
+//
+//     GameStateNodeAlphazero(GameStateNodeAlphazero* parent = nullptr, U32 prev_move = 0):
+//         parent(parent),
+//         prev_move(prev_move),
+//         n_children(0)
+//     {
+//         if (parent) { // new potential child node
+//             this->board_state = parent->board_state;
+//             this->valid = BoardState::make(&this->board_state, prev_move);
+//         }
+//         else { // start position
+//             this->board_state = BoardState();
+//             this->valid = true;
+//             this->prior = 0;
+//         }
+//     }
+//
+//     // reset the mcts variables for so we can reuse this node as a root node
+//     static void make_root(GameStateNodeAlphazero* node) {
+//         node->prior = 0;
+//         node->parent = nullptr;
+//         // node->prev_move = 0;
+//     }
+//
+//     static void add_pl_child(GameStateNodeAlphazero* node, GameStateNodeAlphazero* child) {
+//         if (child->valid) {
+//             node->children[node->n_children++] = child;
+//             assert (node->n_children < max_n_children); // todo: move this to expand function in python
+//         }
+//     }
+//
+// };
 
 /*////////////////////////////////////////////////////////////////////////////////
                              Section: perft testing

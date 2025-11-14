@@ -6,6 +6,8 @@ import numpy as np
 from math import inf, sqrt, log
 from numpy.random import dirichlet
 import time
+from copy import deepcopy
+import game_engine
 
 
 """################################################################################
@@ -153,14 +155,113 @@ def test_net_shapes():
     print()
     print("Value output:", value_output)
 
-if __name__ == "__main__":
-    test_net_shapes()
-    pass
+# test_net_shapes()
+
+
+
+
+"""################################################################################
+                    Section: GameStateNode
+################################################################################"""
+
+class GameStateNode:
+    def __init__(self, parent=None, board = None, prev_move = 0):
+        if parent is None:
+            self.board = game_engine.BoardState()
+        else:
+            self.board = board
+
+        self.moves = game_engine.MoveGenerator()
+        self.children = set()
+        self.prev_move = prev_move
+        self.prior = 0
+
+    def generate_pl_moves(self):
+        self.moves.generate_pl_moves(self.board)
+
+    def print_pl_moves(self):
+        self.generate_pl_moves()
+        self.moves.print_pl_moves()
+
+    def new_node(self, move):
+        new_board = self.board.copy()
+        if new_board.make(move):
+            return GameStateNode(self, new_board, move)
+            # TODO: need to add the prior
+        else:
+            return None
+
+    def model_input(self):
+        return self.board.get_model_input()
+
+    def get_pl_move_list(self):
+        self.generate_pl_moves()
+        return self.moves.get_pl_move_list(self.board)
+
+    def check_win(self):
+        for move in self.get_pl_move_list():
+            new_board = self.board.copy()
+            if new_board.make(move):
+                return False
+        return True
+
+    def print(self):
+        print("GameStateNode: \n")
+        self.board.print()
+        print(f"prev_move: {self.prev_move}")
+
+
+# moves.generate_pl_moves(board)
+# moves.print_pl_moves()
+
+
+# struct GameStateNodeAlphazero {
+#     GameStateNodeAlphazero(GameStateNodeAlphazero* parent = nullptr, U32 prev_move = 0):
+#         parent(parent),
+#         prev_move(prev_move),
+#         n_children(0)
+#     {
+#         if (parent) { // new potential child node
+#             this->board_state = parent->board_state;
+#             this->valid = BoardState::make(&this->board_state, prev_move);
+#         }
+#         else { // start position
+#             this->board_state = BoardState();
+#             this->valid = true;
+#             this->prior = 0;
+#         }
+#     }
+#
+#     // reset the mcts variables for so we can reuse this node as a root node
+#     static void make_root(GameStateNodeAlphazero* node) {
+#         node->prior = 0;
+#         node->parent = nullptr;
+#         // node->prev_move = 0;
+#     }
+#
+#     static void add_pl_child(GameStateNodeAlphazero* node, GameStateNodeAlphazero* child) {
+#         if (child->valid) {
+#             node->children[node->n_children++] = child;
+#             assert (node->n_children < max_n_children); // todo: move this to expand function in python
+#         }
+#     }
+#
+# };
+
+
+
+
+
+
+
+
 
 """################################################################################
                     Section: Monte Carlo Tree Search (MCTS)
 ################################################################################"""
 
+# mcts_n_sims = 800
+#
 # def MCTS(start_node: GameStateNode, value, policy):
 #     """
 #         Performs monte carlo tree search from a parent GameStateNode.
