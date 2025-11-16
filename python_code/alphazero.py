@@ -23,7 +23,7 @@ NOTOVER = 2
                     Section: Residual Neural Network (ResNet)
 ################################################################################"""
 
-batch_size = 1
+batch_size = 3
 
 # 14*8 (12 bitboards + 2 repetition, 1 current + 7 past) + 7 (1 turn + 1 total_moves + 4 castling + 1 halfmove)
 time_history = 7
@@ -88,12 +88,11 @@ class OutputHeads(nn.Module):
         p = F.relu(p)
         p = self.p_conv1(p)
         p = self.p_lsm(p).exp() # output is (batch_size, 73, 8, 8)
-        p = p.view(-1, 73, 64)
 
         v = self.v_conv(x)
         v = self.v_bn(v)
         v = F.relu(v)
-        v = v.view(-1, 1)
+        v = v.view(-1, 64)
         v = self.v_lin0(v)
         v = F.relu(v)
         v = self.v_lin1(v)
@@ -132,7 +131,9 @@ class ResNet(nn.Module):
             out = getattr(self, f"res_block_{layer}")(out)
 
         # policy and value head
-        return self.output(out)
+        p, v = self.output(out)
+        # p = p.view(-1, 73, 64)
+        return p, v
 
 model = ResNet()
 

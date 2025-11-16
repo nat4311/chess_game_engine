@@ -39,6 +39,7 @@ def test_net_shapes():
     model.eval()  # set to eval mode as default for testing
 
     input_tensor = torch.randn(batch_size, feature_channels, 8, 8)
+    print("Input shape:", input_tensor.shape)
 
     # Forward pass through model
     t0 = time.time()
@@ -47,9 +48,6 @@ def test_net_shapes():
     t1 = time.time()
     print(t1-t0)
 
-    # Check shapes
-    print()
-    print("Input shape:", input_tensor.shape)
     print("Policy output shape:", policy_output.shape)  # expected (1, 73, 8, 8)
     print("Value output shape:", value_output.shape)    # expected (1, 1)
 
@@ -155,7 +153,7 @@ if __name__ == "__main__":
     # basic_board_test()
     # get_partial_model_input_test()
     # test_rollout()
-    # test_net_shapes()
-    get_policy_move_test()
+    test_net_shapes()
+    # get_policy_move_test()
 
     pass
