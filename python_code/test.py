@@ -1,27 +1,62 @@
 import game_engine
 import numpy as np
 import time
-from alphazero import GameStateNode
+import torch
+from alphazero import GameStateNode, feature_channels, ResNet, rollout
 
 ###############################################################
+
+
+def test_rollout():
+    curr_node = GameStateNode()
+    input_data = torch.zeros((1,feature_channels,8,8))
+    d = curr_node.get_partial_model_input()
+    input_data[0, -21:, :, :] = d
+    curr_node.full_model_input = input_data
+    model = ResNet()
+
+    p,v = model(curr_node.get_full_model_input())
+
+    l = rollout(curr_node, model)
+    print(l)
+    print(curr_node.value_sum)
+
+
+
+def model_input_test():
+    input_data = torch.zeros((3000,8,8))
+    curr_node = GameStateNode()
+    input_datum = curr_node.get_partial_model_input()
+    # for i in range(12):
+    #     print(input_datum[i,:,:])
+    #     time.sleep(.8)
+    # print(input_datum.shape)
+    # print(type(input_datum))
+    input_data[1:22, :, :] = torch.Tensor(input_datum)
+    print(input_data.dtype)
 
 def basic_board_test():
     board = game_engine.BoardState()
     moves = game_engine.MoveGenerator()
+    fen = "rnbqkbnr/ppppp1pp/8/7B/7q/8/PPPPPPPP/RNBQKBNR b KQkq - 0 1\n";
+    board.load(fen)
     board.print()
-    board.reset()
-    board.print()
+    print(board.king_is_attacked())
+    # print(board.halfmove)
+    # board.reset()
+    # board.print()
 
-
-def get_model_input_test():
-    meanings = [ "white_pawns", "white_knights", "white_bishops", "white_rooks", "white_queens", "white_kings", "black_pawns", "black_knights", "black_bishops", "black_rooks", "black_queens", "black_kings", "repetitions_1", "repetitions_2", "turn*64", "total_moves*64", "WHITE_KINGSIDE_CASTLE*64", "WHITE_QUEENSIDE_CASTLE*64", "BLACK_KINGSIDE_CASTLE*64", "BLACK_QUEENSIDE_CASTLE*64", "halfmove*64", ]
+def get_partial_model_input_test():
+    meanings = [ "white_pawns", "white_knights", "white_bishops", "white_rooks", "white_queens", "white_kings", "black_pawns", "black_knights", "black_bishops", "black_rooks", "black_queens", "black_kings", "repetitions_1", "repetitions_2", "turn*64", "turn_no*64", "WHITE_KINGSIDE_CASTLE*64", "WHITE_QUEENSIDE_CASTLE*64", "BLACK_KINGSIDE_CASTLE*64", "BLACK_QUEENSIDE_CASTLE*64", "halfmove*64", ]
     node = GameStateNode()
-    m = node.model_input()
+    fen = "rnbqkbnr/pppppppp/8/8/7q/8/PPPPPPPP/RNBQKBNR b KQkq - 1 2\n";
+    node.board.load(fen)
+    node.board.print()
+    m = node.get_partial_model_input()
     print(m.shape)
     print(m.dtype)
     for i in range(21):
         print(f"i={str(i).ljust(2)}   {str(sum(m[i,:,:].flatten())).ljust(5)}  {meanings[i].ljust(27)}")
-# get_model_input_test()
 
 
 def make_test():
@@ -39,23 +74,33 @@ def make_test():
 
 
 
-# moves.generate_pl_moves(board)
-# moves.print_pl_moves()
+if __name__ == "__main__":
+    # model_input_test()
+    # make_test()
+    # basic_board_test()
+    # get_partial_model_input_test()
+    # test_rollout()
 
-# def print_bool_bitboard(bitboard):
-#     print("    A  B  C  D  E  F  G  H\n")
-#     for y in range(8):
-#         print(8-y, end="   ")
-#         for x in range(8):
-#             sq = x + 8*y
-#             if bitboard[sq]:
-#                 print("1  ", end="")
-#             else:
-#                 print(".  ", end="")
-#         print(f"  {8-y}")
-#     print("\n    A  B  C  D  E  F  G  H")
-#
 
-# bb = board.get_bitboards()
+    # moves.generate_pl_moves(board)
+    # moves.print_pl_moves()
 
-# board.print()
+    # def print_bool_bitboard(bitboard):
+    #     print("    A  B  C  D  E  F  G  H\n")
+    #     for y in range(8):
+    #         print(8-y, end="   ")
+    #         for x in range(8):
+    #             sq = x + 8*y
+    #             if bitboard[sq]:
+    #                 print("1  ", end="")
+    #             else:
+    #                 print(".  ", end="")
+    #         print(f"  {8-y}")
+    #     print("\n    A  B  C  D  E  F  G  H")
+    #
+
+    # bb = board.get_bitboards()
+
+    # board.print()
+
+    pass

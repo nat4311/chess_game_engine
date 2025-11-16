@@ -24,6 +24,9 @@ struct BoardState {
     // for 50 move rule - 100 halfmoves without a pawn move or capture is a draw
     int halfmove;
 
+    // the standard turn number minus one
+    int turn_no;
+
     // index: piece type (WHITE_PAWN, WHITE_KNIGHT, ... , BLACK_KING)
     U64 bitboards[12];
 
@@ -39,6 +42,7 @@ struct BoardState {
         board->castling_rights = WHITE_CASTLE_KINGSIDE | WHITE_CASTLE_QUEENSIDE | BLACK_CASTLE_KINGSIDE | BLACK_CASTLE_QUEENSIDE;
         board->enpassant_sq = no_sq;
         board->halfmove = 0;
+        board->turn_no = 0;
 
         board->bitboards[BLACK_PAWN] = rank_7;
         board->bitboards[BLACK_ROOK] = A8 | H8;
@@ -174,7 +178,16 @@ struct BoardState {
             board->halfmove = board->halfmove * 10 + (c - '0');
         }
 
-        // fullmove - don't care
+        // turn_no
+        board->turn_no = 0;
+        while (1) {
+            c = fen_str[i_fen_str++];
+            if (c == '\n') {
+                break;
+            }
+            board->turn_no = board->turn_no * 10 + (c - '0');
+        }
+        board->turn_no--;
         
         return;
     }
@@ -205,6 +218,7 @@ struct BoardState {
                board->castling_rights & BLACK_CASTLE_QUEENSIDE ? 'q' : '-');
         printf("       enpassant_sq: %s\n", board->enpassant_sq == no_sq ? "none" : sq_str[board->enpassant_sq]);
         printf("           halfmove: %d\n\n", board->halfmove);
+        printf("            turn_no: %d\n\n", board->turn_no + 1);
     }
 
     // attempt to make a pl move.
@@ -379,7 +393,13 @@ struct BoardState {
         }
 
         /////////////// board state updates
-        board->turn = !board->turn;
+        if (board->turn == BLACK) {
+            board->turn_no++;
+            board->turn = WHITE;
+        }
+        else {
+            board->turn = BLACK;
+        }
 
         // update castling rights (moving a king/rook)
         if (moving_piece_type == WHITE_KING) {
@@ -459,6 +479,16 @@ struct BoardState {
             if (get_king_attacks(sq) & board->bitboards[BLACK_KING]) { return 1; }
         }
         return 0;
+    }
+
+    static bool king_is_attacked(BoardState* board) {
+        int king_sq = lsb_scan(board->turn==WHITE? board->bitboards[WHITE_KING] : board->bitboards[BLACK_KING]);
+        if (sq_is_attacked(board, king_sq, !board->turn)) {
+            return true;
+        }
+        else {
+            return false;
+        }
     }
     
     // assumes that only the pieces have been moved, board state variables have not updated yet (turn, ep, castling, halfmove, etc)
@@ -996,12 +1026,12 @@ struct MoveGenerator{
 /*////////////////////////////////////////////////////////////////////////////////
 
 // from https://www.chessprogramming.org/Perft_Results
-char perft_position_1[] = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
-char perft_position_2[] = "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1";
-char perft_position_3[] = "8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1 ";
-char perft_position_4a[] = "r3k2r/Pppp1ppp/1b3nbN/nP6/BBP1P3/q4N2/Pp1P2PP/R2Q1RK1 w kq - 0 1";
-char perft_position_4b[] = "r2q1rk1/pP1p2pp/Q4n2/bbp1p3/Np6/1B3NBn/pPPP1PPP/R3K2R b KQ - 0 1";
-char perft_position_5[] = "rnbq1k1r/pp1Pbppp/2p5/8/2B5/8/PPP1NnPP/RNBQK2R w KQ - 1 8";
+char perft_position_1[] = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1\n";
+char perft_position_2[] = "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1\n";
+char perft_position_3[] = "8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 1 \n";
+char perft_position_4a[] = "r3k2r/Pppp1ppp/1b3nbN/nP6/BBP1P3/q4N2/Pp1P2PP/R2Q1RK1 w kq - 0 1\n";
+char perft_position_4b[] = "r2q1rk1/pP1p2pp/Q4n2/bbp1p3/Np6/1B3NBn/pPPP1PPP/R3K2R b KQ - 0 1\n";
+char perft_position_5[] = "rnbq1k1r/pp1Pbppp/2p5/8/2B5/8/PPP1NnPP/RNBQK2R w KQ - 1 8\n";
 
 // nodes, captures, ep, castles, promotions
 U64 perft_position_1_results[][5] = {

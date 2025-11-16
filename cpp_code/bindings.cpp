@@ -21,16 +21,16 @@ py::array_t<bool> get_bitboards(BoardState &self) {
     return py::array_t<bool>({12, 64}, &data[0][0]);
 }
 
-py::array_t<U8> get_model_input(BoardState* board) {
+py::array_t<U8> get_partial_model_input(BoardState* board) {
     py::array_t<U8> arr({21, 8, 8});
     auto buf = arr.mutable_unchecked<3>();
 
     // piece bitboards
     for (int piece_type = 0; piece_type < 12; piece_type++) {
-        for (int y = 0; y < 8; ++y) {
-            for (int x = 0; x < 8; ++x) {
+        for (int y = 0; y < 8; y++) {
+            for (int x = 0; x < 8; x++) {
                 int sq = y * 8 + x;
-                buf(piece_type, x, y) = (board->bitboards[piece_type] >> sq) & 1;
+                buf(piece_type, y, x) = (board->bitboards[piece_type] >> sq) & 1;
             }
         }
     }
@@ -39,11 +39,11 @@ py::array_t<U8> get_model_input(BoardState* board) {
     U8* ptr = static_cast<U8*>(arr.request().ptr);
     std::memset(ptr + 12*64, 0, 2*64*sizeof(U8));
 
-    // turn
+    // turn - White or Black
     std::memset(ptr + 14*64, board->turn, 64*sizeof(U8));
 
-    // todo: total_moves
-    std::memset(ptr + 15*64, board->turn, 64*sizeof(U8));
+    // turn_no - capped at 255
+    std::memset(ptr + 15*64, (board->turn_no > 255? 255 : board->turn_no), 64*sizeof(U8));
 
     bool castle_K = board->castling_rights & WHITE_CASTLE_KINGSIDE;
     bool castle_Q = board->castling_rights & WHITE_CASTLE_QUEENSIDE;
@@ -71,7 +71,6 @@ PYBIND11_MODULE(game_engine, m, py::mod_gil_not_used()) {
 
     m.def("print_move", &print_move, py::arg("U32_move"), py::arg("bool_verbose"), "print a move");
 
-    // todo: make, unmake
     py::class_<BoardState>(m, "BoardState")
         .def(py::init<>())
         .def("print", &BoardState::print, "print the board state to terminal")
@@ -79,8 +78,11 @@ PYBIND11_MODULE(game_engine, m, py::mod_gil_not_used()) {
         .def("load", &BoardState::load, "load a fen string", py::arg("fen_str"))
         .def("copy", &BoardState::copy, "copy by value of a board state")
         .def("make", &BoardState::make, "make a move")
+        .def("king_is_attacked", &BoardState::king_is_attacked, "returns True if king is in check")
         .def("get_bitboards", &get_bitboards, "get all 12 piece bitboards as 8x8x12 bool array")
-        .def("get_model_input", &get_model_input, "get partial model input as 21x8x8 U8 array")
+        .def("get_partial_model_input", &get_partial_model_input, "get partial model input as 21x8x8 U8 array")
+        .def_readonly("halfmove", &BoardState::halfmove)
+        .def_readonly("turn_no", &BoardState::turn_no)
         .def("__repr__", [](const BoardState &a){ return "<BoardState object>"; } );
 
     py::class_<MoveGenerator>(m, "MoveGenerator")
