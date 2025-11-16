@@ -14,4 +14,3 @@ U64 random_U64() {
 U64 random_U64_few_bits() {
     return random_U64() & random_U64() & random_U64();
 }
-
