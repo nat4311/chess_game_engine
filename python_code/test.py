@@ -9,15 +9,31 @@ from alphazero import U32_move_to_policy_move_dict
 ###############################################################
 
 def get_policy_move_test():
-    print(U32_move_to_policy_move_dict)
+    # print(U32_move_to_policy_move_dict)
     node = GameStateNode()
     pl_move_list = node.moves.get_pl_move_list(node.board)
     for U32_move in pl_move_list:
         policy_move = get_policy_move(U32_move)
-        # print(policy_move)
-    # node.print()
-    print(U32_move_to_policy_move_dict)
+        print(policy_move)
+    node.print()
+    # print(U32_move_to_policy_move_dict)
     save_objects()
+
+    # print("\nbefore")
+    # print(U32_move_to_policy_move_dict)
+    # print()
+    # node = GameStateNode()
+    # pl_move_list = node.moves.get_pl_move_list(node.board)
+    # for U32_move in pl_move_list:
+    #     policy_move = get_policy_move(U32_move)
+    #     # print(policy_move)
+    # # node.print()
+    # print()
+    # print("after")
+    # print(U32_move_to_policy_move_dict)
+    # print()
+    # save_objects()
+
 
 def test_net_shapes():
     model.eval()  # set to eval mode as default for testing

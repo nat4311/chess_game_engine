@@ -172,6 +172,7 @@ def set_saved_objects_directory():
     os.chdir(root_dir + r"/python_code/saved_objects")
 
 def load_objects():
+    global model, U32_move_to_policy_move_dict
     set_saved_objects_directory()
     print("Loading objects...")
 
@@ -488,3 +489,8 @@ def self_play_one_game(model: ResNet):
             break
 
     return input_data, policy_data, result
+
+
+
+
+
