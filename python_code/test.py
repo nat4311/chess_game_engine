@@ -2,9 +2,39 @@ import game_engine
 import numpy as np
 import time
 import torch
-from alphazero import GameStateNode, feature_channels, ResNet, rollout
+from alphazero import GameStateNode, feature_channels, ResNet, rollout, batch_size
+from alphazero import model, load_objects, save_objects
 
 ###############################################################
+
+def test_net_shapes():
+    model.eval()  # set to eval mode as default for testing
+
+    input_tensor = torch.randn(batch_size, feature_channels, 8, 8)
+
+    # Forward pass through model
+    t0 = time.time()
+    for i in range(1000):
+        policy_output, value_output = model(input_tensor)
+    t1 = time.time()
+    print(t1-t0)
+
+    # Check shapes
+    print()
+    print("Input shape:", input_tensor.shape)
+    print("Policy output shape:", policy_output.shape)  # expected (1, 73, 8, 8)
+    print("Value output shape:", value_output.shape)    # expected (1, 1)
+
+    # To get final policy as (64 x 73), reshape and permute policy output:
+    # policy_output shape is (batch, 73, 8, 8)
+    # Reshape to (batch, 73, 64) then permute to (batch, 64, 73)
+    policy_reshaped = policy_output.reshape(batch_size, 73, 64)
+    print()
+    print(f"Policy reshaped shape (should be {batch_size} x 73 x 64):", policy_reshaped.shape)
+
+    # Value should be (batch, 1), verify the scalar value
+    print()
+    print("Value output:", value_output)
 
 
 def test_rollout():
@@ -13,15 +43,12 @@ def test_rollout():
     d = curr_node.get_partial_model_input()
     input_data[0, -21:, :, :] = d
     curr_node.full_model_input = input_data
-    model = ResNet()
 
     p,v = model(curr_node.get_full_model_input())
 
     l = rollout(curr_node, model)
     print(l)
     print(curr_node.value_sum)
-
-
 
 def model_input_test():
     input_data = torch.zeros((3000,8,8))
@@ -45,6 +72,25 @@ def basic_board_test():
     # print(board.halfmove)
     # board.reset()
     # board.print()
+
+    # moves.generate_pl_moves(board)
+    # moves.print_pl_moves()
+    # def print_bool_bitboard(bitboard):
+    #     print("    A  B  C  D  E  F  G  H\n")
+    #     for y in range(8):
+    #         print(8-y, end="   ")
+    #         for x in range(8):
+    #             sq = x + 8*y
+    #             if bitboard[sq]:
+    #                 print("1  ", end="")
+    #             else:
+    #                 print(".  ", end="")
+    #         print(f"  {8-y}")
+    #     print("\n    A  B  C  D  E  F  G  H")
+    #
+    # bb = board.get_bitboards()
+    # board.print()
+
 
 def get_partial_model_input_test():
     meanings = [ "white_pawns", "white_knights", "white_bishops", "white_rooks", "white_queens", "white_kings", "black_pawns", "black_knights", "black_bishops", "black_rooks", "black_queens", "black_kings", "repetitions_1", "repetitions_2", "turn*64", "turn_no*64", "WHITE_KINGSIDE_CASTLE*64", "WHITE_QUEENSIDE_CASTLE*64", "BLACK_KINGSIDE_CASTLE*64", "BLACK_QUEENSIDE_CASTLE*64", "halfmove*64", ]
@@ -75,32 +121,12 @@ def make_test():
 
 
 if __name__ == "__main__":
+    print("======================================")
     # model_input_test()
     # make_test()
     # basic_board_test()
     # get_partial_model_input_test()
-    # test_rollout()
-
-
-    # moves.generate_pl_moves(board)
-    # moves.print_pl_moves()
-
-    # def print_bool_bitboard(bitboard):
-    #     print("    A  B  C  D  E  F  G  H\n")
-    #     for y in range(8):
-    #         print(8-y, end="   ")
-    #         for x in range(8):
-    #             sq = x + 8*y
-    #             if bitboard[sq]:
-    #                 print("1  ", end="")
-    #             else:
-    #                 print(".  ", end="")
-    #         print(f"  {8-y}")
-    #     print("\n    A  B  C  D  E  F  G  H")
-    #
-
-    # bb = board.get_bitboards()
-
-    # board.print()
+    test_rollout()
+    # test_net_shapes()
 
     pass

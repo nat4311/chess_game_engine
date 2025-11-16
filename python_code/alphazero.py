@@ -8,6 +8,8 @@ from numpy.random import dirichlet
 import time
 from copy import deepcopy
 import game_engine
+import pickle
+import os
 
 # enums
 WHITE = 0
@@ -131,41 +133,61 @@ class ResNet(nn.Module):
         # policy and value head
         return self.output(out)
 
+model = ResNet()
 
-def test_net_shapes():
-    model = ResNet()
-    model.eval()  # set to eval mode as default for testing
+"""#############################################################
+               Section: move_to_policy_output Cache
+#############################################################"""
 
-    input_tensor = torch.randn(batch_size, feature_channels, 8, 8)
+# for converting U32 move (game engine moves list) to 73x8x8 move (policy head output)
+# reverse should happen with a temporary dict created when masking the policy head outputs
+U32_move_to_policy_output_savefile = "U32_move_to_policy_output.pickle"
+# indexed by (73, 8, 8) tuple
+U32_move_to_policy_output_dict = dict()
 
-    # Forward pass through model
-    t0 = time.time()
-    for i in range(1000):
-        policy_output, value_output = model(input_tensor)
-    t1 = time.time()
-    print(t1-t0)
+"""#############################################################
+               Section: Loading and saving objects
+#############################################################"""
 
-    # Check shapes
+def set_saved_objects_directory():
+    root_dir = __file__
+    while root_dir[-17:] != "chess_game_engine":
+        root_dir = root_dir[:-1]
+        if len(root_dir) == 0:
+            raise Exception("could not find project root directory")
+    os.chdir(root_dir + r"/python_code/saved_objects")
+
+def load_objects():
+    set_saved_objects_directory()
+    print("Loading objects...")
+
+    try:
+        model.load_state_dict(torch.load("alphazero_model_weights.pth", weights_only=True))
+        print("    alphazero_model_weights loaded")
+    except:
+        print(" X  no alphazero_model_weights found")
+
+    if os.path.exists(U32_move_to_policy_output_savefile):
+        with open(U32_move_to_policy_output_savefile, 'rb') as f:
+            U32_move_to_policy_output_dict = pickle.load(f)
+            print(f"    {U32_move_to_policy_output_savefile} loaded")
+    else:
+        print(f" X  {U32_move_to_policy_output_savefile} not found")
+
+def save_objects():
+    set_saved_objects_directory()
+    print("Saving objects...")
+
+    with open(U32_move_to_policy_output_savefile, 'wb') as f:
+        pickle.dump(U32_move_to_policy_output_dict, f)
+        print(f"    {U32_move_to_policy_output_savefile} saved")
+
+    torch.save(model.state_dict(), "alphazero_model_weights.pth")
+
     print()
-    print("Input shape:", input_tensor.shape)
-    print("Policy output shape:", policy_output.shape)  # expected (1, 73, 8, 8)
-    print("Value output shape:", value_output.shape)    # expected (1, 1)
-
-    # To get final policy as (64 x 73), reshape and permute policy output:
-    # policy_output shape is (batch, 73, 8, 8)
-    # Reshape to (batch, 73, 64) then permute to (batch, 64, 73)
-    policy_reshaped = policy_output.reshape(batch_size, 73, 64)
-    print()
-    print(f"Policy reshaped shape (should be {batch_size} x 73 x 64):", policy_reshaped.shape)
-
-    # Value should be (batch, 1), verify the scalar value
-    print()
-    print("Value output:", value_output)
-
-# test_net_shapes()
 
 
-
+load_objects()
 
 """################################################################################
                     Section: GameStateNode
@@ -244,50 +266,6 @@ class GameStateNode:
         self.value_sum = 0
         self.n_visits = 0
 
-# moves.generate_pl_moves(board)
-# moves.print_pl_moves()
-
-
-# struct GameStateNodeAlphazero {
-#     GameStateNodeAlphazero(GameStateNodeAlphazero* parent = nullptr, U32 prev_move = 0):
-#         parent(parent),
-#         prev_move(prev_move),
-#         n_children(0)
-#     {
-#         if (parent) { // new potential child node
-#             this->board_state = parent->board_state;
-#             this->valid = BoardState::make(&this->board_state, prev_move);
-#         }
-#         else { // start position
-#             this->board_state = BoardState();
-#             this->valid = true;
-#             this->prior = 0;
-#         }
-#     }
-#
-#     // reset the mcts variables for so we can reuse this node as a root node
-#     static void make_root(GameStateNodeAlphazero* node) {
-#         node->prior = 0;
-#         node->parent = nullptr;
-#         // node->prev_move = 0;
-#     }
-#
-#     static void add_pl_child(GameStateNodeAlphazero* node, GameStateNodeAlphazero* child) {
-#         if (child->valid) {
-#             node->children[node->n_children++] = child;
-#             assert (node->n_children < max_n_children); // todo: move this to expand function in python
-#         }
-#     }
-#
-# };
-
-
-
-
-
-
-
-
 
 """################################################################################
                     Section: Monte Carlo Tree Search (MCTS)
@@ -314,11 +292,11 @@ def MCTS(root_node: GameStateNode, model: ResNet):
         curr_node = root_node
         while True:
             if curr_node.n_visits == 0 or curr_node.state in (WHITE_WIN, BLACK_WIN, DRAW): # only rollout for leaf nodes
-# BOOKMARK - changed everything above this in this function
                 rollout(curr_node, model)
                 break
             else:
                 if curr_node.n_visits == 1: # only expand if need to
+# BOOKMARK - changed everything above this in this function
                     expand(curr_node, model)
                 curr_node = select_child(curr_node)
                 assert curr_node is not None
@@ -368,6 +346,7 @@ def rollout(curr_node: GameStateNode, model: ResNet) -> int:
 # TODO: convert connect4->chess
 def expand(curr_node, model):
 
+# BOOKMARK - changed everything above this in this function
     action_probs,_ = model(curr_node.get_full_model_input())
 
     for move in curr_node.valid_moves():
@@ -446,7 +425,6 @@ def choose_move(start_node, model, greedy) -> int:
         s = sum(distribution)
         distribution = [v/s for v in distribution]
         return random.choices(range(7), distribution)[0]
-#
 
 
 """################################################################################
@@ -491,5 +469,3 @@ def self_play_one_game(model: ResNet):
             break
 
     return input_data, policy_data, result
-
-

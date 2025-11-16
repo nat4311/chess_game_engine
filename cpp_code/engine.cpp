@@ -1352,12 +1352,12 @@ void unit_tests() {
 }
 
 void init_engine() {
-    std::cout << "initializing engine..." << std::endl;
+    std::cout << "Initializing engine..." << std::endl;
 
     auto t0 = timestamp();
     init_attacks();
     auto t1 = timestamp();
-    std::cout << "attacks initialized in " << delta_timestamp_ms(t0, t1) << " ms\n\n";
+    std::cout << "    attacks initialized in " << delta_timestamp_ms(t0, t1) << " ms\n\n";
 }
 
 int main() {
