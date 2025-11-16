@@ -3,9 +3,21 @@ import numpy as np
 import time
 import torch
 from alphazero import GameStateNode, feature_channels, ResNet, rollout, batch_size
-from alphazero import model, load_objects, save_objects
+from alphazero import model, load_objects, save_objects, get_policy_move
+from alphazero import U32_move_to_policy_move_dict
 
 ###############################################################
+
+def get_policy_move_test():
+    print(U32_move_to_policy_move_dict)
+    node = GameStateNode()
+    pl_move_list = node.moves.get_pl_move_list(node.board)
+    for U32_move in pl_move_list:
+        policy_move = get_policy_move(U32_move)
+        # print(policy_move)
+    # node.print()
+    print(U32_move_to_policy_move_dict)
+    save_objects()
 
 def test_net_shapes():
     model.eval()  # set to eval mode as default for testing
@@ -25,12 +37,12 @@ def test_net_shapes():
     print("Policy output shape:", policy_output.shape)  # expected (1, 73, 8, 8)
     print("Value output shape:", value_output.shape)    # expected (1, 1)
 
-    # To get final policy as (64 x 73), reshape and permute policy output:
-    # policy_output shape is (batch, 73, 8, 8)
-    # Reshape to (batch, 73, 64) then permute to (batch, 64, 73)
-    policy_reshaped = policy_output.reshape(batch_size, 73, 64)
-    print()
-    print(f"Policy reshaped shape (should be {batch_size} x 73 x 64):", policy_reshaped.shape)
+    # # To get final policy as (64 x 73), reshape and permute policy output:
+    # # policy_output shape is (batch, 73, 8, 8)
+    # # Reshape to (batch, 73, 64) then permute to (batch, 64, 73)
+    # policy_reshaped = policy_output.reshape(batch_size, 73, 64)
+    # print()
+    # print(f"Policy reshaped shape (should be {batch_size} x 73 x 64):", policy_reshaped.shape)
 
     # Value should be (batch, 1), verify the scalar value
     print()
@@ -126,7 +138,8 @@ if __name__ == "__main__":
     # make_test()
     # basic_board_test()
     # get_partial_model_input_test()
-    test_rollout()
+    # test_rollout()
     # test_net_shapes()
+    get_policy_move_test()
 
     pass

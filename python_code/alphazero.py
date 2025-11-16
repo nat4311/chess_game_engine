@@ -88,11 +88,12 @@ class OutputHeads(nn.Module):
         p = F.relu(p)
         p = self.p_conv1(p)
         p = self.p_lsm(p).exp() # output is (batch_size, 73, 8, 8)
+        p = p.view(-1, 73, 64)
 
         v = self.v_conv(x)
         v = self.v_bn(v)
         v = F.relu(v)
-        v = v.view(batch_size, -1)
+        v = v.view(-1, 1)
         v = self.v_lin0(v)
         v = F.relu(v)
         v = self.v_lin1(v)
@@ -136,14 +137,27 @@ class ResNet(nn.Module):
 model = ResNet()
 
 """#############################################################
-               Section: move_to_policy_output Cache
+               Section: move_to_policy_move Cache
 #############################################################"""
 
 # for converting U32 move (game engine moves list) to 73x8x8 move (policy head output)
 # reverse should happen with a temporary dict created when masking the policy head outputs
-U32_move_to_policy_output_savefile = "U32_move_to_policy_output.pickle"
+U32_move_to_policy_move_savefile = "U32_move_to_policy_move.pickle"
 # indexed by (73, 8, 8) tuple
-U32_move_to_policy_output_dict = dict()
+U32_move_to_policy_move_dict = dict()
+
+def get_policy_move(U32_move):
+    """
+    returns (i, j)
+    where 0 <= i <= 72 (queen move dir/dist OR knight move dir OR underpromotion dir)
+    and   0 <= j <= 63 (source square)
+    """
+    if U32_move not in U32_move_to_policy_move_dict.keys():
+        print("U32_move not found, generating policy_move indices")
+        i = game_engine.policy_move_index_0(U32_move)
+        j = game_engine.policy_move_index_1(U32_move)
+        U32_move_to_policy_move_dict[U32_move] = (i, j)
+    return U32_move_to_policy_move_dict[U32_move]
 
 """#############################################################
                Section: Loading and saving objects
@@ -167,22 +181,23 @@ def load_objects():
     except:
         print(" X  no alphazero_model_weights found")
 
-    if os.path.exists(U32_move_to_policy_output_savefile):
-        with open(U32_move_to_policy_output_savefile, 'rb') as f:
-            U32_move_to_policy_output_dict = pickle.load(f)
-            print(f"    {U32_move_to_policy_output_savefile} loaded")
+    if os.path.exists(U32_move_to_policy_move_savefile):
+        with open(U32_move_to_policy_move_savefile, 'rb') as f:
+            U32_move_to_policy_move_dict = pickle.load(f)
+            print(f"    {U32_move_to_policy_move_savefile} loaded")
     else:
-        print(f" X  {U32_move_to_policy_output_savefile} not found")
+        print(f" X  {U32_move_to_policy_move_savefile} not found")
 
 def save_objects():
     set_saved_objects_directory()
     print("Saving objects...")
 
-    with open(U32_move_to_policy_output_savefile, 'wb') as f:
-        pickle.dump(U32_move_to_policy_output_dict, f)
-        print(f"    {U32_move_to_policy_output_savefile} saved")
+    with open(U32_move_to_policy_move_savefile, 'wb') as f:
+        pickle.dump(U32_move_to_policy_move_dict, f)
+        print(f"    {U32_move_to_policy_move_savefile} saved")
 
     torch.save(model.state_dict(), "alphazero_model_weights.pth")
+    print("    alphazero_model_weights.pth saved")
 
     print()
 
@@ -196,7 +211,7 @@ load_objects()
 class GameStateNode:
     def __init__(self, parent=None, board=None, prev_move=0, full_model_input=None, generate_children=False):
         self.parent = parent
-        self.children = set()
+        self.children = dict() # indexed by (73, 8, 8) move
         self.prev_move = prev_move
         self.moves = game_engine.MoveGenerator()
         self.prior = 0
@@ -218,11 +233,23 @@ class GameStateNode:
             self.state = DRAW
             return
 
-        for move in self.moves.get_pl_move_list(self.board):
+        p,_ = model(self.get_full_model_input())
+        action_probs = torch.zeros(p.shape) # TODO: mask illegal moves and normalize p
+        legal_move_mask = torch.zeros(p.shape)
+
+        for U32_move in self.moves.get_pl_move_list(self.board):
             new_board = self.board.copy()
-            if new_board.make(move):
-                new_node = GameStateNode(self, new_board, move)
-                self.children.add(new_node)
+            if new_board.make(U32_move):
+                policy_move = get_policy_move(U32_move)
+# # BOOKMARK - changed everything above this in this function
+#
+#     for move in curr_node.valid_moves():
+#         prior = action_probs[0][move].item()
+#         new_node = curr_node.new_node(move, prior)
+#         curr_node.children.add(new_node)
+#
+                new_node = GameStateNode(self, new_board, U32_move)
+                self.children[policy_move] = new_node
         if len(self.children) == 0:
             if self.board.king_is_attacked():
                 if self.board.turn == WHITE:
@@ -237,6 +264,7 @@ class GameStateNode:
         assert self.state is not None
 
     def print_pl_moves(self):
+        self.moves.generate_pl_moves(self.board)
         self.moves.print_pl_moves()
 
     def new_node(self, move):
@@ -295,8 +323,9 @@ def MCTS(root_node: GameStateNode, model: ResNet):
                 rollout(curr_node, model)
                 break
             else:
-                if curr_node.n_visits == 1: # only expand if need to
 # BOOKMARK - changed everything above this in this function
+                #TODO: remove expand call
+                if curr_node.n_visits == 1: # only expand if need to
                     expand(curr_node, model)
                 curr_node = select_child(curr_node)
                 assert curr_node is not None
@@ -343,16 +372,6 @@ def rollout(curr_node: GameStateNode, model: ResNet) -> int:
     return leaf_node_value_estimate
 
 
-# TODO: convert connect4->chess
-def expand(curr_node, model):
-
-# BOOKMARK - changed everything above this in this function
-    action_probs,_ = model(curr_node.get_full_model_input())
-
-    for move in curr_node.valid_moves():
-        prior = action_probs[0][move].item()
-        new_node = curr_node.new_node(move, prior)
-        curr_node.children.add(new_node)
 
 # TODO: convert connect4->chess
 def select_child(parent_node: GameStateNode) -> GameStateNode:
@@ -369,7 +388,7 @@ def select_child(parent_node: GameStateNode) -> GameStateNode:
     # todo: confirm dirichlet noise is working
     # todo: make sure policy output sums to 1 for the valid moves
     noise = dirichlet([alpha_dirichlet for _ in range(7)], 1)[0]
-    for i, child in enumerate(parent_node.children):
+    for i, child in enumerate(parent_node.children.values()):
         if child.n_visits == 0:
             explore = inf
             return child
@@ -412,14 +431,14 @@ def choose_move(start_node, model, greedy) -> int:
     if greedy:
         most_visits = 0
         most_visited_move = None
-        for child in start_node.children:
+        for child in start_node.children.values():
             if child.n_visits > most_visits:
                 most_visited_move = child.prev_move
                 most_visits = child.n_visits
         return most_visited_move
     else:
         visits = [0 for _ in range(7)]
-        for child in start_node.children:
+        for child in start_node.children.values():
             visits[child.prev_move] = child.n_visits
         distribution = [v**(1/exploration_temperature) for v in visits]
         s = sum(distribution)
@@ -454,7 +473,7 @@ def self_play_one_game(model: ResNet):
         # BOOKMARK - changed everything above this in this function
         move = choose_move(curr_node, model, greedy=False)
         policy_datum = torch.zeros((1,7))
-        for child in curr_node.children:
+        for child in curr_node.children.values():
             i = child.prev_move
             assert i in range(7)
             ap = child.n_visits / (curr_node.n_visits-1)

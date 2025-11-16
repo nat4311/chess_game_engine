@@ -3,6 +3,158 @@
 #include <pybind11/numpy.h>
 namespace py = pybind11;
 
+// 73 move types.
+// queen type move (8 dir x 7 dist = 56).
+// knight move (8 dir).
+// pawn underpromotion (3 dir x 3 promotion_piece_type = 9).
+// 56 + 8 + 9 = 73
+int policy_move_index_0(U32 move) {
+    int source_sq = decode_move_source_sq(move);
+    int target_sq = decode_move_target_sq(move);
+    int piece_type = decode_move_piece_type(move);
+    int promotion = decode_move_promotion(move);
+    int promotion_piece_type = decode_move_promotion_piece_type(move);
+    int dir = target_sq - source_sq;
+
+    if (piece_type == WHITE_KNIGHT || piece_type == BLACK_KNIGHT) {
+        if (dir == -15) {
+            return 56;
+        }
+        else if (dir == -6) {
+            return 57;
+        }
+        else if (dir == 10) {
+            return 58;
+        }
+        else if (dir == 17) {
+            return 59;
+        }
+        else if (dir == 15) {
+            return 60;
+        }
+        else if (dir == 6) {
+            return 61;
+        }
+        else if (dir == -10) {
+            return 62;
+        }
+        else if (dir == -17) {
+            return 63;
+        }
+        else {
+            throw std::runtime_error("policy_move_index_0() error: invalid knight move direction");
+        }
+    }
+
+    if ((piece_type == WHITE_PAWN || piece_type == BLACK_PAWN) && promotion && (promotion_piece_type!=WHITE_QUEEN) && (promotion_piece_type!=BLACK_QUEEN)) {
+        if (promotion_piece_type == WHITE_KNIGHT) {
+            if (dir == -9) { return 64; }
+            if (dir == -8) { return 65; }
+            if (dir == -7) { return 66; }
+        }
+        else if (promotion_piece_type == BLACK_KNIGHT) {
+            if (dir == 7) { return 64; }
+            if (dir == 8) { return 65; }
+            if (dir == 9) { return 66; }
+        }
+        else if (promotion_piece_type == WHITE_BISHOP) {
+            if (dir == -9) { return 67; }
+            if (dir == -8) { return 68; }
+            if (dir == -7) { return 69; }
+        }
+        else if (promotion_piece_type == BLACK_BISHOP) {
+            if (dir == 7) { return 67; }
+            if (dir == 8) { return 68; }
+            if (dir == 9) { return 69; }
+        }
+        else if (promotion_piece_type == WHITE_ROOK) {
+            if (dir == -9) { return 70; }
+            if (dir == -8) { return 71; }
+            if (dir == -7) { return 72; }
+        }
+        else if (promotion_piece_type == BLACK_ROOK) {
+            if (dir == 7) { return 70; }
+            if (dir == 8) { return 71; }
+            if (dir == 9) { return 72; }
+        }
+        else {
+            throw std::runtime_error("policy_move_index_0() error: invalid promotion_piece_type");
+        }
+    }
+
+    // queen type moves
+    if (dir == -8)  { return 0; }
+    if (dir == -16) { return 1; }
+    if (dir == -24) { return 2; }
+    if (dir == -32) { return 3; }
+    if (dir == -40) { return 4; }
+    if (dir == -48) { return 5; }
+    if (dir == -56) { return 6; }
+
+    if (dir == -7)  { return 7; }
+    if (dir == -14) { return 8; }
+    if (dir == -21) { return 9; }
+    if (dir == -28) { return 10; }
+    if (dir == -35) { return 11; }
+    if (dir == -42) { return 12; }
+    if (dir == -49) { return 13; }
+
+    if (dir == 1)   { return 14; }
+    if (dir == 2)   { return 15; }
+    if (dir == 3)   { return 16; }
+    if (dir == 4)   { return 17; }
+    if (dir == 5)   { return 18; }
+    if (dir == 6)   { return 19; }
+    if (dir == 7)   { return 20; }
+
+    if (dir == 9)   { return 21; }
+    if (dir == 18)  { return 22; }
+    if (dir == 27)  { return 23; }
+    if (dir == 36)  { return 24; }
+    if (dir == 45)  { return 25; }
+    if (dir == 54)  { return 26; }
+    if (dir == 63)  { return 27; }
+
+    if (dir == 8)   { return 28; }
+    if (dir == 16)  { return 29; }
+    if (dir == 24)  { return 30; }
+    if (dir == 32)  { return 31; }
+    if (dir == 40)  { return 32; }
+    if (dir == 48)  { return 33; }
+    if (dir == 56)  { return 34; }
+
+    if (dir == 7)   { return 35; }
+    if (dir == 14)  { return 36; }
+    if (dir == 21)  { return 37; }
+    if (dir == 28)  { return 38; }
+    if (dir == 35)  { return 39; }
+    if (dir == 42)  { return 40; }
+    if (dir == 49)  { return 41; }
+
+    if (dir == -1)  { return 42; }
+    if (dir == -2)  { return 43; }
+    if (dir == -3)  { return 44; }
+    if (dir == -4)  { return 45; }
+    if (dir == -5)  { return 46; }
+    if (dir == -6)  { return 47; }
+    if (dir == -7)  { return 48; }
+
+    if (dir == -9)  { return 49; }
+    if (dir == -18) { return 50; }
+    if (dir == -27) { return 51; }
+    if (dir == -36) { return 52; }
+    if (dir == -45) { return 53; }
+    if (dir == -54) { return 54; }
+    if (dir == -63) { return 55; }
+
+    throw std::runtime_error("policy_move_index_0() error: did not find an index");
+}
+
+// 64 source squares
+int policy_move_index_1(U32 move) {
+    return decode_move_source_sq(move);
+}
+
 py::array_t<U32> get_pl_move_list(MoveGenerator &self, BoardState* board) {
     self.generate_pl_moves(&self, board);
     size_t size = self.pl_moves_found;
@@ -66,10 +218,10 @@ PYBIND11_MODULE(game_engine, m, py::mod_gil_not_used()) {
     m.doc() = "chess game engine module with pybind11"; // optional module docstring
 
     m.def("init_engine", &init_engine, "initialize the game engine");
-
     m.def("unit_tests", &unit_tests, "run the unit tests");
-
     m.def("print_move", &print_move, py::arg("U32_move"), py::arg("bool_verbose"), "print a move");
+    m.def("policy_move_index_0", &policy_move_index_0, "get the 73 index");
+    m.def("policy_move_index_1", &policy_move_index_1, "get the 64 index");
 
     py::class_<BoardState>(m, "BoardState")
         .def(py::init<>())
