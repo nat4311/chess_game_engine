@@ -292,7 +292,7 @@ x_dirichlet = .75                   # p' = p*x + (1-x)*d; p ~ prior and d ~ diri
 exploration_temperature = 1.75
 
 # todo: test that this runs, test correctness
-def MCTS(root_node: GameStateNode, model: ResNet):
+def MCTS(root_node: GameStateNode):
     """
         *DESCRIPTION*
         Performs monte carlo tree search from a parent GameStateNode.
@@ -300,7 +300,6 @@ def MCTS(root_node: GameStateNode, model: ResNet):
         ----------------------------------------------------------------------------------------------------------
         *INPUTS*
         root_node    GameStateNode    represents the gamestate to begin MCTS at    changes state in this function
-        model        torch.nn         outputs p and v heads
         ----------------------------------------------------------------------------------------------------------
         *SIDE EFFECTS*
         - updates the attributes of start_node and its children
@@ -316,18 +315,18 @@ def MCTS(root_node: GameStateNode, model: ResNet):
         curr_node = root_node
         while True:
             if curr_node.n_visits == 0 or curr_node.state in (WHITE_WIN, BLACK_WIN, DRAW): # only rollout for leaf nodes
-                rollout(curr_node, model)
+                rollout(curr_node)
                 break
             else:
                 if curr_node.n_visits == 1: # only expand if need to
-                    expand(curr_node, model)
+                    expand(curr_node)
                 curr_node = select_child(curr_node)
                 assert curr_node is not None
 
     return
 
 # todo: this runs, need to test correctness
-def rollout(curr_node: GameStateNode, model: ResNet) -> int:
+def rollout(curr_node: GameStateNode) -> int:
     '''
         This function is used when a new leaf node is reached.
         It gives us an estimate of that node's value which is then backpropped to all parent nodes
@@ -417,13 +416,12 @@ def select_child(parent_node: GameStateNode) -> GameStateNode:
 
 
 # todo: test that this runs, test correctness
-def choose_move(start_node: GameStateNode, model: ResNet, greedy: bool) -> int:
+def choose_move(start_node: GameStateNode, greedy: bool) -> int:
     """
         Uses monte carlo tree search and value/policy networks to choose a move.
         -------------------------------------------------------------------------------------------------------
         INPUTS
         start_node*     GameStateNode       state of the game    *changes state inside this function
-        model           ResNet              outputs the policy and value heads
         greedy          bool                if greedy select move with most visits, else use visit distribution
         -------------------------------------------------------------------------------------------------------
         OUTPUTS
@@ -435,7 +433,7 @@ def choose_move(start_node: GameStateNode, model: ResNet, greedy: bool) -> int:
         - updates n_visits and other attributes of start_node and its children
     """
 
-    MCTS(start_node, model)
+    MCTS(start_node)
     policy_datum = torch.zeros(1,73,64)
 
     if greedy:
@@ -470,7 +468,7 @@ def choose_move(start_node: GameStateNode, model: ResNet, greedy: bool) -> int:
 ################################################################################"""
 
 # todo: test that this runs, test correctness
-def self_play_one_game(model: ResNet):
+def self_play_one_game():
     """
         INPUTS
             model          torch.nn        full res net (p and v heads)
@@ -492,7 +490,7 @@ def self_play_one_game(model: ResNet):
 
     while True:
         input_data = torch.cat(input_data, curr_node.get_full_model_input())
-        move, new_node, policy_datum = choose_move(curr_node, model, greedy=False)
+        move, new_node, policy_datum = choose_move(curr_node, greedy=False)
         policy_data = torch.cat((policy_data, policy_datum))
         
         curr_node = new_node
@@ -504,5 +502,5 @@ def self_play_one_game(model: ResNet):
 
 
 
-self_play_one_game(model)
+self_play_one_game()
 
