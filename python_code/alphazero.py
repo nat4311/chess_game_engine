@@ -155,7 +155,7 @@ def get_policy_move(U32_move):
     and   0 <= j <= 63 (source square)
     """
     if U32_move not in U32_move_to_policy_move_dict.keys():
-        print("U32_move not found, generating policy_move indices")
+        # print("U32_move not found, generating policy_move indices")
         i = game_engine.policy_move_index_0(U32_move)
         j = game_engine.policy_move_index_1(U32_move)
         U32_move_to_policy_move_dict[U32_move] = (i, j)
@@ -212,7 +212,7 @@ load_objects()
 ################################################################################"""
 
 class GameStateNode:
-    def __init__(self, parent=None, board=None, prev_move=0, full_model_input=None, generate_children=False):
+    def __init__(self, parent=None, board=None, prev_move=0, generate_children=False):
         self.parent = parent
         self.children = dict() # indexed by (73, 8, 8) move
         self.prev_move = prev_move
@@ -220,12 +220,15 @@ class GameStateNode:
         self.prior = 0
         self.value_sum = 0
         self.n_visits = 0
-        self._full_model_input = full_model_input
 
         if parent is None:
             self.board = game_engine.BoardState()
+            input_datum = torch.zeros((1,feature_channels,8,8))
+            input_datum[0, -21:, :, :] = self.get_partial_model_input()
+            self._full_model_input = input_datum
         else:
             self.board = board
+            self._full_model_input = None
         if generate_children:
             self.generate_children()
         else:
@@ -272,7 +275,7 @@ class GameStateNode:
     
     def get_full_model_input(self):
         if self._full_model_input is None:
-            self._full_model_input = torch.cat(self.parent._full_model_input[0, 14:-7, :, :], self.get_partial_model_input())
+            self._full_model_input = torch.cat((self.parent._full_model_input[:, 14:-7, :, :], self.get_partial_model_input()), dim=1)
         return self._full_model_input
 
     def print(self):
@@ -364,7 +367,7 @@ def rollout(curr_node: GameStateNode) -> int:
 
     return leaf_node_value_estimate
 
-def expand(curr_node, policy):
+def expand(curr_node):
     """
     unlike the connect4 version, expand here just needs to set the child priors
     children are already generated when the parent node was created because I needed to check for game over
@@ -374,13 +377,13 @@ def expand(curr_node, policy):
 
     for policy_move, child in curr_node.children.items():
         i, j = policy_move
-        action_probs[1, i, j] = p[1, i, j]
+        action_probs[0, i, j] = p[0, i, j]
 
     action_probs /= action_probs.sum()
 
     for policy_move, child in curr_node.children.items():
         i, j = policy_move
-        child.prior = action_probs[1, i, j]
+        child.prior = action_probs[0, i, j]
 
 # todo: test that this runs, test correctness
 def select_child(parent_node: GameStateNode) -> GameStateNode:
@@ -405,7 +408,10 @@ def select_child(parent_node: GameStateNode) -> GameStateNode:
         p_prime = p*x_dirichlet + (1-x_dirichlet)*d
         explore = p_prime * ucb_exploration_constant * sqrt(parent_node.n_visits - 1)/(child.n_visits+1)
 
-        exploit = parent_node.turn * child.value_sum/child.n_visits
+        if parent_node.board.turn == WHITE:
+            exploit = child.value_sum/child.n_visits
+        else:
+            exploit = -child.value_sum/child.n_visits
 
         UCB1 = exploit + explore
         if UCB1 > best_UCB1:
@@ -453,9 +459,10 @@ def choose_move(start_node: GameStateNode, greedy: bool) -> int:
         for policy_move, child in start_node.children.items():
             ap = child.n_visits/(start_node.n_visits-1)
             i, j = policy_move
-            policy_datum[1, i, j] = ap
-            distribution[1, i, j] = child.n_visits**(1/exploration_temperature)
-        distribution /= distribution.sum().view(-1)
+            policy_datum[0, i, j] = ap
+            distribution[0, i, j] = child.n_visits**(1/exploration_temperature)
+        distribution /= distribution.sum()
+        distribution = distribution.view(-1)
         chosen_index = torch.multinomial(distribution, 1)
         chosen_policy_move = tuple([i.item() for i in torch.unravel_index(chosen_index, (73, 64))])
         chosen_child = start_node.children[chosen_policy_move]
@@ -480,27 +487,35 @@ def self_play_one_game():
     """
 
     curr_node = GameStateNode()
-    input_datum = torch.zeros((feature_channels,8,8))
-    input_datum[-21:, :, :] = curr_node.get_partial_model_input()
-    curr_node._full_model_input = input_datum
 
     # todo: preallocate these to speed up concatenation of new data?
     policy_data = torch.Tensor([])
     input_data = torch.Tensor([])
 
     while True:
-        input_data = torch.cat(input_data, curr_node.get_full_model_input())
+        curr_node.print()
+        input_data = torch.cat((input_data, curr_node.get_full_model_input()))
         move, new_node, policy_datum = choose_move(curr_node, greedy=False)
         policy_data = torch.cat((policy_data, policy_datum))
         
         curr_node = new_node
         if curr_node.state in (WHITE_WIN,BLACK_WIN,DRAW):
             result = curr_node.state
+            curr_node.print()
+            if result==WHITE_WIN:
+                print("white wins")
+            elif result==BLACK_WIN:
+                print("black wins")
+            else:
+                print("draw")
             break
 
     return input_data, policy_data, result
 
-
-
-self_play_one_game()
-
+try:
+    input_data, policy_data, result = self_play_one_game()
+    print(f"{input_data.shape = }")
+    print(f"{policy_data.shape = }")
+    print(f"{result = }")
+finally:
+    save_objects()

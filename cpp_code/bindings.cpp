@@ -235,6 +235,7 @@ PYBIND11_MODULE(game_engine, m, py::mod_gil_not_used()) {
         .def("get_partial_model_input", &get_partial_model_input, "get partial model input as 21x8x8 U8 array")
         .def_readonly("halfmove", &BoardState::halfmove)
         .def_readonly("turn_no", &BoardState::turn_no)
+        .def_readonly("turn", &BoardState::turn)
         .def("__repr__", [](const BoardState &a){ return "<BoardState object>"; } );
 
     py::class_<MoveGenerator>(m, "MoveGenerator")

@@ -148,12 +148,15 @@ def make_test():
 
 if __name__ == "__main__":
     print("======================================")
-    # model_input_test()
-    # make_test()
-    # basic_board_test()
-    # get_partial_model_input_test()
-    # test_rollout()
-    test_net_shapes()
-    # get_policy_move_test()
+    try:
+        # model_input_test()
+        # make_test()
+        # basic_board_test()
+        # get_partial_model_input_test()
+        # test_rollout()
+        test_net_shapes()
+        # get_policy_move_test()
+    finally:
+        save_objects()
 
     pass
