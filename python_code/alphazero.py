@@ -223,6 +223,7 @@ class GameStateNode:
         self.prior = 0
         self.value_sum = 0
         self.n_visits = 0
+        self.is_mcts_root = False
 
         if parent is None:
             self.board = game_engine.BoardState()
@@ -314,7 +315,7 @@ def MCTS(root_node: GameStateNode):
     # reset the root_node MCTS values
     root_node.n_visits = 0
     root_node.value_sum = 0
-    root_node.parent = None
+    root_node.is_mcts_root = True
 
     for n in range(mcts_n_sims):
         curr_node = root_node
@@ -362,9 +363,10 @@ def rollout(curr_node: GameStateNode) -> int:
     while True:
         curr_node.value_sum += leaf_node_value_estimate
         curr_node.n_visits += 1
-        curr_node = curr_node.parent
-        if curr_node is None:
+        if curr_node.is_mcts_root or curr_node.parent is None:
             break
+        else:
+            curr_node = curr_node.parent
 
     return leaf_node_value_estimate
 
@@ -444,15 +446,24 @@ def choose_move(start_node: GameStateNode, greedy: bool) -> int:
     if greedy:
         most_visits = 0
         most_visited_move = None
+        most_visited_child = None
         for policy_move, child in start_node.children.items():
             ap = child.n_visits/(start_node.n_visits-1)
             i, j = policy_move
-            policy_datum[1, i, j] = ap
+            policy_datum[0, i, j] = ap
             if child.n_visits > most_visits:
                 most_visited_move = child.prev_move
                 most_visited_child = child
                 most_visits = child.n_visits
-        return most_visited_move, most_visited_child
+        # if most_visited_move is None:
+        #     print("ERROR")
+        #     start_node.print()
+        #     print("children: ")
+        #     print(start_node.children)
+        # if most_visited_child is None:
+        #     print("what the heck")
+        #     print(most_visited_move)
+        return most_visited_move, most_visited_child, None
     else:
         distribution = torch.zeros(1, 73, 64)
         for policy_move, child in start_node.children.items():

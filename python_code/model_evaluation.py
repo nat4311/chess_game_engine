@@ -2,6 +2,7 @@ import os
 import pickle
 import torch
 import time
+import random
 from stockfish import Stockfish
 from alphazero import model as alphazero_model
 from alphazero import choose_move as alphazero_choose_move
@@ -62,7 +63,7 @@ def record_new_elo(model_str, opponent_elo, score):
     epoch_time = time.time()
     elo_records_dict[f"{model_str}_elo"] = new_elo
     elo_records_dict[f"{model_str}_elo_history"].append((epoch_time, new_elo))
-    
+    save_elo_records()
 
 """#############################################################
                Section: evaluate against stockfish
@@ -222,7 +223,7 @@ def get_stockfish_move(stockfish, game_state_node):
                 return move
             else:
                 c = game_engine.get_move_promotion_piece_type(move)
-                promotion_piece = get_promotion_piece_int(promotion_piece_str)
+                promotion_piece = get_promotion_piece_int(promotion_piece_str, board.turn)
                 if c == promotion_piece:
                     # print(stockfish_move, a, b, c)
                     return move
@@ -231,6 +232,82 @@ def get_stockfish_move(stockfish, game_state_node):
     print(f"{stockfish_move = }")
     raise Exception("unable to find move")
 
-def alphazero_play_stockfish(model):
+def alphazero_play_stockfish(model, info_str = None, min_stockfish_elo = 300):
     stockfish = Stockfish("/usr/games/stockfish")
+    load_alphazero_objects()
+    
+    model_elo = elo_records_dict["alphazero_elo"]
+    stockfish_elo = round(model_elo) + random.randint(-80,80)
+    stockfish_elo = max(stockfish_elo, min_stockfish_elo)
+    stockfish.set_elo_rating(stockfish_elo)
+
+    curr_node = alphazero_GameStateNode()
+    curr_node.generate_children()
+    model_turn = random.random() > .5
+    if model_turn:
+        side_str = "alphazero white, stockfish black"
+    else:
+        side_str = "alphazero black, stockfish white"
+    while True:
+        print("------------------------------------")
+        curr_node.print()
+        if model_turn:
+            print("alphazero to move")
+            _, new_node, _ = alphazero_choose_move(curr_node, greedy=True)
+            curr_node = new_node
+        else:
+            print("stockfish to move")
+            U32_move = get_stockfish_move(stockfish, curr_node)
+            for child in curr_node.children.values():
+                if child.prev_move == U32_move:
+                    curr_node = child
+                    break
+        curr_node.generate_children()
+        print(side_str)
+        if info_str is not None:
+            print(info_str)
+
+        if curr_node.state in (WHITE_WIN, BLACK_WIN):
+            print("------------------------------------")
+            curr_node.print()
+            if model_turn:
+                score = 1
+                break
+            else:
+                score = 0
+                break
+        elif curr_node.state == DRAW:
+            score = .5
+            break
+        else:
+            model_turn = not model_turn
+
+    old_elo = elo_records_dict["alphazero_elo"]
+    record_new_elo("alphazero", stockfish_elo, score)
+    new_elo = elo_records_dict["alphazero_elo"]
+    print(f"alphazero_elo: {round(old_elo)} -> {round(new_elo)}")
+
+    return score
+
+if __name__ == "__main__":
+    alphazero_n_games = 0
+    alphazero_total_score = 0
+    while True:
+        info_str = f"alphazero_elo: {elo_records_dict["alphazero_elo"]}    total_score: {alphazero_total_score}/{alphazero_n_games}"
+        score = alphazero_play_stockfish(alphazero_model, info_str)
+        alphazero_n_games += 1
+        alphazero_total_score += score
+
+
+
+
+
+
+
+
+
+
+
+
+
 
