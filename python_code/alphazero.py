@@ -155,7 +155,7 @@ def get_policy_move(U32_move):
     and   0 <= j <= 63 (source square)
     """
     if U32_move not in U32_move_to_policy_move_dict.keys():
-        # print("U32_move not found, generating policy_move indices")
+        print("U32_move not found, generating policy_move indices")
         i = game_engine.policy_move_index_0(U32_move)
         j = game_engine.policy_move_index_1(U32_move)
         U32_move_to_policy_move_dict[U32_move] = (i, j)
@@ -512,10 +512,9 @@ def self_play_one_game():
 
     return input_data, policy_data, result
 
-try:
-    input_data, policy_data, result = self_play_one_game()
-    print(f"{input_data.shape = }")
-    print(f"{policy_data.shape = }")
-    print(f"{result = }")
-finally:
-    save_objects()
+
+if __name__ == "__main__":
+    #TODO: start training!
+    pass
+
+

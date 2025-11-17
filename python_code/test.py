@@ -3,8 +3,8 @@ import numpy as np
 import time
 import torch
 from alphazero import GameStateNode, feature_channels, ResNet, rollout, batch_size
-from alphazero import model, load_objects, save_objects, get_policy_move
-from alphazero import U32_move_to_policy_move_dict
+from alphazero import model, load_objects, save_objects, get_policy_move, mcts_n_sims
+from alphazero import U32_move_to_policy_move_dict, self_play_one_game
 
 ###############################################################
 
@@ -144,6 +144,66 @@ def make_test():
             time.sleep(.5)
     board.print()
 
+def self_play_one_game_test():
+    try:
+        input_data, policy_data, result = self_play_one_game()
+        print(f"{input_data.shape = }")
+        print(f"{policy_data.shape = }")
+        print(f"{result = }")
+    finally:
+        print(f"{len(U32_move_to_policy_move_dict) = }")
+        save_objects()
+
+def test_policy_and_input_datum():
+    assert mcts_n_sims <= 30 # otherwise will take too long to run
+    def print_input_datum(input_datum):
+        piece_chars = ["P", "N", "B", "R", "Q", "K", "p", "n", "b", "r", "q", "k"]
+        for t in range(8):
+            i = t*14 + 12
+            assert input_datum[0, i:i+2, :, :].sum() == 0
+            board = [['.' for _ in range(8)] for _ in range(8)]
+            for bb in range(12):
+                i = t*14 + bb
+                for y in range(8):
+                    for x in range(8):
+                        if input_datum[0, i, y, x]:
+                            board[y][x] = piece_chars[bb]
+            if t==7:
+                print(f"t = 0")
+            else:
+                print(f"t = -{7-t}")
+            for line in board:
+                print(line)
+            print()
+        print("turn")
+        print(input_datum[0,-7,:,:])
+        print("total_moves")
+        print(input_datum[0,-6,:,:])
+        print("castling")
+        print(input_datum[0,-5,:,:])
+        print(input_datum[0,-4,:,:])
+        print(input_datum[0,-3,:,:])
+        print(input_datum[0,-2,:,:])
+        print("halfmove")
+        print(input_datum[0,-1,:,:])
+
+    def print_policy_datum(policy_datum):
+        for i in range(73):
+            for j in range(64):
+                ap = policy_datum[0,i,j]
+                if ap > 0:
+                    print(f"{ap=}   ({i=},{j=})")
+
+
+    input_data, policy_data, result = self_play_one_game()
+
+    t = 0
+    input_datum = input_data[t:t+1, :, :, :]
+    policy_datum = policy_data[t:t+1, :, :]
+    # print_input_datum(input_datum)
+    print(policy_datum.shape)
+    print_policy_datum(policy_datum)
+    print(input_data.dtype)
 
 
 if __name__ == "__main__":
@@ -154,9 +214,8 @@ if __name__ == "__main__":
         # basic_board_test()
         # get_partial_model_input_test()
         # test_rollout()
-        test_net_shapes()
+        # test_net_shapes()
         # get_policy_move_test()
+        pass
     finally:
         save_objects()
-
-    pass
