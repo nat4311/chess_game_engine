@@ -88,6 +88,7 @@ class OutputHeads(nn.Module):
         p = F.relu(p)
         p = self.p_conv1(p)
         p = self.p_lsm(p).exp() # output is (batch_size, 73, 8, 8)
+        p = p.view(-1, 73, 64)
 
         v = self.v_conv(x)
         v = self.v_bn(v)
@@ -107,6 +108,8 @@ class ResNet(nn.Module):
 
     outputs policy and value heads
     forward returns p,v
+    p.shape = (batch_size or 1 for single value, 73, 64)
+    v.shape = (batch_size or 1 for single value, 1)
     """
     def __init__(self):
         super().__init__()
@@ -131,9 +134,7 @@ class ResNet(nn.Module):
             out = getattr(self, f"res_block_{layer}")(out)
 
         # policy and value head
-        p, v = self.output(out)
-        # p = p.view(-1, 73, 64)
-        return p, v
+        return self.output(out)
 
 model = ResNet()
 
@@ -219,7 +220,7 @@ class GameStateNode:
         self.prior = 0
         self.value_sum = 0
         self.n_visits = 0
-        self.full_model_input = full_model_input
+        self._full_model_input = full_model_input
 
         if parent is None:
             self.board = game_engine.BoardState()
@@ -235,23 +236,13 @@ class GameStateNode:
             self.state = DRAW
             return
 
-        p,_ = model(self.get_full_model_input())
-        action_probs = torch.zeros(p.shape) # TODO: mask illegal moves and normalize p
-        legal_move_mask = torch.zeros(p.shape)
-
         for U32_move in self.moves.get_pl_move_list(self.board):
             new_board = self.board.copy()
             if new_board.make(U32_move):
                 policy_move = get_policy_move(U32_move)
-# # BOOKMARK - changed everything above this in this function
-#
-#     for move in curr_node.valid_moves():
-#         prior = action_probs[0][move].item()
-#         new_node = curr_node.new_node(move, prior)
-#         curr_node.children.add(new_node)
-#
                 new_node = GameStateNode(self, new_board, U32_move)
                 self.children[policy_move] = new_node
+
         if len(self.children) == 0:
             if self.board.king_is_attacked():
                 if self.board.turn == WHITE:
@@ -273,28 +264,21 @@ class GameStateNode:
         new_board = self.board.copy()
         if new_board.make(move):
             return GameStateNode(self, new_board, move)
-            # TODO: need to add the prior
         else:
             return None
 
-    # TODO: the mcts functions are expecting the actual model input - this is partial
     def get_partial_model_input(self):
         return torch.Tensor(self.board.get_partial_model_input()).view(1,-1,8,8)
     
     def get_full_model_input(self):
-        if self.full_model_input is None:
-            self.full_model_input = torch.cat(self.parent.full_model_input[0, 14:-7, :, :], self.get_partial_model_input())
-        return self.full_model_input
+        if self._full_model_input is None:
+            self._full_model_input = torch.cat(self.parent._full_model_input[0, 14:-7, :, :], self.get_partial_model_input())
+        return self._full_model_input
 
     def print(self):
         print("GameStateNode: \n")
         self.board.print()
         print(f"prev_move: {self.prev_move}")
-
-    def make_root(self):
-        self.parent = None
-        self.value_sum = 0
-        self.n_visits = 0
 
 
 """################################################################################
@@ -302,21 +286,31 @@ class GameStateNode:
 ################################################################################"""
 
 mcts_n_sims = 800
+ucb_exploration_constant = 1.414    # for ucb exploration score
+alpha_dirichlet = 1.732
+x_dirichlet = .75                   # p' = p*x + (1-x)*d; p ~ prior and d ~ dirichlet noise
+exploration_temperature = 1.75
 
-# TODO: convert connect4->chess
+# todo: test that this runs, test correctness
 def MCTS(root_node: GameStateNode, model: ResNet):
     """
+        *DESCRIPTION*
         Performs monte carlo tree search from a parent GameStateNode.
         The child of that parent with the most visits is selected and returned.
-        -----------------------------
-        INPUTS
-        *start node        GameStateNode     represents the gamestate to begin MCTS at    *changes state in this function
-        model              torch.nn          outputs p and v heads
-        -----------------------------
-        SIDE EFFECTS
+        ----------------------------------------------------------------------------------------------------------
+        *INPUTS*
+        root_node    GameStateNode    represents the gamestate to begin MCTS at    changes state in this function
+        model        torch.nn         outputs p and v heads
+        ----------------------------------------------------------------------------------------------------------
+        *SIDE EFFECTS*
         - updates the attributes of start_node and its children
         - use n_visits of each child to choose a move
     """
+
+    # reset the root_node MCTS values
+    root_node.n_visits = 0
+    root_node.value_sum = 0
+    root_node.parent = None
 
     for n in range(mcts_n_sims):
         curr_node = root_node
@@ -325,8 +319,6 @@ def MCTS(root_node: GameStateNode, model: ResNet):
                 rollout(curr_node, model)
                 break
             else:
-# BOOKMARK - changed everything above this in this function
-                #TODO: remove expand call
                 if curr_node.n_visits == 1: # only expand if need to
                     expand(curr_node, model)
                 curr_node = select_child(curr_node)
@@ -373,9 +365,25 @@ def rollout(curr_node: GameStateNode, model: ResNet) -> int:
 
     return leaf_node_value_estimate
 
+def expand(curr_node, policy):
+    """
+    unlike the connect4 version, expand here just needs to set the child priors
+    children are already generated when the parent node was created because I needed to check for game over
+    """
+    p,_ = model(curr_node.get_full_model_input())
+    action_probs = torch.zeros(p.shape)
 
+    for policy_move, child in curr_node.children.items():
+        i, j = policy_move
+        action_probs[1, i, j] = p[1, i, j]
 
-# TODO: convert connect4->chess
+    action_probs /= action_probs.sum()
+
+    for policy_move, child in curr_node.children.items():
+        i, j = policy_move
+        child.prior = action_probs[1, i, j]
+
+# todo: test that this runs, test correctness
 def select_child(parent_node: GameStateNode) -> GameStateNode:
     """
         This function is used when a root (expanded) node is reached while traversing tree - this helps us select a game path
@@ -387,9 +395,7 @@ def select_child(parent_node: GameStateNode) -> GameStateNode:
     best_UCB1 = -inf
     best_child = None
 
-    # todo: confirm dirichlet noise is working
-    # todo: make sure policy output sums to 1 for the valid moves
-    noise = dirichlet([alpha_dirichlet for _ in range(7)], 1)[0]
+    noise = dirichlet([alpha_dirichlet for _ in range(len(parent_node.children))], 1)[0]
     for i, child in enumerate(parent_node.children.values()):
         if child.n_visits == 0:
             explore = inf
@@ -409,50 +415,61 @@ def select_child(parent_node: GameStateNode) -> GameStateNode:
 
     return best_child
 
-# TODO: convert connect4->chess
-def choose_move(start_node, model, greedy) -> int:
+
+# todo: test that this runs, test correctness
+def choose_move(start_node: GameStateNode, model: ResNet, greedy: bool) -> int:
     """
         Uses monte carlo tree search and value/policy networks to choose a move.
-        ------------------------
+        -------------------------------------------------------------------------------------------------------
         INPUTS
-        start_node*    GameStateNode       state of the game    *changes state inside this function
-        model          ResNet              outputs the policy and value heads
-        greedy         bool                if greedy select move with most visits, else use visit distribution
-        ------------------------
+        start_node*     GameStateNode       state of the game    *changes state inside this function
+        model           ResNet              outputs the policy and value heads
+        greedy          bool                if greedy select move with most visits, else use visit distribution
+        -------------------------------------------------------------------------------------------------------
         OUTPUTS
-        move           policy_output       tuple in range (73, 8, 8) -> need to convert with temporary cache
-        ------------------------
+        move            U32_move            the chosen move
+        new_node        GameStateNode       the node that results from making that move from start_node
+        policy_datum    torch.Tensor        shape (1, 73, 64) 
+        -------------------------------------------------------------------------------------------------------
         SIDE EFFECTS
         - updates n_visits and other attributes of start_node and its children
     """
 
-# BOOKMARK - changed everything above this in this function
     MCTS(start_node, model)
+    policy_datum = torch.zeros(1,73,64)
 
-    # todo: make sure this works
     if greedy:
         most_visits = 0
         most_visited_move = None
-        for child in start_node.children.values():
+        for policy_move, child in start_node.children.items():
+            ap = child.n_visits/(start_node.n_visits-1)
+            i, j = policy_move
+            policy_datum[1, i, j] = ap
             if child.n_visits > most_visits:
                 most_visited_move = child.prev_move
+                most_visited_child = child
                 most_visits = child.n_visits
-        return most_visited_move
+        return most_visited_move, most_visited_child
     else:
-        visits = [0 for _ in range(7)]
-        for child in start_node.children.values():
-            visits[child.prev_move] = child.n_visits
-        distribution = [v**(1/exploration_temperature) for v in visits]
-        s = sum(distribution)
-        distribution = [v/s for v in distribution]
-        return random.choices(range(7), distribution)[0]
+        distribution = torch.zeros(1, 73, 64)
+        for policy_move, child in start_node.children.items():
+            ap = child.n_visits/(start_node.n_visits-1)
+            i, j = policy_move
+            policy_datum[1, i, j] = ap
+            distribution[1, i, j] = child.n_visits**(1/exploration_temperature)
+        distribution /= distribution.sum().view(-1)
+        chosen_index = torch.multinomial(distribution, 1)
+        chosen_policy_move = tuple([i.item() for i in torch.unravel_index(chosen_index, (73, 64))])
+        chosen_child = start_node.children[chosen_policy_move]
+        chosen_move = chosen_child.prev_move
+        return chosen_move, chosen_child, policy_datum
 
 
 """################################################################################
                             Section: Training
 ################################################################################"""
 
-# TODO: convert connect4->chess
+# todo: test that this runs, test correctness
 def self_play_one_game(model: ResNet):
     """
         INPUTS
@@ -465,27 +482,21 @@ def self_play_one_game(model: ResNet):
     """
 
     curr_node = GameStateNode()
-    input_data = torch.zeros((feature_channels,8,8))
-    input_data[-21:, :, :] = curr_node.get_partial_model_input()
-    curr_node.full_model_input = input_data
+    input_datum = torch.zeros((feature_channels,8,8))
+    input_datum[-21:, :, :] = curr_node.get_partial_model_input()
+    curr_node._full_model_input = input_datum
 
+    # todo: preallocate these to speed up concatenation of new data?
     policy_data = torch.Tensor([])
+    input_data = torch.Tensor([])
 
     while True:
-        # BOOKMARK - changed everything above this in this function
-        move = choose_move(curr_node, model, greedy=False)
-        policy_datum = torch.zeros((1,7))
-        for child in curr_node.children.values():
-            i = child.prev_move
-            assert i in range(7)
-            ap = child.n_visits / (curr_node.n_visits-1)
-            policy_datum[0][i] = ap
+        input_data = torch.cat(input_data, curr_node.get_full_model_input())
+        move, new_node, policy_datum = choose_move(curr_node, model, greedy=False)
         policy_data = torch.cat((policy_data, policy_datum))
         
-        # todo: why are all the priors 1
-        prior = policy_datum[0][move].item()
-        curr_node = curr_node.new_node(move, prior)
-        if curr_node.state in (X,O,DRAW):
+        curr_node = new_node
+        if curr_node.state in (WHITE_WIN,BLACK_WIN,DRAW):
             result = curr_node.state
             break
 
@@ -493,5 +504,5 @@ def self_play_one_game(model: ResNet):
 
 
 
-
+self_play_one_game(model)
 
