@@ -11,7 +11,7 @@ from numpy.random import dirichlet
 from copy import deepcopy
 from torch.utils.data import TensorDataset, DataLoader
 
-from utils import pretty_time_elapsed
+from utils import pretty_time_elapsed, pretty_datetime
 import game_engine
 
 # enums
@@ -532,7 +532,7 @@ def trainloop():
 
     #### SELF PLAY GAMES
     for i_game in range(n_games):
-        log = f"game: {i_game}/{n_games} | time: {pretty_time_elapsed(t0, time.time())}"
+        log = f"game: {i_game}/{n_games} | time: {pretty_datetime()}"
         print(log, end='\r')
 
         # value_data_list came from monte carlo - going to use result instead for value training
@@ -577,8 +577,9 @@ def trainloop():
         with torch.no_grad():
             p_pred, v_pred = model(x)
             loss = policy_loss_fn(p_pred, yp) + value_loss_fn(v_pred, yv)
+            loss = loss.item()
 
-        log = f"epoch: {t}/{n_epochs} | loss: {round(loss, 5)} | time: {pretty_time_elapsed(t0, time.time())}"
+        log = f"epoch: {t}/{n_epochs} | loss: {round(loss, 5)} | time: {pretty_datetime()}"
         print(log)
         # logfile.write(log + '\n')
 

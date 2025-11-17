@@ -1,3 +1,62 @@
+import datetime
+from zoneinfo import ZoneInfo
+
+MONTHS_LONG = [
+    None,
+    "January",
+    "February",
+    "March",
+    "April",
+    "May",
+    "June",
+    "July",
+    "August",
+    "September",
+    "October",
+    "November",
+    "December"
+]
+
+MONTHS_SHORT = [
+    None,
+    "Jan",
+    "Feb",
+    "Mar",
+    "Apr",
+    "May",
+    "Jun",
+    "Jul",
+    "Aug",
+    "Sep",
+    "Oct",
+    "Nov",
+    "Dec"
+]
+
+def pretty_datetime(style = 0, timezone = "America/Chicago") -> str:
+    """
+    check zoneinfo.ZoneInfo for info on timezone input
+    ---------------------
+    STYLE    EXAMPLE
+    0        2025-8-14__8-34-19
+    1        Aug-14-2025__8-34-19
+    2        August-14-2025__8-34-19
+    """
+    dt = datetime.datetime.now(ZoneInfo(timezone))
+    h = str(dt.hour).rjust(2,'0')
+    m = str(dt.minute).rjust(2,'0')
+    s = str(dt.second).rjust(2,'0')
+
+    if style == 0:
+        dt_str = f"{dt.year}-{dt.month}-{dt.day}__{h}-{m}-{s}"
+    elif style == 1:
+        dt_str = f"{MONTHS_SHORT[dt.month]}-{dt.month}-{dt.year}__{h}-{m}-{s}"
+    elif style == 2:
+        dt_str = f"{MONTHS_LONG[dt.month]}-{dt.month}-{dt.year}__{h}-{m}-{s}"
+    else:
+        raise ValueError(f"invalid style: {style} (type {type(style)})")
+    return dt_str
+
 def pretty_time_elapsed(t0: float, t1: float, style = 0) -> str:
     """
     t0 and t1 are start and end time in seconds
