@@ -295,7 +295,7 @@ if __name__ == "__main__":
     while True:
         if alphazero_n_games % 10 == 0:
             os.system("clear")
-        info_str = f"total_score: {alphazero_total_score}/{alphazero_n_games}\nalphazero_elo = {elo_records_dict["alphazero_elo"]}"
+        info_str = f"total_score: {alphazero_total_score}/{alphazero_n_games}\nalphazero_elo = {round(elo_records_dict["alphazero_elo"])}"
         score = alphazero_play_stockfish(alphazero_model, info_str)
         alphazero_n_games += 1
         alphazero_total_score += score
