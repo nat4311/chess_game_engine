@@ -1,15 +1,18 @@
+import os
+import time
+import pickle
+import random
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-import random
 import numpy as np
 from math import inf, sqrt, log
 from numpy.random import dirichlet
-import time
 from copy import deepcopy
+from torch.utils.data import TensorDataset, DataLoader
+
+from utils import pretty_time_elapsed
 import game_engine
-import pickle
-import os
 
 # enums
 WHITE = 0
@@ -155,7 +158,7 @@ def get_policy_move(U32_move):
     and   0 <= j <= 63 (source square)
     """
     if U32_move not in U32_move_to_policy_move_dict.keys():
-        print("U32_move not found, generating policy_move indices")
+        # print("U32_move not found, generating policy_move indices")
         i = game_engine.policy_move_index_0(U32_move)
         j = game_engine.policy_move_index_1(U32_move)
         U32_move_to_policy_move_dict[U32_move] = (i, j)
@@ -288,13 +291,12 @@ class GameStateNode:
                     Section: Monte Carlo Tree Search (MCTS)
 ################################################################################"""
 
-mcts_n_sims = 800
+mcts_n_sims = 200
 ucb_exploration_constant = 1.414    # for ucb exploration score
 alpha_dirichlet = 1.732
 x_dirichlet = .75                   # p' = p*x + (1-x)*d; p ~ prior and d ~ dirichlet noise
 exploration_temperature = 1.75
 
-# todo: test that this runs, test correctness
 def MCTS(root_node: GameStateNode):
     """
         *DESCRIPTION*
@@ -328,7 +330,6 @@ def MCTS(root_node: GameStateNode):
 
     return
 
-# todo: this runs, need to test correctness
 def rollout(curr_node: GameStateNode) -> int:
     '''
         This function is used when a new leaf node is reached.
@@ -385,7 +386,6 @@ def expand(curr_node):
         i, j = policy_move
         child.prior = action_probs[0, i, j]
 
-# todo: test that this runs, test correctness
 def select_child(parent_node: GameStateNode) -> GameStateNode:
     """
         This function is used when a root (expanded) node is reached while traversing tree - this helps us select a game path
@@ -421,7 +421,6 @@ def select_child(parent_node: GameStateNode) -> GameStateNode:
     return best_child
 
 
-# todo: test that this runs, test correctness
 def choose_move(start_node: GameStateNode, greedy: bool) -> int:
     """
         Uses monte carlo tree search and value/policy networks to choose a move.
@@ -474,15 +473,24 @@ def choose_move(start_node: GameStateNode, greedy: bool) -> int:
                             Section: Training
 ################################################################################"""
 
-# todo: test that this runs, test correctness
+discount_factor = .99
+n_games = 1
+n_epochs = 3
+n_loops = 10
+learning_rate = .001
+
+value_loss_fn = nn.MSELoss()
+policy_loss_fn = nn.MSELoss()
+optimizer = torch.optim.SGD(model.parameters(), lr = learning_rate)
+
 def self_play_one_game():
     """
         INPUTS
             model          torch.nn        full res net (p and v heads)
         -------------------------
         OUTPUTS
-            input data     torch.Tensor    (Nx8x8) where N is (8+halfturns)*14 + 7 -> index like [(8+i)*14:(8+i)*14+7, :, :]
-            policy data    torch.Tensor    (Mx73x8x8) where M is halfturns         -> index like [i, :, :]
+            input data     torch.Tensor    (1xNx8x8) where N is (8+halfturns)*14 + 7 -> index like [:,(8+i)*14:(8+i)*14+7, :, :]
+            policy data    torch.Tensor    (1xMx73x64) where M is halfturns         -> index like [:,i, :, :]
             result         float           game outcome (+1 white won, -1 black won)
     """
 
@@ -493,7 +501,7 @@ def self_play_one_game():
     input_data = torch.Tensor([])
 
     while True:
-        curr_node.print()
+        # curr_node.print()
         input_data = torch.cat((input_data, curr_node.get_full_model_input()))
         move, new_node, policy_datum = choose_move(curr_node, greedy=False)
         policy_data = torch.cat((policy_data, policy_datum))
@@ -501,20 +509,98 @@ def self_play_one_game():
         curr_node = new_node
         if curr_node.state in (WHITE_WIN,BLACK_WIN,DRAW):
             result = curr_node.state
-            curr_node.print()
-            if result==WHITE_WIN:
-                print("white wins")
-            elif result==BLACK_WIN:
-                print("black wins")
-            else:
-                print("draw")
+            # curr_node.print()
+            # if result==WHITE_WIN:
+            #     print("white wins")
+            # elif result==BLACK_WIN:
+            #     print("black wins")
+            # else:
+            #     print("draw")
             break
 
     return input_data, policy_data, result
 
+def trainloop():
+    """
+        set networks to None to use random rollout() and equal priors for expand()
+        returns model scores - list of floats
+    """
+    model_data_in = torch.Tensor([])
+    policy_data_out = torch.Tensor([])
+    value_data_out = torch.Tensor([])
+    t0 = time.time()
+
+    #### SELF PLAY GAMES
+    for i_game in range(n_games):
+        log = f"game: {i_game}/{n_games} | time: {pretty_time_elapsed(t0, time.time())}"
+        print(log, end='\r')
+
+        # value_data_list came from monte carlo - going to use result instead for value training
+        input_data, policy_data, result = self_play_one_game()
+
+        model_data_in = torch.cat((model_data_in, input_data.reshape(-1,feature_channels,8,8))) # shape: batch, channels, rows, cols
+        policy_data_out = torch.cat((policy_data_out, policy_data)) # shape: batch, 73, 64
+        value_data = torch.zeros(input_data.shape[0])
+        if result != 0:
+            r = result
+            for i in range(len(value_data)):
+                value_data[-i-1] = r
+                r *= discount_factor
+        value_data_out = torch.cat((value_data_out, value_data.reshape(-1,1))) # shape: batch, outputs
+
+    print(log)
+    print("----------------------------------------")
+    # logfile.write(log + '\n')
+
+
+    #### TRAIN THE NETWORKS
+    dataset = TensorDataset(model_data_in, policy_data_out, value_data_out)
+    dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
+
+    t0 = time.time()
+
+    for t in range(n_epochs):
+        model.train()
+
+        for batch, (x,yp,yv) in enumerate(dataloader):
+            # fwd pass
+            p_pred, v_pred = model(x)
+            loss = policy_loss_fn(p_pred, yp) + value_loss_fn(v_pred, yv)
+
+            # bwd pass
+            loss.backward()
+            optimizer.step()
+            optimizer.zero_grad()
+
+        # evaluate training and print
+        model.eval()
+        with torch.no_grad():
+            p_pred, v_pred = model(x)
+            loss = policy_loss_fn(p_pred, yp) + value_loss_fn(v_pred, yv)
+
+        log = f"epoch: {t}/{n_epochs} | loss: {round(loss, 5)} | time: {pretty_time_elapsed(t0, time.time())}"
+        print(log)
+        # logfile.write(log + '\n')
+
+    save_objects()
+    print("Training Loop Complete.")
+    print("----------------------------------------")
+
+    return
 
 if __name__ == "__main__":
     #TODO: start training!
     pass
+
+    try:
+        for t in range(n_loops):
+            print("======================================")
+            log = f"Training Loop: {t}/{n_loops}"
+            print(log)
+            print("----------------------------------------")
+            trainloop()
+    except KeyboardInterrupt:
+        print("\n\nterminating program")
+
 
 
