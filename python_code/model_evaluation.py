@@ -261,6 +261,7 @@ def alphazero_play_stockfish(model, info_str = None, min_stockfish_elo = 100):
                     curr_node = child
                     break
         curr_node.generate_children()
+        print("\n\n")
         print(side_str)
         if info_str is not None:
             print(info_str)
@@ -292,6 +293,8 @@ if __name__ == "__main__":
     alphazero_n_games = 0
     alphazero_total_score = 0
     while True:
+        if alphazero_n_games % 10 == 0:
+            os.system("clear")
         info_str = f"total_score: {alphazero_total_score}/{alphazero_n_games}\nalphazero_elo = {elo_records_dict["alphazero_elo"]}"
         score = alphazero_play_stockfish(alphazero_model, info_str)
         alphazero_n_games += 1
