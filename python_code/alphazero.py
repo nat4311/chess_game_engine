@@ -179,7 +179,7 @@ def set_saved_objects_directory():
 def load_objects():
     global model, U32_move_to_policy_move_dict
     set_saved_objects_directory()
-    print("Loading objects...")
+    print("Loading alphazero objects...")
 
     try:
         model.load_state_dict(torch.load("alphazero_model_weights.pth", weights_only=True))
@@ -196,7 +196,7 @@ def load_objects():
 
 def save_objects():
     set_saved_objects_directory()
-    print("Saving objects...")
+    print("Saving alphazero objects...")
 
     with open(U32_move_to_policy_move_savefile, 'wb') as f:
         pickle.dump(U32_move_to_policy_move_dict, f)
@@ -473,11 +473,11 @@ def choose_move(start_node: GameStateNode, greedy: bool) -> int:
                             Section: Training
 ################################################################################"""
 
-discount_factor = .99
-n_games = 1
-n_epochs = 3
-n_loops = 10
+n_games = 50
+n_epochs = 5
+n_loops = 100
 learning_rate = .001
+discount_factor = .99
 
 value_loss_fn = nn.MSELoss()
 policy_loss_fn = nn.MSELoss()
@@ -533,7 +533,7 @@ def trainloop():
     #### SELF PLAY GAMES
     for i_game in range(n_games):
         log = f"game: {i_game}/{n_games} | time: {pretty_datetime()}"
-        print(log, end='\r')
+        print(log)
 
         # value_data_list came from monte carlo - going to use result instead for value training
         input_data, policy_data, result = self_play_one_game()

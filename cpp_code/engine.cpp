@@ -571,6 +571,19 @@ struct BoardState {
             }
         }
     }
+
+    static bool get_castle_K(BoardState* board) {
+        return board->castling_rights & WHITE_CASTLE_KINGSIDE;
+    }
+    static bool get_castle_Q(BoardState* board) {
+        return board->castling_rights & WHITE_CASTLE_QUEENSIDE;
+    }
+    static bool get_castle_k(BoardState* board) {
+        return board->castling_rights & BLACK_CASTLE_KINGSIDE;
+    }
+    static bool get_castle_q(BoardState* board) {
+        return board->castling_rights & BLACK_CASTLE_QUEENSIDE;
+    }
 };
 
 /*////////////////////////////////////////////////////////////////////////////////

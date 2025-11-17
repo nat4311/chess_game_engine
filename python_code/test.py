@@ -2,15 +2,18 @@ import game_engine
 import numpy as np
 import time
 import torch
-from alphazero import GameStateNode, feature_channels, ResNet, rollout, batch_size
+from alphazero import GameStateNode as alphazero_GameStateNode
+from alphazero import feature_channels, ResNet, rollout, batch_size
 from alphazero import model, load_objects, save_objects, get_policy_move, mcts_n_sims
 from alphazero import U32_move_to_policy_move_dict, self_play_one_game
+from stockfish import Stockfish
+from model_evaluation import get_stockfish_move
 
 ###############################################################
 
 def get_policy_move_test():
     # print(U32_move_to_policy_move_dict)
-    node = GameStateNode()
+    node = alphazero_GameStateNode()
     pl_move_list = node.moves.get_pl_move_list(node.board)
     for U32_move in pl_move_list:
         policy_move = get_policy_move(U32_move)
@@ -64,7 +67,7 @@ def test_net_shapes():
 
 
 def test_rollout():
-    curr_node = GameStateNode()
+    curr_node = alphazero_GameStateNode()
     input_data = torch.zeros((1,feature_channels,8,8))
     d = curr_node.get_partial_model_input()
     input_data[0, -21:, :, :] = d
@@ -78,7 +81,7 @@ def test_rollout():
 
 def model_input_test():
     input_data = torch.zeros((3000,8,8))
-    curr_node = GameStateNode()
+    curr_node = alphazero_GameStateNode()
     input_datum = curr_node.get_partial_model_input()
     # for i in range(12):
     #     print(input_datum[i,:,:])
@@ -120,7 +123,7 @@ def basic_board_test():
 
 def get_partial_model_input_test():
     meanings = [ "white_pawns", "white_knights", "white_bishops", "white_rooks", "white_queens", "white_kings", "black_pawns", "black_knights", "black_bishops", "black_rooks", "black_queens", "black_kings", "repetitions_1", "repetitions_2", "turn*64", "turn_no*64", "WHITE_KINGSIDE_CASTLE*64", "WHITE_QUEENSIDE_CASTLE*64", "BLACK_KINGSIDE_CASTLE*64", "BLACK_QUEENSIDE_CASTLE*64", "halfmove*64", ]
-    node = GameStateNode()
+    node = alphazero_GameStateNode()
     fen = "rnbqkbnr/pppppppp/8/8/7q/8/PPPPPPPP/RNBQKBNR b KQkq - 1 2\n";
     node.board.load(fen)
     node.board.print()
@@ -205,6 +208,19 @@ def test_policy_and_input_datum():
     print_policy_datum(policy_datum)
     print(input_data.dtype)
 
+def test_stockfish_api():
+    node = alphazero_GameStateNode()
+    stockfish = Stockfish("/usr/games/stockfish")
+    stockfish.set_elo_rating(1000)
+    for i in range(30):
+        node.print()
+        node.generate_children()
+        U32_move = get_stockfish_move(stockfish, node)
+        for child in node.children.values():
+            if U32_move == child.prev_move:
+                node = child
+                break
+        time.sleep(.4)
 
 if __name__ == "__main__":
     print("======================================")
@@ -216,6 +232,7 @@ if __name__ == "__main__":
         # test_rollout()
         # test_net_shapes()
         # get_policy_move_test()
+        test_stockfish_api()
         pass
     finally:
         save_objects()

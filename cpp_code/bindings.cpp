@@ -155,6 +155,16 @@ int policy_move_index_1(U32 move) {
     return decode_move_source_sq(move);
 }
 
+int get_move_source_sq(U32 move) {
+    return decode_move_source_sq(move);
+}
+int get_move_target_sq(U32 move) {
+    return decode_move_target_sq(move);
+}
+int get_move_promotion_piece_type(U32 move) {
+    return decode_move_promotion_piece_type(move);
+}
+
 py::array_t<U32> get_pl_move_list(MoveGenerator &self, BoardState* board) {
     self.generate_pl_moves(&self, board);
     size_t size = self.pl_moves_found;
@@ -171,6 +181,10 @@ py::array_t<bool> get_bitboards(BoardState &self) {
         }
     }
     return py::array_t<bool>({12, 64}, &data[0][0]);
+}
+
+py::array_t<U64> get_bitboards_U64(BoardState &self) {
+    return py::array_t<U64>({12}, &self.bitboards[0]);
 }
 
 py::array_t<U8> get_partial_model_input(BoardState* board) {
@@ -222,6 +236,9 @@ PYBIND11_MODULE(game_engine, m, py::mod_gil_not_used()) {
     m.def("print_move", &print_move, py::arg("U32_move"), py::arg("bool_verbose"), "print a move");
     m.def("policy_move_index_0", &policy_move_index_0, "get the 73 index");
     m.def("policy_move_index_1", &policy_move_index_1, "get the 64 index");
+    m.def("get_move_source_sq", &get_move_source_sq, "get the source square of a U32 move");
+    m.def("get_move_target_sq", &get_move_target_sq, "get the target square of a U32 move");
+    m.def("get_move_promotion_piece_type", &get_move_promotion_piece_type, "get the promotion_piece_type of a U32 move");
 
     py::class_<BoardState>(m, "BoardState")
         .def(py::init<>())
@@ -230,12 +247,18 @@ PYBIND11_MODULE(game_engine, m, py::mod_gil_not_used()) {
         .def("load", &BoardState::load, "load a fen string", py::arg("fen_str"))
         .def("copy", &BoardState::copy, "copy by value of a board state")
         .def("make", &BoardState::make, "make a move")
+        .def("get_castle_K", &BoardState::get_castle_K, "returns True if white can kingside castle")
+        .def("get_castle_Q", &BoardState::get_castle_Q, "returns True if white can queenside castle")
+        .def("get_castle_k", &BoardState::get_castle_k, "returns true if black can kingside castle")
+        .def("get_castle_q", &BoardState::get_castle_q, "returns True if black can queenside castle")
         .def("king_is_attacked", &BoardState::king_is_attacked, "returns True if king is in check")
-        .def("get_bitboards", &get_bitboards, "get all 12 piece bitboards as 8x8x12 bool array")
+        .def("get_bitboards", &get_bitboards, "get all 12 piece bitboards as 12x64 bool array")
+        .def("get_bitboards_U64", &get_bitboards_U64, "get all 12 piece bitboards as 12 len U64 array")
         .def("get_partial_model_input", &get_partial_model_input, "get partial model input as 21x8x8 U8 array")
         .def_readonly("halfmove", &BoardState::halfmove)
         .def_readonly("turn_no", &BoardState::turn_no)
         .def_readonly("turn", &BoardState::turn)
+        .def_readonly("enpassant_sq", &BoardState::enpassant_sq)
         .def("__repr__", [](const BoardState &a){ return "<BoardState object>"; } );
 
     py::class_<MoveGenerator>(m, "MoveGenerator")
