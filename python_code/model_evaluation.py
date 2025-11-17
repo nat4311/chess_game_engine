@@ -232,7 +232,7 @@ def get_stockfish_move(stockfish, game_state_node):
     print(f"{stockfish_move = }")
     raise Exception("unable to find move")
 
-def alphazero_play_stockfish(model, info_str = None, min_stockfish_elo = 300):
+def alphazero_play_stockfish(model, info_str = None, min_stockfish_elo = 100):
     stockfish = Stockfish("/usr/games/stockfish")
     load_alphazero_objects()
     
@@ -252,11 +252,9 @@ def alphazero_play_stockfish(model, info_str = None, min_stockfish_elo = 300):
         print("------------------------------------")
         curr_node.print()
         if model_turn:
-            print("alphazero to move")
             _, new_node, _ = alphazero_choose_move(curr_node, greedy=True)
             curr_node = new_node
         else:
-            print("stockfish to move")
             U32_move = get_stockfish_move(stockfish, curr_node)
             for child in curr_node.children.values():
                 if child.prev_move == U32_move:
@@ -266,6 +264,7 @@ def alphazero_play_stockfish(model, info_str = None, min_stockfish_elo = 300):
         print(side_str)
         if info_str is not None:
             print(info_str)
+            print(f"{stockfish_elo = }")
 
         if curr_node.state in (WHITE_WIN, BLACK_WIN):
             print("------------------------------------")
@@ -293,7 +292,7 @@ if __name__ == "__main__":
     alphazero_n_games = 0
     alphazero_total_score = 0
     while True:
-        info_str = f"alphazero_elo: {elo_records_dict["alphazero_elo"]}    total_score: {alphazero_total_score}/{alphazero_n_games}"
+        info_str = f"total_score: {alphazero_total_score}/{alphazero_n_games}\nalphazero_elo = {elo_records_dict["alphazero_elo"]}"
         score = alphazero_play_stockfish(alphazero_model, info_str)
         alphazero_n_games += 1
         alphazero_total_score += score

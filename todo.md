@@ -1,6 +1,5 @@
 # overall
-- find stockfish api to play against for elo evaluation
-- also use stockfish to train against instead of self play (bec it might take too long)
+- use stockfish to train against instead of self play (bec it might take too long)
 - baseline engine
     - create hand tuned eval function 
     - minimax and alpha-beta pruning to select moves
