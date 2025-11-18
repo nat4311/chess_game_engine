@@ -22,19 +22,36 @@ from constants import WHITE, BLACK, WHITE_WIN, BLACK_WIN, DRAW, NOTOVER
 from stockfish_api import get_stockfish_move
 
 """################################################################################
-                    Section: Residual Neural Network (ResNet)
+                    Section: Parameters
 ################################################################################"""
 
-batch_size = 3
+#### Training parameters
+n_games = 2
+n_epochs = 5
+n_loops = 100
+learning_rate = .001
+discount_factor = .99
+batch_size = 32
 
+#### ResNet parameters
 # 14*8 (12 bitboards + 2 repetition, 1 current + 7 past) + 7 (1 turn + 1 total_moves + 4 castling + 1 halfmove)
 time_history = 7
 feature_channels = 14*(time_history+1) + 7
-
 # the following came from https://www.chessprogramming.org/AlphaZero#Network_Architecture
 default_filters = 64 # 256
 default_kernel_size = 3
 res_block_layers = 6 # 19
+
+#### MCTS parameters
+mcts_n_sims = 200
+ucb_exploration_constant = 1.414    # for ucb exploration score
+alpha_dirichlet = 1.732
+x_dirichlet = .75                   # p' = p*x + (1-x)*d; p ~ prior and d ~ dirichlet noise
+exploration_temperature = 1.75
+
+"""################################################################################
+                    Section: Residual Neural Network (ResNet)
+################################################################################"""
 
 class ResBlock(nn.Module):
     def __init__(self):
@@ -290,12 +307,6 @@ class GameStateNode:
                     Section: Monte Carlo Tree Search (MCTS)
 ################################################################################"""
 
-mcts_n_sims = 200
-ucb_exploration_constant = 1.414    # for ucb exploration score
-alpha_dirichlet = 1.732
-x_dirichlet = .75                   # p' = p*x + (1-x)*d; p ~ prior and d ~ dirichlet noise
-exploration_temperature = 1.75
-
 def MCTS(root_node: GameStateNode):
     """
         *DESCRIPTION*
@@ -482,12 +493,6 @@ def choose_move(start_node: GameStateNode, greedy: bool) -> int:
                             Section: Training
 ################################################################################"""
 
-n_games = 50
-n_epochs = 5
-n_loops = 100
-learning_rate = .001
-discount_factor = .99
-
 value_loss_fn = nn.MSELoss()
 policy_loss_fn = nn.MSELoss()
 optimizer = torch.optim.SGD(model.parameters(), lr = learning_rate)
@@ -575,6 +580,8 @@ def stockfish_play_one_game(stockfish_elo = 3000):
             # else:
             #     print("draw")
             break
+        else:
+            model_turn = not model_turn
 
     return input_data, policy_data, result
 
@@ -613,11 +620,6 @@ def trainloop(self_play = False):
                 r *= discount_factor
         value_data_out = torch.cat((value_data_out, value_data.reshape(-1,1))) # shape: batch, outputs
 
-    print(log)
-    print("----------------------------------------")
-    # logfile.write(log + '\n')
-
-
     #### TRAIN THE NETWORKS
     dataset = TensorDataset(model_data_in, policy_data_out, value_data_out)
     dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
@@ -654,7 +656,7 @@ def trainloop(self_play = False):
 
     return
 
-if __name__ == "__main__":
+def main():
     try:
         for t in range(n_loops):
             print("======================================")
@@ -666,5 +668,5 @@ if __name__ == "__main__":
         print("\n\nterminating program")
         save_objects()
 
-
-
+if __name__ == "__main__":
+    main()
