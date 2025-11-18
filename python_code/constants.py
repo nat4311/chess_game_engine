@@ -1,0 +1,8 @@
+# enums
+WHITE = 0
+BLACK = 1
+WHITE_WIN = 1
+BLACK_WIN = -1
+DRAW = 0
+NOTOVER = 2
+

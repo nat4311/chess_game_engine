@@ -2,12 +2,17 @@ import game_engine
 import numpy as np
 import time
 import torch
+import random
+import os
 from alphazero import GameStateNode as alphazero_GameStateNode
+from alphazero import load_objects as load_alphazero_objects
+from alphazero import choose_move as alphazero_choose_move
 from alphazero import feature_channels, ResNet, rollout, batch_size
-from alphazero import model, load_objects, save_objects, get_policy_move, mcts_n_sims
+from alphazero import model, load_objects, get_policy_move, mcts_n_sims
 from alphazero import U32_move_to_policy_move_dict, self_play_one_game
 from stockfish import Stockfish
 from model_evaluation import get_stockfish_move
+from constants import WHITE_WIN, BLACK_WIN, DRAW
 
 ###############################################################
 
@@ -20,7 +25,6 @@ def get_policy_move_test():
         print(policy_move)
     node.print()
     # print(U32_move_to_policy_move_dict)
-    save_objects()
 
     # print("\nbefore")
     # print(U32_move_to_policy_move_dict)
@@ -155,7 +159,6 @@ def self_play_one_game_test():
         print(f"{result = }")
     finally:
         print(f"{len(U32_move_to_policy_move_dict) = }")
-        save_objects()
 
 def test_policy_and_input_datum():
     assert mcts_n_sims <= 30 # otherwise will take too long to run
@@ -222,17 +225,75 @@ def test_stockfish_api():
                 break
         time.sleep(.4)
 
-if __name__ == "__main__":
+def test_alphazero_play_stockfish(info_str = None, stockfish_elo=3000):
+    stockfish = Stockfish("/usr/games/stockfish")
+    load_alphazero_objects()
+    
+    stockfish.set_elo_rating(stockfish_elo)
+
+    curr_node = alphazero_GameStateNode()
+    curr_node.generate_children()
+    model_turn = random.random() > .5
+    if model_turn:
+        side_str = "alphazero white, stockfish black"
+    else:
+        side_str = "alphazero black, stockfish white"
+    while True:
+        print("------------------------------------")
+        curr_node.print()
+        if model_turn:
+            _, new_node, _ = alphazero_choose_move(curr_node, greedy=True)
+            curr_node = new_node
+        else:
+            U32_move = get_stockfish_move(stockfish, curr_node)
+            for child in curr_node.children.values():
+                if child.prev_move == U32_move:
+                    curr_node = child
+                    break
+        curr_node.generate_children()
+        print("\n\n")
+        print(side_str)
+        if info_str is not None:
+            print(info_str)
+            print(f"{stockfish_elo = }")
+
+        if curr_node.state in (WHITE_WIN, BLACK_WIN):
+            print("------------------------------------")
+            curr_node.print()
+            if model_turn:
+                score = 1
+                break
+            else:
+                score = 0
+                break
+        elif curr_node.state == DRAW:
+            score = .5
+            break
+        else:
+            model_turn = not model_turn
+
+    return score
+
+def test_alphazero_play_stockfish_loop():
     print("======================================")
-    try:
-        # model_input_test()
-        # make_test()
-        # basic_board_test()
-        # get_partial_model_input_test()
-        # test_rollout()
-        # test_net_shapes()
-        # get_policy_move_test()
-        test_stockfish_api()
-        pass
-    finally:
-        save_objects()
+    alphazero_n_games = 0
+    alphazero_total_score = 0
+    while True:
+        os.system("clear")
+        info_str = f"total_score: {alphazero_total_score}/{alphazero_n_games}"
+        score = test_alphazero_play_stockfish(info_str=info_str)
+        alphazero_n_games += 1
+        alphazero_total_score += score
+
+
+if __name__ == "__main__":
+    test_alphazero_play_stockfish_loop()
+    # model_input_test()
+    # make_test()
+    # basic_board_test()
+    # get_partial_model_input_test()
+    # test_rollout()
+    # test_net_shapes()
+    # get_policy_move_test()
+    # test_stockfish_api()
+    pass

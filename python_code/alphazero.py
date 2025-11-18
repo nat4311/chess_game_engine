@@ -1,3 +1,7 @@
+"""
+run this file to train the alphazero resnet
+"""
+
 import os
 import time
 import pickle
@@ -6,21 +10,16 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
+from stockfish import Stockfish
 from math import inf, sqrt, log
 from numpy.random import dirichlet
 from copy import deepcopy
 from torch.utils.data import TensorDataset, DataLoader
 
-from utils import pretty_time_elapsed, pretty_datetime
 import game_engine
-
-# enums
-WHITE = 0
-BLACK = 1
-WHITE_WIN = 1
-BLACK_WIN = -1
-DRAW = 0
-NOTOVER = 2
+from utils import pretty_time_elapsed, pretty_datetime
+from constants import WHITE, BLACK, WHITE_WIN, BLACK_WIN, DRAW, NOTOVER
+from stockfish_api import get_stockfish_move
 
 """################################################################################
                     Section: Residual Neural Network (ResNet)
@@ -36,7 +35,6 @@ feature_channels = 14*(time_history+1) + 7
 default_filters = 64 # 256
 default_kernel_size = 3
 res_block_layers = 6 # 19
-
 
 class ResBlock(nn.Module):
     def __init__(self):
@@ -496,12 +494,12 @@ optimizer = torch.optim.SGD(model.parameters(), lr = learning_rate)
 
 def self_play_one_game():
     """
-        INPUTS
-            model          torch.nn        full res net (p and v heads)
-        -------------------------
-        OUTPUTS
-            input data     torch.Tensor    (1xNx8x8) where N is (8+halfturns)*14 + 7 -> index like [:,(8+i)*14:(8+i)*14+7, :, :]
-            policy data    torch.Tensor    (1xMx73x64) where M is halfturns         -> index like [:,i, :, :]
+        *Description*
+        creates the data to train with
+        ------------------------------------------------------------------------------------------------------------------------
+        *Outputs*
+            input_data     torch.Tensor    (1xNx8x8) where N is (8+halfturns)*14 + 7 -> index like [:,(8+i)*14:(8+i)*14+7, :, :]
+            policy_data    torch.Tensor    (1xMx73x64) where M is halfturns         -> index like [:,i, :, :]
             result         float           game outcome (+1 white won, -1 black won)
     """
 
@@ -531,10 +529,63 @@ def self_play_one_game():
 
     return input_data, policy_data, result
 
-def trainloop():
+def stockfish_play_one_game(stockfish_elo = 3000):
     """
+        *Description*
+        creates the data to train with
+        ------------------------------------------------------------------------------------------------------------------
+        *Outputs*
+            input_data     torch.Tensor    (1xNx8x8)
+            policy_data    torch.Tensor    (1xMx73x64)
+            result         float           game outcome (+1 white won, -1 black won)
+    """
+    stockfish = Stockfish("/usr/games/stockfish")
+    stockfish.set_elo_rating(stockfish_elo)
+    model_turn = random.random() > .5
+
+    curr_node = GameStateNode()
+    curr_node.generate_children()
+
+    # todo: preallocate these to speed up concatenation of new data?
+    policy_data = torch.Tensor([])
+    input_data = torch.Tensor([])
+
+    while True:
+        # curr_node.print()
+        if model_turn:
+            input_data = torch.cat((input_data, curr_node.get_full_model_input()))
+            move, new_node, policy_datum = choose_move(curr_node, greedy=False)
+            policy_data = torch.cat((policy_data, policy_datum))
+            curr_node = new_node
+        else:
+            U32_move = get_stockfish_move(stockfish, curr_node)
+            for child in curr_node.children.values():
+                if child.prev_move == U32_move:
+                    curr_node = child
+                    curr_node.generate_children()
+                    break
+
+        if curr_node.state in (WHITE_WIN,BLACK_WIN,DRAW):
+            result = curr_node.state
+            # curr_node.print()
+            # if result==WHITE_WIN:
+            #     print("white wins")
+            # elif result==BLACK_WIN:
+            #     print("black wins")
+            # else:
+            #     print("draw")
+            break
+
+    return input_data, policy_data, result
+
+def trainloop(self_play = False):
+    """
+        *Description*
         set networks to None to use random rollout() and equal priors for expand()
         returns model scores - list of floats
+        --------------------------------------------------------------------------
+        *Input*
+        self_play    bool    plays stockfish instead if False
     """
     model_data_in = torch.Tensor([])
     policy_data_out = torch.Tensor([])
@@ -547,7 +598,10 @@ def trainloop():
         print(log)
 
         # value_data_list came from monte carlo - going to use result instead for value training
-        input_data, policy_data, result = self_play_one_game()
+        if self_play:
+            input_data, policy_data, result = self_play_one_game()
+        else:
+            input_data, policy_data, result = stockfish_play_one_game()
 
         model_data_in = torch.cat((model_data_in, input_data.reshape(-1,feature_channels,8,8))) # shape: batch, channels, rows, cols
         policy_data_out = torch.cat((policy_data_out, policy_data)) # shape: batch, 73, 64
@@ -601,9 +655,6 @@ def trainloop():
     return
 
 if __name__ == "__main__":
-    #TODO: start training!
-    pass
-
     try:
         for t in range(n_loops):
             print("======================================")
@@ -613,6 +664,7 @@ if __name__ == "__main__":
             trainloop()
     except KeyboardInterrupt:
         print("\n\nterminating program")
+        save_objects()
 
 
 
