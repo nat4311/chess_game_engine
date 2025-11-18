@@ -3,6 +3,7 @@ run this file to train the alphazero resnet
 """
 
 import os
+import portalocker
 import time
 import pickle
 import random
@@ -15,6 +16,8 @@ from math import inf, sqrt, log
 from numpy.random import dirichlet
 from copy import deepcopy
 from torch.utils.data import TensorDataset, DataLoader
+from memory_profiler import profile
+import subprocess
 
 import game_engine
 from utils import pretty_time_elapsed, pretty_datetime
@@ -26,12 +29,23 @@ from stockfish_api import get_stockfish_move
 ################################################################################"""
 
 #### Training parameters
+self_play = True # if false play stockfish, set elo on next line
+stockfish_elo = 800
+
 n_games = 2
-n_epochs = 5
-n_loops = 100
-learning_rate = .001
+n_epochs = 3
+learning_rate = .0001
 discount_factor = .99
 batch_size = 32
+policy_loss_coeff = 1
+value_loss_coeff = 5
+
+#### MCTS parameters
+mcts_n_sims = 200
+ucb_exploration_constant = 1.414    # for ucb exploration score
+alpha_dirichlet = 1.732
+x_dirichlet = .75                   # p' = p*x + (1-x)*d; p ~ prior and d ~ dirichlet noise
+exploration_temperature = 1.75
 
 #### ResNet parameters
 # 14*8 (12 bitboards + 2 repetition, 1 current + 7 past) + 7 (1 turn + 1 total_moves + 4 castling + 1 halfmove)
@@ -41,13 +55,6 @@ feature_channels = 14*(time_history+1) + 7
 default_filters = 64 # 256
 default_kernel_size = 3
 res_block_layers = 6 # 19
-
-#### MCTS parameters
-mcts_n_sims = 200
-ucb_exploration_constant = 1.414    # for ucb exploration score
-alpha_dirichlet = 1.732
-x_dirichlet = .75                   # p' = p*x + (1-x)*d; p ~ prior and d ~ dirichlet noise
-exploration_temperature = 1.75
 
 """################################################################################
                     Section: Residual Neural Network (ResNet)
@@ -161,9 +168,6 @@ model = ResNet()
 #############################################################"""
 
 # for converting U32 move (game engine moves list) to 73x8x8 move (policy head output)
-# reverse should happen with a temporary dict created when masking the policy head outputs
-U32_move_to_policy_move_savefile = "U32_move_to_policy_move.pickle"
-# indexed by (73, 8, 8) tuple
 U32_move_to_policy_move_dict = dict()
 
 def get_policy_move(U32_move):
@@ -182,6 +186,8 @@ def get_policy_move(U32_move):
 """#############################################################
                Section: Loading and saving objects
 #############################################################"""
+U32_move_to_policy_move_savefile = "U32_move_to_policy_move.pickle"
+alphazero_model_savefile = "alphazero_model_weights.pth"
 
 def set_saved_objects_directory():
     root_dir = __file__
@@ -196,14 +202,15 @@ def load_objects():
     set_saved_objects_directory()
     print("Loading alphazero objects...")
 
-    try:
-        model.load_state_dict(torch.load("alphazero_model_weights.pth", weights_only=True))
-        print("    alphazero_model_weights loaded")
-    except:
+    if os.path.exists(alphazero_model_savefile):
+        with portalocker.Lock(alphazero_model_savefile, "rb", timeout=30) as f:
+            model.load_state_dict(torch.load(f, weights_only=True))
+            print("    alphazero_model_weights loaded")
+    else:
         print(" X  no alphazero_model_weights found")
 
     if os.path.exists(U32_move_to_policy_move_savefile):
-        with open(U32_move_to_policy_move_savefile, 'rb') as f:
+        with portalocker.Lock(U32_move_to_policy_move_savefile, "rb", timeout=30) as f:
             U32_move_to_policy_move_dict = pickle.load(f)
             print(f"    {U32_move_to_policy_move_savefile} loaded")
     else:
@@ -213,12 +220,13 @@ def save_objects():
     set_saved_objects_directory()
     print("Saving alphazero objects...")
 
-    with open(U32_move_to_policy_move_savefile, 'wb') as f:
+    with portalocker.Lock(U32_move_to_policy_move_savefile, "wb", timeout=30) as f:
         pickle.dump(U32_move_to_policy_move_dict, f)
         print(f"    {U32_move_to_policy_move_savefile} saved")
 
-    torch.save(model.state_dict(), "alphazero_model_weights.pth")
-    print("    alphazero_model_weights.pth saved")
+    with portalocker.Lock(alphazero_model_savefile, "wb", timeout=30) as f:
+        torch.save(model.state_dict(), "alphazero_model_weights.pth")
+        print("    alphazero_model_weights.pth saved")
 
     print()
 
@@ -307,6 +315,7 @@ class GameStateNode:
                     Section: Monte Carlo Tree Search (MCTS)
 ################################################################################"""
 
+# @profile
 def MCTS(root_node: GameStateNode):
     """
         *DESCRIPTION*
@@ -340,6 +349,7 @@ def MCTS(root_node: GameStateNode):
 
     return
 
+# @profile
 def rollout(curr_node: GameStateNode) -> int:
     '''
         This function is used when a new leaf node is reached.
@@ -431,7 +441,7 @@ def select_child(parent_node: GameStateNode) -> GameStateNode:
 
     return best_child
 
-
+# @profile
 def choose_move(start_node: GameStateNode, greedy: bool) -> int:
     """
         Uses monte carlo tree search and value/policy networks to choose a move.
@@ -534,7 +544,7 @@ def self_play_one_game():
 
     return input_data, policy_data, result
 
-def stockfish_play_one_game(stockfish_elo = 3000):
+def stockfish_play_one_game():
     """
         *Description*
         creates the data to train with
@@ -585,7 +595,7 @@ def stockfish_play_one_game(stockfish_elo = 3000):
 
     return input_data, policy_data, result
 
-def trainloop(self_play = False):
+def trainloop(self_play=self_play):
     """
         *Description*
         set networks to None to use random rollout() and equal priors for expand()
@@ -601,7 +611,7 @@ def trainloop(self_play = False):
 
     #### SELF PLAY GAMES
     for i_game in range(n_games):
-        log = f"game: {i_game}/{n_games} | time: {pretty_datetime()}"
+        log = f"game: {str(i_game+1).rjust(len(str(n_games)))}/{n_games} | time: {pretty_datetime()}"
         print(log)
 
         # value_data_list came from monte carlo - going to use result instead for value training
@@ -616,8 +626,8 @@ def trainloop(self_play = False):
         if result != 0:
             r = result
             for i in range(len(value_data)):
-                value_data[-i-1] = r
                 r *= discount_factor
+                value_data[-i-1] = r
         value_data_out = torch.cat((value_data_out, value_data.reshape(-1,1))) # shape: batch, outputs
 
     #### TRAIN THE NETWORKS
@@ -632,7 +642,7 @@ def trainloop(self_play = False):
         for batch, (x,yp,yv) in enumerate(dataloader):
             # fwd pass
             p_pred, v_pred = model(x)
-            loss = policy_loss_fn(p_pred, yp) + value_loss_fn(v_pred, yv)
+            loss = policy_loss_coeff*policy_loss_fn(p_pred, yp) + value_loss_coeff*value_loss_fn(v_pred, yv)
 
             # bwd pass
             loss.backward()
@@ -643,30 +653,37 @@ def trainloop(self_play = False):
         model.eval()
         with torch.no_grad():
             p_pred, v_pred = model(x)
-            loss = policy_loss_fn(p_pred, yp) + value_loss_fn(v_pred, yv)
+            loss = policy_loss_coeff*policy_loss_fn(p_pred, yp) + value_loss_coeff*value_loss_fn(v_pred, yv)
             loss = loss.item()
 
         log = f"epoch: {t}/{n_epochs} | loss: {round(loss, 5)} | time: {pretty_datetime()}"
         print(log)
         # logfile.write(log + '\n')
 
-    save_objects()
     print("Training Loop Complete.")
     print("----------------------------------------")
+    save_objects()
 
     return
 
 def main():
-    try:
-        for t in range(n_loops):
-            print("======================================")
-            log = f"Training Loop: {t}/{n_loops}"
-            print(log)
-            print("----------------------------------------")
-            trainloop()
-    except KeyboardInterrupt:
-        print("\n\nterminating program")
-        save_objects()
+    trainloop()
 
 if __name__ == "__main__":
+    print("----------------------------------------")
+    print("TRAINING PARAMETERS")
+    print(f"{self_play = }")
+    if not self_play:
+        print(f"{stockfish_elo = }")
+    print(f"{n_games = }")
+    print(f"{n_epochs = }")
+    print(f"{learning_rate = }")
+    print(f"{discount_factor = }")
+    print(f"{batch_size = }")
+    print(f"{policy_loss_coeff = }")
+    print(f"{value_loss_coeff = }")
+    print("MCTS PARAMETERS")
+    print(f"{mcts_n_sims = }")
+    print("----------------------------------------")
+
     main()

@@ -9,7 +9,9 @@ from alphazero import model as alphazero_model
 from alphazero import choose_move as alphazero_choose_move
 from alphazero import GameStateNode as alphazero_GameStateNode
 from alphazero import load_objects as load_alphazero_objects
+from alphazero import save_objects as _save_alphazero_objects
 from alphazero import set_saved_objects_directory
+from memory_profiler import profile
 
 import game_engine
 from constants import WHITE, BLACK, WHITE_WIN, BLACK_WIN, DRAW, NOTOVER
@@ -55,9 +57,9 @@ for model_str in model_list:
         elo_records_dict[f"{model_str}_elo"] = 400
         elo_records_dict[f"{model_str}_elo_history"] = [] # list of tuples -> (epoch_time, elo)
 
-def calculate_new_elo(old_elo, opponent_elo, score):
+def calculate_new_elo(old_elo, opponent_elo, score, min_elo=100):
     E = 1/(1+10**((opponent_elo-old_elo)/400))
-    return old_elo + 20*(score-E)
+    return max(old_elo + 20*(score-E), min_elo)
 
 def record_new_elo(model_str, opponent_elo, score):
     old_elo = elo_records_dict[f"{model_str}_elo"]
@@ -71,7 +73,8 @@ def record_new_elo(model_str, opponent_elo, score):
                Section: evaluate against stockfish
 #############################################################"""
 
-def alphazero_play_stockfish(info_str = None, min_stockfish_elo = 100):
+# @profile
+def alphazero_play_stockfish(info_str = None, min_stockfish_elo = 400, printing=False):
     """
     for evaluation purposes
     """
@@ -91,8 +94,9 @@ def alphazero_play_stockfish(info_str = None, min_stockfish_elo = 100):
     else:
         side_str = "alphazero black, stockfish white"
     while True:
-        print("------------------------------------")
-        curr_node.print()
+        if printing:
+            print("------------------------------------")
+            curr_node.print()
         if model_turn:
             _, new_node, _ = alphazero_choose_move(curr_node, greedy=True)
             curr_node = new_node
@@ -103,15 +107,17 @@ def alphazero_play_stockfish(info_str = None, min_stockfish_elo = 100):
                     curr_node = child
                     break
         curr_node.generate_children()
-        print("\n\n")
-        print(side_str)
-        if info_str is not None:
-            print(info_str)
-            print(f"{stockfish_elo = }")
+        if printing:
+            print("\n\n")
+            print(side_str)
+            if info_str is not None:
+                print(info_str)
+                print(f"{stockfish_elo = }")
 
         if curr_node.state in (WHITE_WIN, BLACK_WIN):
-            print("------------------------------------")
-            curr_node.print()
+            if printing:
+                print("------------------------------------")
+                curr_node.print()
             if model_turn:
                 score = 1
                 break
@@ -128,15 +134,13 @@ def alphazero_play_stockfish(info_str = None, min_stockfish_elo = 100):
 
     return score
 
+def main():
+    os.system("clear")
+    info_str = f"alphazero_elo = {round(elo_records_dict["alphazero_elo"])}"
+    score = alphazero_play_stockfish(info_str=info_str, printing=True)
+
 if __name__ == "__main__":
-    alphazero_n_games = 0
-    alphazero_total_score = 0
-    while True:
-        os.system("clear")
-        info_str = f"total_score: {alphazero_total_score}/{alphazero_n_games}\nalphazero_elo = {round(elo_records_dict["alphazero_elo"])}"
-        score = alphazero_play_stockfish(info_str=info_str)
-        alphazero_n_games += 1
-        alphazero_total_score += score
+    main()
 
 
 
