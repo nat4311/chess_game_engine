@@ -29,19 +29,19 @@ from stockfish_api import get_stockfish_move
 ################################################################################"""
 
 #### Training parameters
-self_play = True # if false play stockfish, set elo on next line
-stockfish_elo = 800
+self_play = False # if false play stockfish, set elo on next line
+stockfish_elo = 2000
 
-n_games = 2
+n_games = 16
 n_epochs = 3
 learning_rate = .0001
 discount_factor = .99
 batch_size = 32
 policy_loss_coeff = 1
-value_loss_coeff = 5
+value_loss_coeff = 100
 
 #### MCTS parameters
-mcts_n_sims = 200
+mcts_n_sims = 10
 ucb_exploration_constant = 1.414    # for ucb exploration score
 alpha_dirichlet = 1.732
 x_dirichlet = .75                   # p' = p*x + (1-x)*d; p ~ prior and d ~ dirichlet noise
@@ -302,7 +302,7 @@ class GameStateNode:
     
     def get_full_model_input(self):
         if self._full_model_input is None:
-            self._full_model_input = torch.cat((self.parent._full_model_input[:, 14:-7, :, :], self.get_partial_model_input()), dim=1)
+            self._full_model_input = torch.cat((self.parent._full_model_input[:, 14:-7, :, :], self.get_partial_model_input()), dim=1).detach()
         return self._full_model_input
 
     def print(self):
@@ -375,7 +375,8 @@ def rollout(curr_node: GameStateNode) -> int:
     if curr_node.state in (WHITE_WIN, BLACK_WIN, DRAW):
         leaf_node_value_estimate = curr_node.state
     else:
-        _, leaf_node_value_estimate = model(leaf_node.get_full_model_input())
+        with torch.no_grad():
+            _, leaf_node_value_estimate = model(leaf_node.get_full_model_input())
         leaf_node_value_estimate = leaf_node_value_estimate.item()
 
     # backprop leaf_node_value_estimate to all parent nodes
@@ -394,7 +395,8 @@ def expand(curr_node):
     unlike the connect4 version, expand here just needs to set the child priors
     children are already generated when the parent node was created because I needed to check for game over
     """
-    p,_ = model(curr_node.get_full_model_input())
+    with torch.no_grad():
+        p,_ = model(curr_node.get_full_model_input())
     action_probs = torch.zeros(p.shape)
 
     for policy_move, child in curr_node.children.items():
@@ -521,14 +523,14 @@ def self_play_one_game():
     curr_node = GameStateNode()
 
     # todo: preallocate these to speed up concatenation of new data?
-    policy_data = torch.Tensor([])
-    input_data = torch.Tensor([])
+    policy_data_list = []
+    input_data_list = []
 
     while True:
         # curr_node.print()
-        input_data = torch.cat((input_data, curr_node.get_full_model_input()))
+        input_data_list.append(curr_node.get_full_model_input())
         move, new_node, policy_datum = choose_move(curr_node, greedy=False)
-        policy_data = torch.cat((policy_data, policy_datum))
+        policy_data_list.append(policy_datum)
         
         curr_node = new_node
         if curr_node.state in (WHITE_WIN,BLACK_WIN,DRAW):
@@ -542,8 +544,12 @@ def self_play_one_game():
             #     print("draw")
             break
 
+    input_data = torch.cat(input_data_list)
+    policy_data = torch.cat(policy_data_list)
+
     return input_data, policy_data, result
 
+# @profile
 def stockfish_play_one_game():
     """
         *Description*
@@ -561,16 +567,15 @@ def stockfish_play_one_game():
     curr_node = GameStateNode()
     curr_node.generate_children()
 
-    # todo: preallocate these to speed up concatenation of new data?
-    policy_data = torch.Tensor([])
-    input_data = torch.Tensor([])
+    policy_data_list = []
+    input_data_list = []
 
     while True:
         # curr_node.print()
         if model_turn:
-            input_data = torch.cat((input_data, curr_node.get_full_model_input()))
+            input_data_list.append(curr_node.get_full_model_input())
             move, new_node, policy_datum = choose_move(curr_node, greedy=False)
-            policy_data = torch.cat((policy_data, policy_datum))
+            policy_data_list.append(policy_datum)
             curr_node = new_node
         else:
             U32_move = get_stockfish_move(stockfish, curr_node)
@@ -593,8 +598,12 @@ def stockfish_play_one_game():
         else:
             model_turn = not model_turn
 
+    input_data = torch.cat(input_data_list)
+    policy_data = torch.cat(policy_data_list)
+
     return input_data, policy_data, result
 
+@profile
 def trainloop(self_play=self_play):
     """
         *Description*
@@ -604,9 +613,9 @@ def trainloop(self_play=self_play):
         *Input*
         self_play    bool    plays stockfish instead if False
     """
-    model_data_in = torch.Tensor([])
-    policy_data_out = torch.Tensor([])
-    value_data_out = torch.Tensor([])
+    model_data_list = []
+    policy_data_list = []
+    value_data_list = []
     t0 = time.time()
 
     #### SELF PLAY GAMES
@@ -620,18 +629,22 @@ def trainloop(self_play=self_play):
         else:
             input_data, policy_data, result = stockfish_play_one_game()
 
-        model_data_in = torch.cat((model_data_in, input_data.reshape(-1,feature_channels,8,8))) # shape: batch, channels, rows, cols
-        policy_data_out = torch.cat((policy_data_out, policy_data)) # shape: batch, 73, 64
+        model_data_list.append(input_data.reshape(-1,feature_channels,8,8)) # shape: batch, channels, rows, cols
+        policy_data_list.append(policy_data) # shape: batch, 73, 64
         value_data = torch.zeros(input_data.shape[0])
         if result != 0:
             r = result
             for i in range(len(value_data)):
                 r *= discount_factor
                 value_data[-i-1] = r
-        value_data_out = torch.cat((value_data_out, value_data.reshape(-1,1))) # shape: batch, outputs
+        value_data_list.append(value_data.reshape(-1,1)) # shape: batch, outputs
+
+    input_data_tensor = torch.cat(model_data_list)
+    policy_data_tensor = torch.cat(policy_data_list)
+    value_data_tensor = torch.cat(value_data_list)
 
     #### TRAIN THE NETWORKS
-    dataset = TensorDataset(model_data_in, policy_data_out, value_data_out)
+    dataset = TensorDataset(input_data_tensor, policy_data_tensor, value_data_tensor)
     dataloader = DataLoader(dataset, batch_size=batch_size, shuffle=True)
 
     t0 = time.time()
@@ -666,10 +679,8 @@ def trainloop(self_play=self_play):
 
     return
 
+@profile
 def main():
-    trainloop()
-
-if __name__ == "__main__":
     print("----------------------------------------")
     print("TRAINING PARAMETERS")
     print(f"{self_play = }")
@@ -685,5 +696,11 @@ if __name__ == "__main__":
     print("MCTS PARAMETERS")
     print(f"{mcts_n_sims = }")
     print("----------------------------------------")
+    try:
+        while True:
+            trainloop()
+    finally:
+        print("stopping")
 
+if __name__ == "__main__":
     main()
