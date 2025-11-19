@@ -3,6 +3,7 @@ run this file to train the alphazero resnet
 """
 
 import os
+import sys
 import portalocker
 import time
 import pickle
@@ -29,7 +30,7 @@ from stockfish_api import get_stockfish_move
 ################################################################################"""
 
 #### Training parameters
-self_play = False # if false play stockfish, set elo on next line
+self_play = 1 # if false play stockfish, set elo on next line
 stockfish_elo = 2000
 
 n_games = 16
@@ -41,7 +42,7 @@ policy_loss_coeff = 1
 value_loss_coeff = 100
 
 #### MCTS parameters
-mcts_n_sims = 10
+mcts_n_sims = 100
 ucb_exploration_constant = 1.414    # for ucb exploration score
 alpha_dirichlet = 1.732
 x_dirichlet = .75                   # p' = p*x + (1-x)*d; p ~ prior and d ~ dirichlet noise
@@ -622,6 +623,9 @@ def trainloop(self_play=self_play):
     for i_game in range(n_games):
         log = f"game: {str(i_game+1).rjust(len(str(n_games)))}/{n_games} | time: {pretty_datetime()}"
         print(log)
+        input_data = None
+        policy_data = None
+        result = None
 
         # value_data_list came from monte carlo - going to use result instead for value training
         if self_play:
@@ -642,6 +646,9 @@ def trainloop(self_play=self_play):
     input_data_tensor = torch.cat(model_data_list)
     policy_data_tensor = torch.cat(policy_data_list)
     value_data_tensor = torch.cat(value_data_list)
+    print(f"size of input_data_tensor: {sys.getsizeof(input_data_tensor)/1000000} MB    {input_data_tensor.shape = }")
+    print(f"size of policy_data_tensor: {sys.getsizeof(policy_data_tensor)/1000000} MB    {policy_data_tensor.shape = }")
+    print(f"size of value_data_tensor: {sys.getsizeof(value_data_tensor)/1000000} MB    {value_data_tensor.shape = }")
 
     #### TRAIN THE NETWORKS
     dataset = TensorDataset(input_data_tensor, policy_data_tensor, value_data_tensor)
@@ -681,23 +688,24 @@ def trainloop(self_play=self_play):
 
 @profile
 def main():
-    print("----------------------------------------")
-    print("TRAINING PARAMETERS")
-    print(f"{self_play = }")
-    if not self_play:
-        print(f"{stockfish_elo = }")
-    print(f"{n_games = }")
-    print(f"{n_epochs = }")
-    print(f"{learning_rate = }")
-    print(f"{discount_factor = }")
-    print(f"{batch_size = }")
-    print(f"{policy_loss_coeff = }")
-    print(f"{value_loss_coeff = }")
-    print("MCTS PARAMETERS")
-    print(f"{mcts_n_sims = }")
-    print("----------------------------------------")
     try:
         while True:
+            os.system("clear")
+            print("----------------------------------------")
+            print("TRAINING PARAMETERS")
+            print(f"{self_play = }")
+            if not self_play:
+                print(f"{stockfish_elo = }")
+            print(f"{n_games = }")
+            print(f"{n_epochs = }")
+            print(f"{learning_rate = }")
+            print(f"{discount_factor = }")
+            print(f"{batch_size = }")
+            print(f"{policy_loss_coeff = }")
+            print(f"{value_loss_coeff = }")
+            print("MCTS PARAMETERS")
+            print(f"{mcts_n_sims = }")
+            print("----------------------------------------")
             trainloop()
     finally:
         print("stopping")
