@@ -12,7 +12,7 @@ from alphazero import model, load_objects, get_policy_move, mcts_n_sims
 from alphazero import U32_move_to_policy_move_dict, self_play_one_game
 from stockfish import Stockfish
 from model_evaluation import get_stockfish_move
-from constants import WHITE_WIN, BLACK_WIN, DRAW
+from constants import WHITE_WIN, BLACK_WIN, DRAW, piece_chars
 
 ###############################################################
 
@@ -163,7 +163,6 @@ def self_play_one_game_test():
 def test_policy_and_input_datum():
     assert mcts_n_sims <= 30 # otherwise will take too long to run
     def print_input_datum(input_datum):
-        piece_chars = ["P", "N", "B", "R", "Q", "K", "p", "n", "b", "r", "q", "k"]
         for t in range(8):
             i = t*14 + 12
             assert input_datum[0, i:i+2, :, :].sum() == 0

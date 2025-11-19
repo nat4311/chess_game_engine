@@ -39,13 +39,13 @@ learning_rate = .0001
 discount_factor = .99
 batch_size = 32
 policy_loss_coeff = 1
-value_loss_coeff = 100
+value_loss_coeff = 2
 
 #### MCTS parameters
 mcts_n_sims = 100
-ucb_exploration_constant = 1.414    # for ucb exploration score
+ucb_exploration_constant = 1    # for ucb exploration score
 alpha_dirichlet = 1.732
-x_dirichlet = .75                   # p' = p*x + (1-x)*d; p ~ prior and d ~ dirichlet noise
+x_dirichlet = .75                   # p' = p*x_dirichlet + (1-x_dirichlet)*d; p ~ prior and d ~ dirichlet noise
 exploration_temperature = 1.75
 
 #### ResNet parameters
@@ -332,8 +332,8 @@ def MCTS(root_node: GameStateNode):
     """
 
     # reset the root_node MCTS values
-    root_node.n_visits = 0
-    root_node.value_sum = 0
+    # root_node.n_visits = 0
+    # root_node.value_sum = 0
     root_node.is_mcts_root = True
 
     for n in range(mcts_n_sims):
@@ -471,6 +471,7 @@ def choose_move(start_node: GameStateNode, greedy: bool) -> int:
         most_visited_child = None
         for policy_move, child in start_node.children.items():
             ap = child.n_visits/(start_node.n_visits-1)
+            assert ap<=1 #todo: remove this
             i, j = policy_move
             policy_datum[0, i, j] = ap
             if child.n_visits > most_visits:
@@ -523,7 +524,6 @@ def self_play_one_game():
 
     curr_node = GameStateNode()
 
-    # todo: preallocate these to speed up concatenation of new data?
     policy_data_list = []
     input_data_list = []
 
@@ -686,11 +686,19 @@ def trainloop(self_play=self_play):
 
     return
 
+
+
 @profile
 def main():
+    start_datetime = pretty_datetime()
+    n_loops = 0
     try:
         while True:
-            os.system("clear")
+            if n_loops % 30 == 0:
+                os.system("clear")
+            print("----------------------------------------")
+            print(f"started at {start_datetime}")
+            print(f"loops complete: {n_loops}")
             print("----------------------------------------")
             print("TRAINING PARAMETERS")
             print(f"{self_play = }")
@@ -707,6 +715,7 @@ def main():
             print(f"{mcts_n_sims = }")
             print("----------------------------------------")
             trainloop()
+            n_loops += 1
     finally:
         print("stopping")
 

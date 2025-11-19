@@ -135,9 +135,10 @@ def alphazero_play_stockfish(info_str = None, min_stockfish_elo = 400, printing=
     return score
 
 def main():
-    os.system("clear")
-    info_str = f"alphazero_elo = {round(elo_records_dict["alphazero_elo"])}"
-    score = alphazero_play_stockfish(info_str=info_str, printing=True)
+    while True:
+        os.system("clear")
+        info_str = f"alphazero_elo = {round(elo_records_dict["alphazero_elo"])}"
+        score = alphazero_play_stockfish(info_str=info_str, printing=True)
 
 if __name__ == "__main__":
     main()
