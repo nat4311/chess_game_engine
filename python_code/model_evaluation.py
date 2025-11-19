@@ -94,9 +94,6 @@ def alphazero_play_stockfish(info_str = None, min_stockfish_elo = 400, printing=
     else:
         side_str = "alphazero black, stockfish white"
     while True:
-        if printing:
-            print("------------------------------------")
-            curr_node.print()
         if model_turn:
             _, new_node, _ = alphazero_choose_move(curr_node, greedy=True)
             curr_node = new_node
@@ -108,7 +105,11 @@ def alphazero_play_stockfish(info_str = None, min_stockfish_elo = 400, printing=
                     break
         curr_node.generate_children()
         if printing:
+            print("------------------------------------")
+            curr_node.print()
             print("\n\n")
+            p, v = alphazero_model(curr_node.get_full_model_input())
+            print(f"model eval: {round(v.item(), 4)}")
             print(side_str)
             if info_str is not None:
                 print(info_str)
@@ -142,17 +143,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-
-
-
-
-
-
-
-
-
-
-
-
-

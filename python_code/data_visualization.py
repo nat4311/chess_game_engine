@@ -113,7 +113,7 @@ def visualize_data():
     policy_data = torch.load(test_policy_data_tensor_savefile)
     value_data = torch.load(test_value_data_tensor_savefile)
 
-    i = 99
+    i = 113
     print_input_datum(input_data[i,:,:,:])
     print("-----------------------------------------")
     print_policy_datum(policy_data[i,:,:]) 

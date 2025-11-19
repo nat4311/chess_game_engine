@@ -604,7 +604,7 @@ def stockfish_play_one_game():
 
     return input_data, policy_data, result
 
-@profile
+# @profile
 def trainloop(self_play=self_play):
     """
         *Description*
@@ -688,7 +688,7 @@ def trainloop(self_play=self_play):
 
 
 
-@profile
+# @profile
 def main():
     start_datetime = pretty_datetime()
     n_loops = 0
