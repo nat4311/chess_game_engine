@@ -13,7 +13,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
 from stockfish import Stockfish
-from math import inf, sqrt, log
+from math import inf, sqrt, log, tanh
 from numpy.random import dirichlet
 from copy import deepcopy
 from torch.utils.data import TensorDataset, DataLoader
@@ -23,7 +23,7 @@ import subprocess
 import game_engine
 from utils import pretty_time_elapsed, pretty_datetime
 from constants import WHITE, BLACK, WHITE_WIN, BLACK_WIN, DRAW, NOTOVER
-from stockfish_api import get_stockfish_move
+from stockfish_api import stockfish_move_to_U32_move 
 
 """################################################################################
                     Section: Parameters
@@ -33,13 +33,12 @@ from stockfish_api import get_stockfish_move
 self_play = True # if false play stockfish, set elo on next line
 stockfish_elo = 2000
 
-n_games = 64
+n_games = 2048
 n_epochs = 5
-learning_rate = .0001
-discount_factor = .99
+learning_rate = .000001
 batch_size = 32
 policy_loss_coeff = 1
-value_loss_coeff = 2
+value_loss_coeff = 1
 
 #### MCTS parameters
 mcts_n_sims = 200
@@ -188,7 +187,7 @@ def get_policy_move(U32_move):
                Section: Loading and saving objects
 #############################################################"""
 U32_move_to_policy_move_savefile = "U32_move_to_policy_move.pickle"
-alphazero_model_savefile = "alphazero_model_weights.pth"
+alphazero2_model_savefile = "alphazero2_model_weights.pth"
 
 def set_saved_objects_directory():
     root_dir = __file__
@@ -203,12 +202,12 @@ def load_objects():
     set_saved_objects_directory()
     print("Loading alphazero objects...")
 
-    if os.path.exists(alphazero_model_savefile):
-        with portalocker.Lock(alphazero_model_savefile, "rb", timeout=30) as f:
+    if os.path.exists(alphazero2_model_savefile):
+        with portalocker.Lock(alphazero2_model_savefile, "rb", timeout=30) as f:
             model.load_state_dict(torch.load(f, weights_only=True))
-            print("    alphazero_model_weights loaded")
+            print("    model weights loaded")
     else:
-        print(" X  no alphazero_model_weights found")
+        print(" X  no model weights found")
 
     if os.path.exists(U32_move_to_policy_move_savefile):
         with portalocker.Lock(U32_move_to_policy_move_savefile, "rb", timeout=30) as f:
@@ -221,16 +220,11 @@ def save_objects():
     set_saved_objects_directory()
     print("Saving alphazero objects...")
 
-    with portalocker.Lock(U32_move_to_policy_move_savefile, "wb", timeout=30) as f:
-        pickle.dump(U32_move_to_policy_move_dict, f)
-        print(f"    {U32_move_to_policy_move_savefile} saved")
-
-    with portalocker.Lock(alphazero_model_savefile, "wb", timeout=30) as f:
-        torch.save(model.state_dict(), "alphazero_model_weights.pth")
-        print("    alphazero_model_weights.pth saved")
+    with portalocker.Lock(alphazero2_model_savefile, "wb", timeout=30) as f:
+        torch.save(model.state_dict(), alphazero2_model_savefile)
+        print("    model weights saved")
 
     print()
-
 
 load_objects()
 
@@ -241,7 +235,7 @@ load_objects()
 class GameStateNode:
     def __init__(self, parent=None, board=None, prev_move=0, generate_children=False):
         self.parent = parent
-        self.children = dict() # indexed by (73, 8, 8) move
+        self.children = dict() # indexed by (73, 64) move
         self.prev_move = prev_move
         self.moves = game_engine.MoveGenerator()
         self.prior = 0
@@ -267,7 +261,8 @@ class GameStateNode:
             self.state = DRAW
             return
 
-        for U32_move in self.moves.get_pl_move_list(self.board):
+        pl_move_list = self.moves.get_pl_move_list(self.board)
+        for U32_move in pl_move_list:
             new_board = self.board.copy()
             if new_board.make(U32_move):
                 policy_move = get_policy_move(U32_move)
@@ -286,6 +281,7 @@ class GameStateNode:
             self.state = NOTOVER
 
         assert self.state is not None
+        return pl_move_list
 
     def print_pl_moves(self):
         self.moves.generate_pl_moves(self.board)
@@ -302,6 +298,9 @@ class GameStateNode:
         return torch.Tensor(self.board.get_partial_model_input()).view(1,-1,8,8)
     
     def get_full_model_input(self):
+        """
+        returns input_datum as torch.Tensor(1x119x8x8)
+        """
         if self._full_model_input is None:
             self._full_model_input = torch.cat((self.parent._full_model_input[:, 14:-7, :, :], self.get_partial_model_input()), dim=1).detach()
         return self._full_model_input
@@ -511,101 +510,96 @@ value_loss_fn = nn.MSELoss()
 policy_loss_fn = nn.MSELoss()
 optimizer = torch.optim.SGD(model.parameters(), lr = learning_rate)
 
-def self_play_one_game():
-    """
-        *Description*
-        creates the data to train with
-        ------------------------------------------------------------------------------------------------------------------------
-        *Outputs*
-            input_data     torch.Tensor    (1xNx8x8) where N is (8+halfturns)*14 + 7 -> index like [:,(8+i)*14:(8+i)*14+7, :, :]
-            policy_data    torch.Tensor    (1xMx73x64) where M is halfturns         -> index like [:,i, :, :]
-            result         float           game outcome (+1 white won, -1 black won)
-    """
+def np_softmax(arr, temperature=100):
+    shifted_arr = arr - np.max(arr)
+    exp_arr = np.exp(shifted_arr / temperature)
+    probs = exp_arr / np.sum(exp_arr)
+    return probs
 
-    curr_node = GameStateNode()
+def torch_softmax(arr, temperature=100):
+    shifted_arr = arr - torch.max(arr)
+    exp_arr = torch.exp(shifted_arr / temperature)
+    probs = exp_arr / torch.sum(exp_arr)
+    return probs
 
-    policy_data_list = []
+def stockfish_only_one_game(stockfish, printouts = False):
     input_data_list = []
+    policy_data_list = []
+    value_data_list = []
+    curr_node = GameStateNode()
+    pl_move_list = curr_node.generate_children()
+    stockfish.set_position([])
 
+    nn = 0
     while True:
-        # curr_node.print()
-        input_data_list.append(curr_node.get_full_model_input())
-        move, new_node, policy_datum = choose_move(curr_node, greedy=False)
+        if printouts:
+            curr_node.print()
+        # print(stockfish.get_board_visual())
+
+        # calc new moves
+        stockfish_moves = stockfish.get_top_moves(200)
+
+        # generate input_datum
+        input_datum = curr_node.get_full_model_input()
+        input_data_list.append(input_datum)
+
+        # generate value_datum
+        eval_cp = stockfish.get_evaluation()["value"]
+        value_datum = tanh(eval_cp/700)
+        value_data_list.append(value_datum)
+
+        # generate policy_datum
+        U32_moves = np.zeros(len(stockfish_moves), dtype=np.uint32)
+        policy_moves = [(0,0) for _ in range(len(stockfish_moves))]
+        probs = np.zeros(len(stockfish_moves))
+        for i, stockfish_move in enumerate(stockfish_moves):
+            U32_move = stockfish_move_to_U32_move(stockfish_move["Move"], pl_move_list, curr_node.board)
+            U32_moves[i] = U32_move
+            policy_move = get_policy_move(U32_move)
+            policy_moves[i] = policy_move
+            prob = stockfish_move["Centipawn"]
+            if prob == None:
+                prob = 10000 * stockfish_move["Mate"]
+                if curr_node.board.turn == BLACK:
+                    prob *= -1
+            probs[i] = prob
+        probs = np_softmax(probs)
+        policy_datum = torch.zeros((1, 73, 64))
+        for i, ap in enumerate(probs):
+            a, b = policy_moves[i]
+            policy_datum[0,a,b] = ap
         policy_data_list.append(policy_datum)
-        
-        curr_node = new_node
-        if curr_node.state in (WHITE_WIN,BLACK_WIN,DRAW):
-            result = curr_node.state
-            # curr_node.print()
-            # if result==WHITE_WIN:
-            #     print("white wins")
-            # elif result==BLACK_WIN:
-            #     print("black wins")
-            # else:
-            #     print("draw")
+
+        # make move
+        try:
+            chosen_index = np.random.choice(len(probs), p=probs)
+        except:
+            print("ERROR with random choice of probs")
+            print(f"{stockfish_moves = }")
+            print(f"{probs = }")
+            raise Exception()
+        stockfish_move = stockfish_moves[chosen_index]
+        # print(stockfish_move["Move"])
+        stockfish.make_moves_from_current_position([stockfish_move["Move"]])
+        # print(stockfish.get_board_visual())
+        policy_move = policy_moves[chosen_index]
+        curr_node = curr_node.children[policy_move]
+
+        # break if game over
+        pl_move_list = curr_node.generate_children()
+        if curr_node.state in (DRAW, WHITE_WIN, BLACK_WIN):
+            if printouts:
+                curr_node.print()
             break
 
     input_data = torch.cat(input_data_list)
     policy_data = torch.cat(policy_data_list)
+    value_data = torch.Tensor(value_data_list).view(-1,1)
 
-    return input_data, policy_data, result
-
-# @profile
-def stockfish_play_one_game():
-    """
-        *Description*
-        creates the data to train with
-        ------------------------------------------------------------------------------------------------------------------
-        *Outputs*
-            input_data     torch.Tensor    (1xNx8x8)
-            policy_data    torch.Tensor    (1xMx73x64)
-            result         float           game outcome (+1 white won, -1 black won)
-    """
-    stockfish = Stockfish("/usr/games/stockfish")
-    stockfish.set_elo_rating(stockfish_elo)
-    model_turn = random.random() > .5
-
-    curr_node = GameStateNode()
-    curr_node.generate_children()
-
-    policy_data_list = []
-    input_data_list = []
-
-    while True:
-        # curr_node.print()
-        if model_turn:
-            input_data_list.append(curr_node.get_full_model_input())
-            move, new_node, policy_datum = choose_move(curr_node, greedy=False)
-            policy_data_list.append(policy_datum)
-            curr_node = new_node
-        else:
-            U32_move = get_stockfish_move(stockfish, curr_node)
-            for child in curr_node.children.values():
-                if child.prev_move == U32_move:
-                    curr_node = child
-                    curr_node.generate_children()
-                    break
-
-        if curr_node.state in (WHITE_WIN,BLACK_WIN,DRAW):
-            result = curr_node.state
-            # curr_node.print()
-            # if result==WHITE_WIN:
-            #     print("white wins")
-            # elif result==BLACK_WIN:
-            #     print("black wins")
-            # else:
-            #     print("draw")
-            break
-        else:
-            model_turn = not model_turn
-
-    input_data = torch.cat(input_data_list)
-    policy_data = torch.cat(policy_data_list)
-
-    return input_data, policy_data, result
+    return input_data, policy_data, value_data
 
 # @profile
-def trainloop(self_play=self_play):
+def trainloop(stockfish):
     """
         *Description*
         set networks to None to use random rollout() and equal priors for expand()
@@ -621,27 +615,14 @@ def trainloop(self_play=self_play):
 
     #### SELF PLAY GAMES
     for i_game in range(n_games):
-        log = f"game: {str(i_game+1).rjust(len(str(n_games)))}/{n_games} | time: {pretty_datetime()}"
-        print(log)
-        input_data = None
-        policy_data = None
-        result = None
+        if n_games < 10 or (i_game % (n_games//10) == 0):
+            log = f"game: {str(i_game+1).rjust(len(str(n_games)))}/{n_games} | time: {pretty_datetime()}"
+            print(log)
 
-        # value_data_list came from monte carlo - going to use result instead for value training
-        if self_play:
-            input_data, policy_data, result = self_play_one_game()
-        else:
-            input_data, policy_data, result = stockfish_play_one_game()
-
-        model_data_list.append(input_data.reshape(-1,feature_channels,8,8)) # shape: batch, channels, rows, cols
+        input_data, policy_data, value_data = stockfish_only_one_game(stockfish)
+        model_data_list.append(input_data) # shape: batch, channels, rows, cols
         policy_data_list.append(policy_data) # shape: batch, 73, 64
-        value_data = torch.zeros(input_data.shape[0])
-        if result != 0:
-            r = result
-            for i in range(len(value_data)):
-                r *= discount_factor
-                value_data[-i-1] = r
-        value_data_list.append(value_data.reshape(-1,1)) # shape: batch, outputs
+        value_data_list.append(value_data) # shape: batch, outputs
 
     input_data_tensor = torch.cat(model_data_list)
     policy_data_tensor = torch.cat(policy_data_list)
@@ -687,37 +668,49 @@ def trainloop(self_play=self_play):
     return
 
 
-
 # @profile
-def main():
+def main(stockfish):
     start_datetime = pretty_datetime()
     n_loops = 0
     try:
         while True:
-            if n_loops % 30 == 0:
+            if n_loops % 100 == 99:
                 os.system("clear")
             print("----------------------------------------")
             print(f"started at {start_datetime}")
             print(f"loops complete: {n_loops}")
             print("----------------------------------------")
             print("TRAINING PARAMETERS")
-            print(f"{self_play = }")
-            if not self_play:
-                print(f"{stockfish_elo = }")
+            print(f"{stockfish_elo = }")
             print(f"{n_games = }")
             print(f"{n_epochs = }")
             print(f"{learning_rate = }")
-            print(f"{discount_factor = }")
             print(f"{batch_size = }")
             print(f"{policy_loss_coeff = }")
             print(f"{value_loss_coeff = }")
-            print("MCTS PARAMETERS")
-            print(f"{mcts_n_sims = }")
             print("----------------------------------------")
-            trainloop()
+            trainloop(stockfish)
             n_loops += 1
     finally:
         print("stopping")
 
 if __name__ == "__main__":
-    main()
+    stockfish = Stockfish("/usr/games/stockfish")
+    stockfish_elo = 1000
+    stockfish.set_elo_rating(stockfish_elo)
+    stockfish.set_depth(10)
+    main(stockfish)
+
+
+    # for n in range(100):
+    #     print(n)
+    #     i, p, v = stockfish_only_one_game(stockfish)
+    # print(i.shape)
+    # print(p.shape)
+    # print(v.shape)
+
+
+    # stockfish.make_moves_from_current_position(["e2e4"])
+    # print(stockfish.get_board_visual())
+
+

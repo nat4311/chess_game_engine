@@ -1,6 +1,10 @@
 from stockfish import Stockfish
 from constants import WHITE, BLACK, WHITE_WIN, BLACK_WIN, DRAW, NOTOVER, piece_chars, sq_strs, sq_ints
 import game_engine
+import time
+import torch
+from math import tanh, exp
+import numpy as np
 
 def get_promotion_piece_int(promotion_piece_str, turn):
     if promotion_piece_str == "n":
@@ -145,4 +149,84 @@ def get_stockfish_move(stockfish, game_state_node):
     print(f"{stockfish_move = }")
     raise Exception("unable to find move")
 
+def stockfish_move_to_U32_move(stockfish_move, pl_move_list, board):
+    source_sq_str = stockfish_move[:2]
+    source_sq = sq_ints[source_sq_str]
+    target_sq_str = stockfish_move[2:4]
+    target_sq = sq_ints[target_sq_str]
+    if len(stockfish_move) > 4:
+        promotion_piece_str = stockfish_move[4]
+    else:
+        promotion_piece_str = None
 
+    for move in pl_move_list:
+        a = game_engine.get_move_source_sq(move)
+        b = game_engine.get_move_target_sq(move)
+        if a == source_sq and b == target_sq:
+            if promotion_piece_str is None:
+                return move
+            else:
+                c = game_engine.get_move_promotion_piece_type(move)
+                promotion_piece = get_promotion_piece_int(promotion_piece_str, board.turn)
+                if c == promotion_piece:
+                    return move
+
+    print("ERROR MOVE NOT FOUND")
+    board.print()
+    raise Exception("ERROR MOVE NOT FOUND")
+            
+def np_softmax(arr, temperature=100):
+    shifted_arr = arr - np.max(arr)
+    exp_arr = np.exp(shifted_arr / temperature)
+    probs = exp_arr / np.sum(exp_arr)
+    return probs
+
+def torch_softmax(arr, temperature=100):
+    shifted_arr = arr - torch.max(arr)
+    exp_arr = torch.exp(shifted_arr / temperature)
+    probs = exp_arr / torch.sum(exp_arr)
+    return probs
+
+if __name__ == "__main__":
+    # from alphazero import GameStateNode
+    #
+    # # game = GameStateNode()
+    stockfish = Stockfish("/usr/games/stockfish")
+    # # stockfish.set_elo_rating(2000)
+    # stockfish.set_depth(10)
+    # # stockfish.set_fen_position("rn1qkbnr/p1pppp1p/1p4p1/8/3PP3/2Pb1N2/PP3PPP/RNBQKB1R w KQkq - 1 5")
+    # stockfish.set_fen_position("rn1qkbnr/p1pppp1p/1p4p1/8/3PP3/2Pb1N2/PP3PPP/RNBQKB1R w KQkq - 1 5")
+    stockfish.set_fen_position("K7/8/r7/7r/7k/8/8/8 w - - 2 5")
+    print(stockfish.get_board_visual())
+    ms = stockfish.get_top_moves(200)
+    for m in ms:
+        if m["Centipawn"] is None:
+            print(m)
+
+    # x = np.array([-10000,100,200,300,1000])
+    # y = np_softmax(x)
+    #
+    # for a, b in zip(x,y):
+    #     print(str(a).ljust(5), b)
+
+    # eval = stockfish.get_evaluation()["value"]
+    # print(tanh(2000/700))
+
+
+    # vs = []
+    # vs2 = []
+    # for m in ms:
+    #     v2 = m["Centipawn"]
+    #     vs2.append(v2)
+    #     vs.append(v2)
+    # vs.append(1000)
+    # vs2.append(1000)
+    # # vs = softmax(np.array(vs))
+    # vs = np_softmax(np.array(vs))
+    # print(len(vs))
+    # print()
+    # for i in range(30):
+    #     print(np.random.choice(len(vs), p=vs))
+    # for v,v2 in zip(vs,vs2):
+    #     print(v2, v)
+    # print(tanh(-100/777))
