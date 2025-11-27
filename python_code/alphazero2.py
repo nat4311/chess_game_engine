@@ -33,9 +33,9 @@ from stockfish_api import stockfish_move_to_U32_move
 self_play = True # if false play stockfish, set elo on next line
 stockfish_elo = 2000
 
-n_games = 2048
+n_games = 1024
 n_epochs = 5
-learning_rate = .000001
+learning_rate = .0001
 batch_size = 32
 policy_loss_coeff = 1
 value_loss_coeff = 1
@@ -681,13 +681,13 @@ def main(stockfish):
             print(f"loops complete: {n_loops}")
             print("----------------------------------------")
             print("TRAINING PARAMETERS")
-            print(f"{stockfish_elo = }")
-            print(f"{n_games = }")
-            print(f"{n_epochs = }")
-            print(f"{learning_rate = }")
-            print(f"{batch_size = }")
-            print(f"{policy_loss_coeff = }")
-            print(f"{value_loss_coeff = }")
+            print(f"        {stockfish_elo = }")
+            print(f"              {n_games = }")
+            print(f"             {n_epochs = }")
+            print(f"        {learning_rate = }")
+            print(f"           {batch_size = }")
+            print(f"    {policy_loss_coeff = }")
+            print(f"     {value_loss_coeff = }")
             print("----------------------------------------")
             trainloop(stockfish)
             n_loops += 1
@@ -696,7 +696,6 @@ def main(stockfish):
 
 if __name__ == "__main__":
     stockfish = Stockfish("/usr/games/stockfish")
-    stockfish_elo = 1000
     stockfish.set_elo_rating(stockfish_elo)
     stockfish.set_depth(10)
     main(stockfish)
