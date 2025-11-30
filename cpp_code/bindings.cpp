@@ -3,6 +3,24 @@
 #include <pybind11/numpy.h>
 namespace py = pybind11;
 
+int material_score(BoardState* board, int n_legal_moves) {
+
+    int wQ = bit_count(board->bitboards[WHITE_QUEEN]);
+    int wR = bit_count(board->bitboards[WHITE_ROOK]);
+    int wB = bit_count(board->bitboards[WHITE_BISHOP]);
+    int wN = bit_count(board->bitboards[WHITE_KNIGHT]);
+    int wP = bit_count(board->bitboards[WHITE_PAWN]);
+    int bQ = bit_count(board->bitboards[BLACK_QUEEN]);
+    int bR = bit_count(board->bitboards[BLACK_ROOK]);
+    int bB = bit_count(board->bitboards[BLACK_BISHOP]);
+    int bN = bit_count(board->bitboards[BLACK_KNIGHT]);
+    int bP = bit_count(board->bitboards[BLACK_PAWN]);
+
+    return 9*(wQ-bQ) + 5*(wR-bR) + 3*(wB+wN-bB-bN) + (wP-bP);
+
+}
+
+
 // 73 move types.
 // queen type move (8 dir x 7 dist = 56).
 // knight move (8 dir).
