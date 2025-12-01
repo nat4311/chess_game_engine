@@ -1,13 +1,13 @@
+import game_engine
 from utils import pretty_time_elapsed, pretty_datetime
 from constants import WHITE, BLACK, WHITE_WIN, BLACK_WIN, DRAW, NOTOVER
-import game_engine
 
 """################################################################################
                     Section: GameStateNode
 ################################################################################"""
 
 class GameStateNode:
-    def __init__(self, parent=None, board=None):
+    def __init__(self, parent=None, board=None, fen=None):
         self.parent = parent
         self.children = dict() # indexed by U32_move
         self.moves = game_engine.MoveGenerator()
@@ -15,8 +15,12 @@ class GameStateNode:
 
         if board is None:
             self.board = game_engine.BoardState()
+            b = game_engine.BoardState()
+            if fen is not None:
+                self.board.load(fen)
         else:
             self.board = board
+            assert fen is None
 
     def generate_children(self):
         if self.board.halfmove == 100:
@@ -46,9 +50,25 @@ class GameStateNode:
     def eval(self):
         assert self.state is not None
 
-        return self.board.material_score() + 
+        material_score = self.board.material_score()
+        dp_score = self.board.doubled_pawn_score()
+        mobility_score = len(self.children)
+        enemy_mobility_score = self.board.enemy_mobility_score()
+        print(f"{material_score = }")
+        print(f"{dp_score = }")
+        print(f"{mobility_score = }")
+        print(f"{enemy_mobility_score = }")
+
+        return self.board.material_score() + .5*self.board.doubled_pawn_score() + .1*(len(self.children) - self.board.enemy_mobility_score())
 
     def print(self):
         print("GameStateNode: \n")
         self.board.print()
-        print(f"prev_move: {self.prev_move}")
+
+
+if __name__ == "__main__":
+    fen = "rnbqkbnr/p2ppppp/p7/p7/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
+    game = GameStateNode(fen=fen)
+    game.print()
+    game.generate_children()
+    print(game.eval())

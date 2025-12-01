@@ -309,7 +309,7 @@ PYBIND11_MODULE(game_engine, m, py::mod_gil_not_used()) {
         .def("reset", &BoardState::reset, "reset the board state to start position")
         .def("load", &BoardState::load, "load a fen string", py::arg("fen_str"))
         .def("copy", &BoardState::copy, "copy by value of a board state")
-        .def("make", &BoardState::make, "make a move")
+        .def("make", &BoardState::make, py::arg(), py::arg("unmake_move_flag") = false, "make a move")
         .def("get_castle_K", &BoardState::get_castle_K, "returns True if white can kingside castle")
         .def("get_castle_Q", &BoardState::get_castle_Q, "returns True if white can queenside castle")
         .def("get_castle_k", &BoardState::get_castle_k, "returns true if black can kingside castle")

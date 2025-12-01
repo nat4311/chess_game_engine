@@ -139,17 +139,17 @@ def get_partial_model_input_test():
 
 
 def hand_eval_test():
-    fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+    fen = "rnbqkbnr/p2ppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
     board = game_engine.BoardState()
     board.load(fen)
     board.print()
 
-    m = board.material_score()
-    print(m)
-    p = board.doubled_pawn_score()
-    print(p)
-    e = board.enemy_mobility_score()
-    print(e)
+    mat = board.material_score()
+    print(f"{mat = }")
+    dp = board.doubled_pawn_score()
+    print(f"{dp = }")
+    emob = board.enemy_mobility_score()
+    print(f"{emob = }")
 
 def make_test():
     fen = "rnbqkbnr/pppppppp/8/8/7q/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
