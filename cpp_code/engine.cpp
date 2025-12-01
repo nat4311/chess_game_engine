@@ -223,7 +223,7 @@ struct BoardState {
 
     // attempt to make a pl move.
     // returns 0 if move is illegal due to checks, 1 if legal.
-    static bool make(BoardState* board, U32 move) {
+    static bool make(BoardState* board, U32 move, bool unmake_move_flag=false) {
         int source_sq = decode_move_source_sq(move);
         int target_sq = decode_move_target_sq(move);
         int moving_piece_type = decode_move_piece_type(move);
@@ -388,9 +388,23 @@ struct BoardState {
         }
         /////////////// check for checks after piece update
         if (sq_is_attacked(board, king_sq_after_move, !board->turn)) {
-            unmake(board, source_sq, target_sq, moving_piece_type, enpassant_capture, captured_piece_type, castle_kingside, castle_queenside, promotion_piece_type);
+            unmake(board, source_sq, target_sq, moving_piece_type, enpassant_capture, captured_piece_type, castle_kingside, castle_queenside, promotion, promotion_piece_type);
             return 0;
         }
+
+        ////////////// unmake the move immediately (ie: if only checking legality)
+        if (unmake_move_flag) {
+            // std::cout << "------------------------" << std::endl;
+            // std::cout << "before unmake" << std::endl;
+            // BoardState::print(board);
+            unmake(board, source_sq, target_sq, moving_piece_type, enpassant_capture, captured_piece_type, castle_kingside, castle_queenside, promotion, promotion_piece_type);
+            // std::cout << "after unmake" << std::endl;
+            // BoardState::print(board);
+            // std::cout << "------------------------" << std::endl;
+            // throw std::runtime_error("halting for debug");
+            return 1;
+        }
+
 
         /////////////// board state updates
         if (board->turn == BLACK) {
@@ -492,7 +506,7 @@ struct BoardState {
     }
     
     // assumes that only the pieces have been moved, board state variables have not updated yet (turn, ep, castling, halfmove, etc)
-    static void unmake(BoardState* board, int source_sq, int target_sq, int moved_piece_type, int enpassant_capture, int captured_piece_type, int castle_kingside, int castle_queenside, int promotion_piece_type) {
+    static void unmake(BoardState* board, int source_sq, int target_sq, int moved_piece_type, int enpassant_capture, int captured_piece_type, int castle_kingside, int castle_queenside, int promotion, int promotion_piece_type) {
         if (castle_kingside) {
             if (board->turn == WHITE) {
                 board->bitboards[WHITE_KING] ^= (E1|G1);
@@ -521,7 +535,7 @@ struct BoardState {
                 board->occupancies[BOTH] ^= (A8|C8|D8|E8);
             }
         }
-        else if (promotion_piece_type != NO_PIECE) {
+        else if (promotion) {
             U64 source_sq_bit = sq_bit[source_sq];
             U64 target_sq_bit = sq_bit[target_sq];
             U64 source_and_target_sq_bits = source_sq_bit | target_sq_bit;
@@ -538,6 +552,8 @@ struct BoardState {
             }
         }
         else { // not castling or promotion move
+            // std::cout << "found it!" << std::endl;
+            // std::cout << "source_sq: " << source_sq << " target_sq: " << target_sq << std::endl;
             U64 source_sq_bit = sq_bit[source_sq];
             U64 target_sq_bit = sq_bit[target_sq];
             U64 source_and_target_sq_bits = source_sq_bit | target_sq_bit;

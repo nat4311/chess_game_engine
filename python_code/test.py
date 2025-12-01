@@ -138,6 +138,19 @@ def get_partial_model_input_test():
         print(f"i={str(i).ljust(2)}   {str(sum(m[i,:,:].flatten())).ljust(5)}  {meanings[i].ljust(27)}")
 
 
+def hand_eval_test():
+    fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+    board = game_engine.BoardState()
+    board.load(fen)
+    board.print()
+
+    m = board.material_score()
+    print(m)
+    p = board.doubled_pawn_score()
+    print(p)
+    e = board.enemy_mobility_score()
+    print(e)
+
 def make_test():
     fen = "rnbqkbnr/pppppppp/8/8/7q/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
     board = game_engine.BoardState()
@@ -286,7 +299,9 @@ def test_alphazero_play_stockfish_loop():
 
 
 if __name__ == "__main__":
-    test_alphazero_play_stockfish_loop()
+
+    hand_eval_test()
+    # test_alphazero_play_stockfish_loop()
     # model_input_test()
     # make_test()
     # basic_board_test()

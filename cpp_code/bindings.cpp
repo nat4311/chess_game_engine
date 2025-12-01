@@ -3,7 +3,7 @@
 #include <pybind11/numpy.h>
 namespace py = pybind11;
 
-int material_score(BoardState* board, int n_legal_moves) {
+int material_score(BoardState* board) {
 
     int wQ = bit_count(board->bitboards[WHITE_QUEEN]);
     int wR = bit_count(board->bitboards[WHITE_ROOK]);
@@ -18,6 +18,51 @@ int material_score(BoardState* board, int n_legal_moves) {
 
     return 9*(wQ-bQ) + 5*(wR-bR) + 3*(wB+wN-bB-bN) + (wP-bP);
 
+}
+
+int enemy_mobility_score(BoardState* board) {
+    BoardState new_board = BoardState::copy(board);
+    if (new_board.turn == WHITE) {
+        new_board.turn = BLACK;
+    }
+    else {
+        new_board.turn = WHITE;
+    }
+
+    MoveGenerator moves;
+    int legal_moves = 0;
+    moves.generate_pl_moves(&moves, &new_board);
+    for (int i = 0; i<moves.pl_moves_found; i++) {
+        U32 move = moves.pl_move_list[i];
+        if (BoardState::make(&new_board, move, true)) {
+            legal_moves++;
+        }
+    }
+
+    return legal_moves;
+}
+
+// black dps - white dps
+int doubled_pawn_score(BoardState* board) {
+    int aW = bit_count(board->bitboards[WHITE_PAWN] & a_file); if (aW) {aW--;}
+    int bW = bit_count(board->bitboards[WHITE_PAWN] & b_file); if (bW) {bW--;}
+    int cW = bit_count(board->bitboards[WHITE_PAWN] & c_file); if (cW) {cW--;}
+    int dW = bit_count(board->bitboards[WHITE_PAWN] & d_file); if (dW) {dW--;}
+    int eW = bit_count(board->bitboards[WHITE_PAWN] & e_file); if (eW) {eW--;}
+    int fW = bit_count(board->bitboards[WHITE_PAWN] & f_file); if (fW) {fW--;}
+    int gW = bit_count(board->bitboards[WHITE_PAWN] & g_file); if (gW) {gW--;}
+    int hW = bit_count(board->bitboards[WHITE_PAWN] & h_file); if (hW) {hW--;}
+
+    int aB = bit_count(board->bitboards[BLACK_PAWN] & a_file); if (aB) {aB--;}
+    int bB = bit_count(board->bitboards[BLACK_PAWN] & b_file); if (bB) {bB--;}
+    int cB = bit_count(board->bitboards[BLACK_PAWN] & c_file); if (cB) {cB--;}
+    int dB = bit_count(board->bitboards[BLACK_PAWN] & d_file); if (dB) {dB--;}
+    int eB = bit_count(board->bitboards[BLACK_PAWN] & e_file); if (eB) {eB--;}
+    int fB = bit_count(board->bitboards[BLACK_PAWN] & f_file); if (fB) {fB--;}
+    int gB = bit_count(board->bitboards[BLACK_PAWN] & g_file); if (gB) {gB--;}
+    int hB = bit_count(board->bitboards[BLACK_PAWN] & h_file); if (hB) {hB--;}
+
+    return -aW-bW-cW-dW-eW-fW-gW-hW + aB+bB+cB+dB+eB+fB+gB+hB;
 }
 
 
@@ -273,6 +318,9 @@ PYBIND11_MODULE(game_engine, m, py::mod_gil_not_used()) {
         .def("get_bitboards", &get_bitboards, "get all 12 piece bitboards as 12x64 bool array")
         .def("get_bitboards_U64", &get_bitboards_U64, "get all 12 piece bitboards as 12 len U64 array")
         .def("get_partial_model_input", &get_partial_model_input, "get partial model input as 21x8x8 U8 array")
+        .def("material_score", &material_score, "material score white minus black")
+        .def("doubled_pawn_score", &doubled_pawn_score, "doubled pawn count black minus white")
+        .def("enemy_mobility_score", &enemy_mobility_score, "enemy (if turn switched immediately) legal move count")
         .def_readonly("halfmove", &BoardState::halfmove)
         .def_readonly("turn_no", &BoardState::turn_no)
         .def_readonly("turn", &BoardState::turn)

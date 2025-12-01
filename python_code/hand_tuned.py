@@ -7,25 +7,16 @@ import game_engine
 ################################################################################"""
 
 class GameStateNode:
-    def __init__(self, parent=None, board=None, prev_move=0, generate_children=False):
+    def __init__(self, parent=None, board=None):
         self.parent = parent
-        self.children = dict() # indexed by (73, 64) move
-        self.prev_move = prev_move
+        self.children = dict() # indexed by U32_move
         self.moves = game_engine.MoveGenerator()
-        self.prior = 0
-        self.value_sum = 0
-        self.n_visits = 0
-        self.is_mcts_root = False
+        self.state = None
 
-        if parent is None:
+        if board is None:
             self.board = game_engine.BoardState()
         else:
             self.board = board
-            self._full_model_input = None
-        if generate_children:
-            self.generate_children()
-        else:
-            self.state = None
 
     def generate_children(self):
         if self.board.halfmove == 100:
@@ -36,9 +27,8 @@ class GameStateNode:
         for U32_move in pl_move_list:
             new_board = self.board.copy()
             if new_board.make(U32_move):
-                policy_move = get_policy_move(U32_move)
-                new_node = GameStateNode(self, new_board, U32_move)
-                self.children[policy_move] = new_node
+                new_node = GameStateNode(parent=self, board=new_board)
+                self.children[U32_move] = new_node
 
         if len(self.children) == 0:
             if self.board.king_is_attacked():
@@ -52,29 +42,11 @@ class GameStateNode:
             self.state = NOTOVER
 
         assert self.state is not None
-        return pl_move_list
 
-    def print_pl_moves(self):
-        self.moves.generate_pl_moves(self.board)
-        self.moves.print_pl_moves()
+    def eval(self):
+        assert self.state is not None
 
-    def new_node(self, move):
-        new_board = self.board.copy()
-        if new_board.make(move):
-            return GameStateNode(self, new_board, move)
-        else:
-            return None
-
-    def get_partial_model_input(self):
-        return torch.Tensor(self.board.get_partial_model_input()).view(1,-1,8,8)
-    
-    def get_full_model_input(self):
-        """
-        returns input_datum as torch.Tensor(1x119x8x8)
-        """
-        if self._full_model_input is None:
-            self._full_model_input = torch.cat((self.parent._full_model_input[:, 14:-7, :, :], self.get_partial_model_input()), dim=1).detach()
-        return self._full_model_input
+        return self.board.material_score() + 
 
     def print(self):
         print("GameStateNode: \n")

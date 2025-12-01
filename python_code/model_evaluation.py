@@ -209,11 +209,11 @@ def main():
         if n%10 == 9:
             os.system("clear")
 
-        info_str = f"alphazero_elo = {round(elo_records_dict["alphazero_elo"])}"
-        score = alphazero_play_stockfish(info_str=info_str, printing=True)
+        # info_str = f"alphazero_elo = {round(elo_records_dict["alphazero_elo"])}"
+        # score = alphazero_play_stockfish(info_str=info_str, printing=True)
 
-        # info_str = f"alphazero2_elo = {round(elo_records_dict["alphazero2_elo"])}"
-        # score = alphazero2_play_stockfish(info_str=info_str, printing=True)
+        info_str = f"alphazero2_elo = {round(elo_records_dict["alphazero2_elo"])}"
+        score = alphazero2_play_stockfish(info_str=info_str, printing=True)
 
 if __name__ == "__main__":
     main()
