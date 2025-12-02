@@ -249,58 +249,28 @@ class GameStateNode:
                     break
             return best_child, min_eval
 
-def debug_move():
-    source_sq = a7
-    target_sq = a5
-    piece_type = BLACK_PAWN
-    promotion_piece_type = WHITE_PAWN
-    promotion = 0
-    double_pawn_push = 1
-    capture = 0
-    enpassant_capture = 0
-    castle_kingside = 0
-    castle_queenside = 0
-    move = game_engine.encode_move(
-        source_sq,
-        target_sq,
-        piece_type,
-        promotion_piece_type,
-        promotion,
-        double_pawn_push,
-        capture,
-        enpassant_capture,
-        castle_kingside,
-        castle_queenside
-    )
-    return move
-
 if __name__ == "__main__":
-    # fen = "kbK5/pp6/1P6/8/8/8/8/R7 w - - 0 1"
-    # fen = "8/8/8/2P3R1/5B2/2rP1p2/p1P1PP2/RnQ1K2k w Q - 5 3"
-
-
-    fen = "rnbqkbnr/p1pppppp/8/1P6/8/8/1PPPPPPP/RNBQKBNR b KQkq - 0 3"
+    # fen = "rnbqkbnr/p1pppppp/8/1P6/8/8/1PPPPPPP/RNBQKBNR b KQkq - 0 3"
+    fen = "r1bk2nr/ppp5/2pb2Q1/5P2/3q4/8/PPPP1PP1/RNB2RK1 b kq - 0 1"
     game = GameStateNode(fen=fen)
     # game = GameStateNode()
-    game.print()
-    # move = debug_move()
-    # game.board.make(move)
+
     # game.print()
     # t0 = time.time()
-    child = game.minimax(5)
+    # child = game.minimax(6)
     # print(pretty_time_elapsed(t0, time.time()))
 
-    # while True:
-    #     game.print()
-    #     if game.state in (DRAW, WHITE_WIN, BLACK_WIN):
-    #         if game.state == DRAW:
-    #             print("draw")
-    #         if game.state == WHITE_WIN:
-    #             print("white wins")
-    #         if game.state == BLACK_WIN:
-    #             print("black wins")
-    #         break
-    #
-    #     best_child = game.minimax(5)
-    #     game = best_child
-    #     time.sleep(1)
+    while True:
+        game.print()
+        if game.state in (DRAW, WHITE_WIN, BLACK_WIN):
+            if game.state == DRAW:
+                print("draw")
+            if game.state == WHITE_WIN:
+                print("white wins")
+            if game.state == BLACK_WIN:
+                print("black wins")
+            break
+
+        best_child = game.minimax(5)
+        game = best_child
+        time.sleep(1)
