@@ -320,6 +320,10 @@ struct BoardState {
                         captured_piece_type = BLACK_QUEEN;
                         goto CAPTURED_PIECE_FOUND;
                     }
+                    if (board->bitboards[BLACK_KING] & target_sq_bit) {
+                        captured_piece_type = BLACK_KING;
+                        goto CAPTURED_PIECE_FOUND;
+                    }
                     BoardState::print(board);
                     print_move(move, 1);
                     throw std::runtime_error("move has capture flag set but no captured_piece was found\n");
@@ -343,6 +347,10 @@ struct BoardState {
                     }
                     if (board->bitboards[WHITE_QUEEN] & target_sq_bit) {
                         captured_piece_type = WHITE_QUEEN;
+                        goto CAPTURED_PIECE_FOUND;
+                    }
+                    if (board->bitboards[WHITE_KING] & target_sq_bit) {
+                        captured_piece_type = WHITE_KING;
                         goto CAPTURED_PIECE_FOUND;
                     }
                     BoardState::print(board);
