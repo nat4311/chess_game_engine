@@ -4,18 +4,24 @@ from math import inf
 from utils import pretty_time_elapsed, pretty_datetime
 from constants import *
 
-"""################################################################################
-                    Section: GameStateNode
-################################################################################"""
+move_generator = game_engine.MoveGenerator()
 
 class GameStateNode0:
     """
     saves children as part of each node, uses way too much RAM
+
+    minimax timings from start position, no move ordering
+    1 3.437511622905731e-05
+    2 0.009956791065633297
+    3 0.022661556489765644
+    4 1.4706027386710048
+    5 1.5414285976439714
+    6 dnf (RAM overflow)
+
     """
     def __init__(self, parent=None, board=None, prev_move = None, fen=None):
         self.parent = parent
         self.children = dict() # indexed by U32_move
-        self.moves = game_engine.MoveGenerator()
         self.state = None
         self.prev_move = prev_move
 
@@ -33,11 +39,11 @@ class GameStateNode0:
             self.state = DRAW
             return
 
-        pl_move_list = self.moves.get_pl_move_list(self.board)
+        pl_move_list = move_generator.get_pl_move_list(self.board)
         for U32_move in pl_move_list:
             new_board = self.board.copy()
             if new_board.make(U32_move):
-                new_node = GameStateNode(parent=self, board=new_board, prev_move=U32_move)
+                new_node = GameStateNode0(parent=self, board=new_board, prev_move=U32_move)
                 self.children[U32_move] = new_node
 
         if len(self.children) == 0:
@@ -76,7 +82,7 @@ class GameStateNode0:
         return self.board.material_score() + .5*self.board.doubled_pawn_score() + .1*(len(self.children) - self.board.enemy_mobility_score())
 
     def print(self):
-        print("GameStateNode: \n")
+        print("GameStateNode0: \n")
         self.board.print()
 
 
@@ -121,12 +127,24 @@ class GameStateNode0:
                     break
             return best_child, min_eval
 
-class GameStateNode:
-    def __init__(self, board=None, prev_move = None, fen=None, prev_board=None):
-        self.moves = game_engine.MoveGenerator()
+
+class GameStateNode1:
+    """
+    dont store children dict
+
+    minimax timings from start pos, no move ordering
+    1 0.0006825476884841919
+    2 0.007834275253117085
+    3 0.017839105799794197
+    4 0.764815291389823
+    5 0.8085004044696689
+    6 162.43249557446688
+    7 69.25481910258532
+
+    """
+    def __init__(self, board=None, prev_move = None, fen=None):
         self.state = None
         self.prev_move = prev_move
-        self.prev_board = prev_board
         self.legal_moves = None
 
         if board is None:
@@ -151,7 +169,7 @@ class GameStateNode:
         legal_moves = 0
         board_backup = self.board.copy()
         last_move = None
-        for U32_move in self.moves.get_pl_move_list(self.board):
+        for U32_move in move_generator.get_pl_move_list(self.board):
             if self.board.get_bitboards_U64()[BLACK_PAWN] != board_backup.get_bitboards_U64()[BLACK_PAWN]:
                 print("last move")
                 game_engine.print_move(last_move, True)
@@ -201,7 +219,7 @@ class GameStateNode:
         return self.board.material_score() + .5*self.board.doubled_pawn_score() + .1*(mobility_score - self.board.enemy_mobility_score())
 
     def print(self):
-        print("GameStateNode: \n")
+        print("GameStateNode1: \n")
         self.board.print()
 
 
@@ -219,11 +237,11 @@ class GameStateNode:
         if maximizing_player:
             max_eval = -inf
             best_child = None
-            for U32_move in node.moves.get_pl_move_list(node.board):
+            for U32_move in move_generator.get_pl_move_list(node.board):
                 new_board = node.board.copy()
                 if not new_board.make(U32_move):
                     continue
-                child = GameStateNode(board=new_board, prev_move=U32_move, prev_board=node.board)
+                child = GameStateNode1(board=new_board, prev_move=U32_move)
                 _, eval_child = self._minimax(child, depth - 1, alpha, beta, False)
                 if eval_child > max_eval:
                     max_eval = eval_child
@@ -235,11 +253,11 @@ class GameStateNode:
         else:
             min_eval = inf
             best_child = None
-            for U32_move in node.moves.get_pl_move_list(node.board):
+            for U32_move in move_generator.get_pl_move_list(node.board):
                 new_board = node.board.copy()
                 if not new_board.make(U32_move):
                     continue
-                child = GameStateNode(board=new_board, prev_move=U32_move, prev_board=node.board)
+                child = GameStateNode1(board=new_board, prev_move=U32_move)
                 _, eval_child = self._minimax(child, depth - 1, alpha, beta, True)
                 if eval_child < min_eval:
                     min_eval = eval_child
@@ -250,27 +268,29 @@ class GameStateNode:
             return best_child, min_eval
 
 if __name__ == "__main__":
-    # fen = "rnbqkbnr/p1pppppp/8/1P6/8/8/1PPPPPPP/RNBQKBNR b KQkq - 0 3"
-    fen = "r1bk2nr/ppp5/2pb2Q1/5P2/3q4/8/PPPP1PP1/RNB2RK1 b kq - 0 1"
-    game = GameStateNode(fen=fen)
-    # game = GameStateNode()
+    import timeit
+    game = GameStateNode1()
+    game.minimax(1)
 
-    # game.print()
-    # t0 = time.time()
-    # child = game.minimax(6)
-    # print(pretty_time_elapsed(t0, time.time()))
+    for i in range(1,8):
+        f = lambda: game.minimax(i)
+        t = timeit.timeit(f, number=1)
+        print(i, t)
 
-    while True:
-        game.print()
-        if game.state in (DRAW, WHITE_WIN, BLACK_WIN):
-            if game.state == DRAW:
-                print("draw")
-            if game.state == WHITE_WIN:
-                print("white wins")
-            if game.state == BLACK_WIN:
-                print("black wins")
-            break
-
-        best_child = game.minimax(5)
-        game = best_child
-        time.sleep(1)
+    # while True:
+    #     game.print()
+    #     if game.state in (DRAW, WHITE_WIN, BLACK_WIN):
+    #         if game.state == DRAW:
+    #             print("draw")
+    #         if game.state == WHITE_WIN:
+    #             print("white wins")
+    #         if game.state == BLACK_WIN:
+    #             print("black wins")
+    #         break
+    #
+    #     print("----------------------")
+    #     t0 = time.time()
+    #     best_child = game.minimax(5)
+    #     print("time to choose move:", pretty_time_elapsed(t0, time.time()))
+    #     game = best_child
+    #     time.sleep(1)

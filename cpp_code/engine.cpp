@@ -1390,6 +1390,7 @@ void init_engine() {
     std::cout << "    attacks initialized in " << delta_timestamp_ms(t0, t1) << " ms\n\n";
 }
 
+#ifndef OVERRIDE_ENGINE_CPP_MAIN 
 int main() {
     init_engine();
     // unit_tests();
@@ -1404,3 +1405,4 @@ int main() {
 
     return 0;
 }
+#endif
