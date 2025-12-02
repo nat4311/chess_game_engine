@@ -404,14 +404,7 @@ struct BoardState {
 
         ////////////// unmake the move immediately (ie: if only checking legality)
         if (unmake_move_flag) {
-            // std::cout << "------------------------" << std::endl;
-            std::cout << "before unmake" << std::endl;
-            BoardState::print(board);
             unmake(board, source_sq, target_sq, moving_piece_type, enpassant_capture, captured_piece_type, castle_kingside, castle_queenside, promotion, promotion_piece_type);
-            std::cout << "after unmake" << std::endl;
-            BoardState::print(board);
-            // std::cout << "------------------------" << std::endl;
-            // throw std::runtime_error("halting for debug");
             return 1;
         }
 
@@ -574,9 +567,7 @@ struct BoardState {
                 U64 capture_sq_bit = target_sq_bit;
                 if (board->turn == WHITE) {
                     assert (captured_piece_type == BLACK_PAWN);
-                    std::cout << "WTF\n";
                     capture_sq_bit <<= 8;
-                    printf("%llu\n", capture_sq_bit);
                     board->occupancies[BOTH] ^= source_sq_bit;
                     board->bitboards[BLACK_PAWN] ^= capture_sq_bit;
                     board->occupancies[BLACK] ^= capture_sq_bit;
