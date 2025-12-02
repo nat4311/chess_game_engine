@@ -8,12 +8,24 @@ class GameStateNode0:
     """
     saves children as part of each node, uses way too much RAM
 
+    --------------------------------------------------------------------------------
+
+    single thread timings
+
     minimax timings from start position, no move ordering
     1 3.437511622905731e-05
     2 0.009956791065633297
     3 0.022661556489765644
     4 1.4706027386710048
     5 1.5414285976439714
+    6 dnf (RAM overflow)
+
+    after moving count_legal_moves and legal move generation (for minimax) to c++
+    1 3.6990270018577576e-05
+    2 0.010196661576628685
+    3 0.02238989993929863
+    4 1.4012887263670564
+    5 1.4680421631783247
     6 dnf (RAM overflow)
 
     """
@@ -130,6 +142,10 @@ class GameStateNode1:
     """
     dont store children dict
 
+    --------------------------------------------------------------------------------
+
+    single thread timings
+
     minimax timings from start pos, no move ordering
     1 0.0006825476884841919
     2 0.007834275253117085
@@ -138,6 +154,15 @@ class GameStateNode1:
     5 0.8085004044696689
     6 162.43249557446688
     7 69.25481910258532
+
+    after moving count_legal_moves and legal move generation (for minimax) to c++
+    1 8.558016270399094e-05
+    2 0.0007701413705945015
+    3 0.0020072944462299347
+    4 0.07913886103779078
+    5 0.08957733120769262
+    6 15.086321806535125
+    7 7.631460613571107
 
     """
     def __init__(self, board=None, prev_move = None, fen=None):
@@ -235,7 +260,7 @@ if __name__ == "__main__":
     game = GameStateNode1()
     game.minimax(1)
 
-    for i in range(1,8):
+    for i in range(1,9):
         f = lambda: game.minimax(i)
         t = timeit.timeit(f, number=1)
         print(i, t)
