@@ -150,31 +150,19 @@ class GameStateNode:
 
         legal_moves = 0
         board_backup = self.board.copy()
+        last_move = None
         for U32_move in self.moves.get_pl_move_list(self.board):
             if self.board.get_bitboards_U64()[BLACK_PAWN] != board_backup.get_bitboards_U64()[BLACK_PAWN]:
+                print("last move")
+                game_engine.print_move(last_move, True)
                 print("backup board")
                 board_backup.print()
                 print("actual board")
                 self.board.print()
                 raise Exception()
-            try:
-                if self.board.make(U32_move, True):
-                    legal_moves += 1
-                print("successfully tried")
-                game_engine.print_move(U32_move, True)
-            except:
-                print("----------------------")
-                print("ERROR: make failed")
-                print("prev board")
-                self.prev_board.print()
-                print("previous move")
-                game_engine.print_move(self.prev_move, True)
-                print("what curr board does look like")
-                self.board.print()
-                print("what curr board should look like")
-                self.prev_board.make(self.prev_move)
-                self.prev_board.print()
-                raise Exception("make failed")
+            if self.board.make(U32_move, True):
+                legal_moves += 1
+            last_move = U32_move
 
         if legal_moves == 0:
             if self.board.king_is_attacked():
