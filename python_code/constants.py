@@ -1,9 +1,10 @@
 # enums
 WHITE = 0
 BLACK = 1
-WHITE_WIN = 1
+
 BLACK_WIN = -1
 DRAW = 0
+WHITE_WIN = 1
 NOTOVER = 2
 
 a8 = 0;  b8 = 1;  c8 = 2;  d8 = 3;  e8 = 4;  f8 = 5;  g8 = 6;  h8 = 7;
@@ -29,6 +30,9 @@ BLACK_ROOK   = 9
 BLACK_QUEEN  = 10
 BLACK_KING   = 11
 NO_PIECE     = 12
+
+
+
 
 piece_chars = ["P", "N", "B", "R", "Q", "K", "p", "n", "b", "r", "q", "k"]
 sq_strs = [

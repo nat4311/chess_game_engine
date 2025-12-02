@@ -169,7 +169,7 @@ class GameStateNode1:
         legal_moves = 0
         board_backup = self.board.copy()
         last_move = None
-        for U32_move in move_generator.get_pl_move_list(self.board):
+        for U32_move in self.board.get_pl_move_list():
             if self.board.get_bitboards_U64()[BLACK_PAWN] != board_backup.get_bitboards_U64()[BLACK_PAWN]:
                 print("last move")
                 game_engine.print_move(last_move, True)

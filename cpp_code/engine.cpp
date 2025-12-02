@@ -48,6 +48,9 @@ struct BoardState {
     pl_moves pl;
     l_moves l;
 
+    // (WHITE_WIN, BLACK_WIN, DRAW, NOTOVER)
+    int state = NOTOVER;
+
     BoardState() {
         reset(this);
     }
@@ -606,19 +609,6 @@ struct BoardState {
             }
         }
     }
-
-    static bool get_castle_K(BoardState* board) {
-        return board->castling_rights & WHITE_CASTLE_KINGSIDE;
-    }
-    static bool get_castle_Q(BoardState* board) {
-        return board->castling_rights & WHITE_CASTLE_QUEENSIDE;
-    }
-    static bool get_castle_k(BoardState* board) {
-        return board->castling_rights & BLACK_CASTLE_KINGSIDE;
-    }
-    static bool get_castle_q(BoardState* board) {
-        return board->castling_rights & BLACK_CASTLE_QUEENSIDE;
-    }
 };
 
 /*////////////////////////////////////////////////////////////////////////////////
@@ -632,7 +622,13 @@ namespace MoveGenerator{
     // max index pl_moves_found.
     static void generate_pl_moves(BoardState* board) {
         if (board->pl.generated) { return;}
+        board->pl.generated = true;
         board->pl.moves_found = 0;
+        if (board->halfmove >= 100) {
+            board->state = DRAW;
+            return;
+        }
+
         int source_sq;
         int target_sq;
         U64 source_sq_bit;
@@ -647,7 +643,7 @@ namespace MoveGenerator{
                 pop_lsb(pawns);
                 source_sq_bit = sq_bit[source_sq];
                 U64 pawn_attacks = get_pawn_attacks(WHITE, source_sq);
-                
+
                 // pawn move from start square
                 if (source_sq_bit & rank_2) {
                     if (!(source_sq_bit>>8 & pawn_blockers)) { // single push
@@ -788,7 +784,7 @@ namespace MoveGenerator{
                     board->pl.move_list[board->pl.moves_found++] = encode_move(source_sq, target_sq, WHITE_QUEEN, 0, 0, 0, capture, 0, 0, 0);
                 }
             }
-            
+
             // king moves
             source_sq = lsb_scan(board->bitboards[WHITE_KING]);
             source_sq_bit = sq_bit[source_sq];
@@ -825,7 +821,7 @@ namespace MoveGenerator{
                 pop_lsb(pawns);
                 source_sq_bit = sq_bit[source_sq];
                 U64 pawn_attacks = get_pawn_attacks(BLACK, source_sq);
-                
+
                 // pawn move from start square
                 if (source_sq_bit & rank_7) {
                     if (!(source_sq_bit<<8 & pawn_blockers)) { // single push
@@ -964,7 +960,7 @@ namespace MoveGenerator{
                     board->pl.move_list[board->pl.moves_found++] = encode_move(source_sq, target_sq, BLACK_QUEEN, 0, 0, 0, capture, 0, 0, 0);
                 }
             }
-            
+
             // king moves
             source_sq = lsb_scan(board->bitboards[BLACK_KING]);
             source_sq_bit = sq_bit[source_sq];
@@ -993,18 +989,36 @@ namespace MoveGenerator{
         }
 
         assert (board->pl.moves_found <= max_move_index);
-        board->pl.generated = true;
     }
 
+    // also sets the board->state
     static void generate_l_moves(BoardState* board) {
         if (board->l.generated) { return; }
-        generate_pl_moves(board);
+        board->l.generated = true;
         board->l.moves_found = 0;
+        generate_pl_moves(board);
         for (int i = 0; i<board->pl.moves_found; i++) {
             U32 move = board->pl.move_list[i];
             if (BoardState::make(board, move, true)) {
                 board->l.moves_found++;
             }
+        }
+        
+        if (board->l.moves_found == 0) {
+            if (BoardState::king_is_attacked(board)) {
+                if (board->turn == WHITE) {
+                    board->state = BLACK_WIN;
+                }
+                else {
+                    board->state = WHITE_WIN;
+                }
+            }
+            else {
+                board->state = DRAW;
+            }
+        }
+        else {
+            board->state = NOTOVER;
         }
     }
 

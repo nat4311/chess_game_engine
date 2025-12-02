@@ -57,6 +57,26 @@ int doubled_pawn_score(BoardState* board) {
     return -aW-bW-cW-dW-eW-fW-gW-hW + aB+bB+cB+dB+eB+fB+gB+hB;
 }
 
+bool get_castle_K(BoardState* board) {
+    return board->castling_rights & WHITE_CASTLE_KINGSIDE;
+}
+bool get_castle_Q(BoardState* board) {
+    return board->castling_rights & WHITE_CASTLE_QUEENSIDE;
+}
+bool get_castle_k(BoardState* board) {
+    return board->castling_rights & BLACK_CASTLE_KINGSIDE;
+}
+bool get_castle_q(BoardState* board) {
+    return board->castling_rights & BLACK_CASTLE_QUEENSIDE;
+}
+int get_l_move_count(BoardState* board) {
+    MoveGenerator::generate_l_moves(board);
+    return board->l.moves_found;
+}
+int get_state(BoardState* board) {
+    assert(board->l.generated);
+    return board->state;
+}
 
 // 73 move types.
 // queen type move (8 dir x 7 dist = 56).
@@ -309,26 +329,31 @@ PYBIND11_MODULE(game_engine, m, py::mod_gil_not_used()) {
         .def("load", &BoardState::load, "load a fen string", py::arg("fen_str"))
         .def("copy", &BoardState::copy, "copy by value of a board state")
         .def("make", &BoardState::make, py::arg(), py::arg("unmake_move_flag") = false, "make a move")
-        .def("get_castle_K", &BoardState::get_castle_K, "returns True if white can kingside castle")
-        .def("get_castle_Q", &BoardState::get_castle_Q, "returns True if white can queenside castle")
-        .def("get_castle_k", &BoardState::get_castle_k, "returns true if black can kingside castle")
-        .def("get_castle_q", &BoardState::get_castle_q, "returns True if black can queenside castle")
         .def("king_is_attacked", &BoardState::king_is_attacked, "returns True if king is in check")
+
+        .def_readonly("halfmove", &BoardState::halfmove)
+        .def_readonly("turn_no", &BoardState::turn_no)
+        .def_readonly("turn", &BoardState::turn)
+        .def_readonly("enpassant_sq", &BoardState::enpassant_sq)
+
+        .def("get_state", &get_state, "returns WHITE_WIN, DRAW, or BLACK_WIN")
+        .def("get_l_move_count", &get_l_move_count, "returns number of legal moves")
+        .def("get_castle_K", &get_castle_K, "returns True if white can kingside castle")
+        .def("get_castle_Q", &get_castle_Q, "returns True if white can queenside castle")
+        .def("get_castle_k", &get_castle_k, "returns true if black can kingside castle")
+        .def("get_castle_q", &get_castle_q, "returns True if black can queenside castle")
         .def("get_bitboards", &get_bitboards, "get all 12 piece bitboards as 12x64 bool array")
         .def("get_bitboards_U64", &get_bitboards_U64, "get all 12 piece bitboards as 12 len U64 array")
         .def("get_partial_model_input", &get_partial_model_input, "get partial model input as 21x8x8 U8 array")
         .def("material_score", &material_score, "material score white minus black")
         .def("doubled_pawn_score", &doubled_pawn_score, "doubled pawn count black minus white")
         .def("enemy_mobility_score", &enemy_mobility_score, "enemy (if turn switched immediately) legal move count")
-        .def("generate_pl_moves", &MoveGenerator::generate_pl_moves, "generate pseudolegal moves -> retrieve the moves with this.get_pl_move_list")
+        .def("generate_pl_moves", &MoveGenerator::generate_pl_moves, "generate pseudolegal moves")
+        .def("generate_l_moves", &MoveGenerator::generate_l_moves, "generate legal moves")
         .def("get_pl_move_list", &get_pl_move_list, "array of pseudo legal moves")
         .def("get_l_move_list", &get_l_move_list, "array of legal moves")
         .def("print_pl_moves", &MoveGenerator::print_pl_moves, py::arg("piece_type") = 12, "print the pseudo legal moves for a specific piece")
         .def("print_l_moves", &MoveGenerator::print_l_moves, py::arg("piece_type") = 12, "print the legal moves for a specific piece")
-        .def_readonly("halfmove", &BoardState::halfmove)
-        .def_readonly("turn_no", &BoardState::turn_no)
-        .def_readonly("turn", &BoardState::turn)
-        .def_readonly("enpassant_sq", &BoardState::enpassant_sq)
         .def("__repr__", [](const BoardState &a){ return "<BoardState object>"; } );
 
     init_engine();
