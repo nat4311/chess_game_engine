@@ -159,7 +159,8 @@ class GameStateNode:
                 board_backup.print()
                 print("actual board")
                 self.board.print()
-                raise Exception()
+                raise Exception("backup board does not match")
+            # self.board.print()
             if self.board.make(U32_move, True):
                 legal_moves += 1
             last_move = U32_move
@@ -286,7 +287,7 @@ if __name__ == "__main__":
     # game.board.make(move)
     # game.print()
     # t0 = time.time()
-    child = game.minimax(4)
+    child = game.minimax(5)
     # print(pretty_time_elapsed(t0, time.time()))
 
     # while True:

@@ -405,11 +405,11 @@ struct BoardState {
         ////////////// unmake the move immediately (ie: if only checking legality)
         if (unmake_move_flag) {
             // std::cout << "------------------------" << std::endl;
-            // std::cout << "before unmake" << std::endl;
-            // BoardState::print(board);
+            std::cout << "before unmake" << std::endl;
+            BoardState::print(board);
             unmake(board, source_sq, target_sq, moving_piece_type, enpassant_capture, captured_piece_type, castle_kingside, castle_queenside, promotion, promotion_piece_type);
-            // std::cout << "after unmake" << std::endl;
-            // BoardState::print(board);
+            std::cout << "after unmake" << std::endl;
+            BoardState::print(board);
             // std::cout << "------------------------" << std::endl;
             // throw std::runtime_error("halting for debug");
             return 1;
@@ -571,10 +571,12 @@ struct BoardState {
                 board->occupancies[BOTH] ^= source_and_target_sq_bits;
             }
             else if (enpassant_capture) {
-                int capture_sq_bit = target_sq_bit;
+                U64 capture_sq_bit = target_sq_bit;
                 if (board->turn == WHITE) {
                     assert (captured_piece_type == BLACK_PAWN);
+                    std::cout << "WTF\n";
                     capture_sq_bit <<= 8;
+                    printf("%llu\n", capture_sq_bit);
                     board->occupancies[BOTH] ^= source_sq_bit;
                     board->bitboards[BLACK_PAWN] ^= capture_sq_bit;
                     board->occupancies[BLACK] ^= capture_sq_bit;
@@ -1400,39 +1402,14 @@ void init_engine() {
 int main() {
     init_engine();
     // unit_tests();
-    int source_sq = a7;
-    int target_sq = a5;
-    int piece_type = BLACK_PAWN;
-    int promotion_piece_type = WHITE_PAWN;
-    int promotion = 0;
-    int double_pawn_push = 1;
-    int capture = 0;
-    int enpassant_capture = 0;
-    int castle_kingside = 0;
-    int castle_queenside = 0;
-    U32 move = encode_move(
-        source_sq,
-        target_sq,
-        piece_type,
-        promotion_piece_type,
-        promotion,
-        double_pawn_push,
-        capture,
-        enpassant_capture,
-        castle_kingside,
-        castle_queenside
-    );
-    char fen[] = "rnbqkbnr/p1pppppp/8/1P6/8/8/1PPPPPPP/RNBQKBNR b KQkq - 0 3\n";
+    char fen[] = "rnbqkbnr/p3ppp1/2pp4/1P4Pp/8/8/1PPPPP1P/RNBQKBNR w KQkq - 0 3\n";
+    U32 move = encode_move(g5, h6, WHITE_PAWN, WHITE_PAWN, 0, 0, 1, 1, 0, 0); 
 
     BoardState board;
     board.load(&board, fen);
     // BoardState::print(&board);
-    BoardState::make(&board, move);
+    BoardState::make(&board, move, true);
     // BoardState::print(&board);
-    U32 move2 = encode_move(b5, a6, WHITE_PAWN, WHITE_PAWN, 0, 0, 1, 1, 0, 0); 
-    BoardState::print(&board);
-    board.make(&board, move2, true);
-    BoardState::print(&board);
 
     return 0;
 }
