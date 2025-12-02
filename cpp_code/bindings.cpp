@@ -31,7 +31,7 @@ int enemy_mobility_score(BoardState* board) {
     }
 
     MoveGenerator::generate_l_moves(&new_board);
-    return legal_moves;
+    return new_board.l.moves_found;
 }
 
 // black dps - white dps
@@ -221,11 +221,15 @@ int get_move_promotion_piece_type(U32 move) {
 }
 
 py::array_t<U32> get_pl_move_list(BoardState* board) {
-    if (!board->pl.generated) {
-        MoveGenerator::generate_pl_moves(board);
-    }
+    MoveGenerator::generate_pl_moves(board);
     size_t size = board->pl.moves_found;
     const U32* data_ptr = board->pl.move_list;
+    return py::array_t<U32>(size, data_ptr);
+}
+py::array_t<U32> get_l_move_list(BoardState* board) {
+    MoveGenerator::generate_l_moves(board);
+    size_t size = board->l.moves_found;
+    const U32* data_ptr = board->l.move_list;
     return py::array_t<U32>(size, data_ptr);
 }
 
@@ -318,7 +322,9 @@ PYBIND11_MODULE(game_engine, m, py::mod_gil_not_used()) {
         .def("enemy_mobility_score", &enemy_mobility_score, "enemy (if turn switched immediately) legal move count")
         .def("generate_pl_moves", &MoveGenerator::generate_pl_moves, "generate pseudolegal moves -> retrieve the moves with this.get_pl_move_list")
         .def("get_pl_move_list", &get_pl_move_list, "array of pseudo legal moves")
+        .def("get_l_move_list", &get_l_move_list, "array of legal moves")
         .def("print_pl_moves", &MoveGenerator::print_pl_moves, py::arg("piece_type") = 12, "print the pseudo legal moves for a specific piece")
+        .def("print_l_moves", &MoveGenerator::print_l_moves, py::arg("piece_type") = 12, "print the legal moves for a specific piece")
         .def_readonly("halfmove", &BoardState::halfmove)
         .def_readonly("turn_no", &BoardState::turn_no)
         .def_readonly("turn", &BoardState::turn)
