@@ -14,12 +14,12 @@
 constexpr static int max_move_index = 256;
 struct pl_moves {
     U32 move_list[max_move_index];
-    int moves_found;
+    int moves_found = 0;
     bool generated = false;
 };
 struct l_moves {
     U32 move_list[max_move_index];
-    int moves_found;
+    int moves_found = 0;
     bool generated = false;
 };
 
@@ -79,7 +79,10 @@ struct BoardState {
     }
 
     static BoardState copy(BoardState* board) {
-        return *board;
+        BoardState new_board = *board;
+        new_board.pl.generated = false;
+        new_board.l.generated = false;
+        return new_board;
     }
 
     // example:
@@ -622,13 +625,13 @@ struct BoardState {
                              Section: move generator
 /*////////////////////////////////////////////////////////////////////////////////
 
-
 // for generating moves and storing them inside struct
 namespace MoveGenerator{
     // generate pseudo-legal moves.
     // moves stored in pl_move_list.
     // max index pl_moves_found.
     static void generate_pl_moves(BoardState* board) {
+        if (board->pl.generated) { return;}
         board->pl.moves_found = 0;
         int source_sq;
         int target_sq;
@@ -636,7 +639,6 @@ namespace MoveGenerator{
         U64 target_sq_bit;
 
         if (board->turn == WHITE) {
-
             // pawn moves
             U64 pawns = board->bitboards[WHITE_PAWN];
             U64 pawn_blockers = board->occupancies[BOTH];
@@ -994,22 +996,20 @@ namespace MoveGenerator{
         board->pl.generated = true;
     }
 
-    // int count_l_moves(BoardState* board) {
-    //     int l_moves_found = 0;
-    //     generate_pl_moves(board);
-    //     for (int move_index=0; move_index<pl_moves_found; move_index++) {
-    //         BoardState board_copy = *board;
-    //         if (BoardState::make(&board_copy, pl_move_list[move_index])) {
-    //             l_moves_found++;
-    //         }
-    //     }
-    //     return l_moves_found;
-    // }
-
-    void print_pl_moves(BoardState* board, int piece_type = NO_PIECE) {
-        if (!board->pl.generated) {
-            MoveGenerator::generate_pl_moves(board);
+    static void generate_l_moves(BoardState* board) {
+        if (board->l.generated) { return; }
+        generate_pl_moves(board);
+        board->l.moves_found = 0;
+        for (int i = 0; i<board->pl.moves_found; i++) {
+            U32 move = board->pl.move_list[i];
+            if (BoardState::make(board, move, true)) {
+                board->l.moves_found++;
+            }
         }
+    }
+
+    static void print_pl_moves(BoardState* board, int piece_type = NO_PIECE) {
+        generate_pl_moves(board);
         printf("PL MOVES     dcekq\n------------------\n");
         for (int i=0; i<board->pl.moves_found; i++) {
             U32 move = board->pl.move_list[i];
@@ -1018,54 +1018,18 @@ namespace MoveGenerator{
             }
         }
     }
+
+    static void print_l_moves(BoardState* board, int piece_type = NO_PIECE) {
+        generate_l_moves(board);
+        printf("L MOVES     dcekq\n------------------\n");
+        for (int i=0; i<board->l.moves_found; i++) {
+            U32 move = board->l.move_list[i];
+            if (piece_type == NO_PIECE || decode_move_piece_type(move) == piece_type) {
+                print_move(board->l.move_list[i], 0);
+            }
+        }
+    }
 };
-
-/*////////////////////////////////////////////////////////////////////////////////
-                             Section: GameStateNodes
-/*////////////////////////////////////////////////////////////////////////////////
-
-// struct GameStateNodeAlphazero {
-//     BoardState board_state;
-//     MoveGenerator move_generator;
-//     GameStateNodeAlphazero* parent;
-//     U32 prev_move;
-//     static const int max_n_children = 256; // maximum number of pseudo legal moves in a position probably
-//     GameStateNodeAlphazero* children[max_n_children];
-//     int n_children; // n_children-1 is max index of children array
-//     float prior; // prior probability of selecting this node in mcts
-//     bool valid; // is the node a legal position
-//
-//     GameStateNodeAlphazero(GameStateNodeAlphazero* parent = nullptr, U32 prev_move = 0):
-//         parent(parent),
-//         prev_move(prev_move),
-//         n_children(0)
-//     {
-//         if (parent) { // new potential child node
-//             this->board_state = parent->board_state;
-//             this->valid = BoardState::make(&this->board_state, prev_move);
-//         }
-//         else { // start position
-//             this->board_state = BoardState();
-//             this->valid = true;
-//             this->prior = 0;
-//         }
-//     }
-//
-//     // reset the mcts variables for so we can reuse this node as a root node
-//     static void make_root(GameStateNodeAlphazero* node) {
-//         node->prior = 0;
-//         node->parent = nullptr;
-//         // node->prev_move = 0;
-//     }
-//
-//     static void add_pl_child(GameStateNodeAlphazero* node, GameStateNodeAlphazero* child) {
-//         if (child->valid) {
-//             node->children[node->n_children++] = child;
-//             assert (node->n_children < max_n_children); // todo: move this to expand function in python
-//         }
-//     }
-//
-// };
 
 /*////////////////////////////////////////////////////////////////////////////////
                              Section: perft testing
@@ -1230,7 +1194,7 @@ void perft(PerftResults* results, BoardState *board, int depth, bool include_pie
     else {
         MoveGenerator::generate_pl_moves(board);
         for (int move_index=0; move_index<board->pl.moves_found; move_index++) {
-            BoardState board_copy = *board;
+            BoardState board_copy = BoardState::copy(board);
             if (BoardState::make(&board_copy, board->pl.move_list[move_index])) {
                 perft(results, &board_copy, depth-1, include_piece_types);
             }
@@ -1409,6 +1373,7 @@ int main() {
     init_engine();
     unit_tests();
     // perft_suite(false);
+
     // char fen[] = "rnbqkbnr/p3ppp1/2pp4/1P4Pp/8/8/1PPPPP1P/RNBQKBNR w KQkq - 0 3\n";
     // U32 move = encode_move(g5, h6, WHITE_PAWN, WHITE_PAWN, 0, 0, 1, 1, 0, 0); 
     //

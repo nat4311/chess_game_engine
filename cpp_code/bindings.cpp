@@ -22,6 +22,7 @@ int material_score(BoardState* board) {
 
 int enemy_mobility_score(BoardState* board) {
     BoardState new_board = BoardState::copy(board);
+    new_board.enpassant_sq = no_sq;
     if (new_board.turn == WHITE) {
         new_board.turn = BLACK;
     }
@@ -29,16 +30,7 @@ int enemy_mobility_score(BoardState* board) {
         new_board.turn = WHITE;
     }
 
-    MoveGenerator moves;
-    int legal_moves = 0;
-    moves.generate_pl_moves(&moves, &new_board);
-    for (int i = 0; i<moves.pl_moves_found; i++) {
-        U32 move = moves.pl_move_list[i];
-        if (BoardState::make(&new_board, move, true)) {
-            legal_moves++;
-        }
-    }
-
+    MoveGenerator::generate_l_moves(&new_board);
     return legal_moves;
 }
 
@@ -228,10 +220,12 @@ int get_move_promotion_piece_type(U32 move) {
     return decode_move_promotion_piece_type(move);
 }
 
-py::array_t<U32> get_pl_move_list(MoveGenerator &self, BoardState* board) {
-    self.generate_pl_moves(&self, board);
-    size_t size = self.pl_moves_found;
-    const U32* data_ptr = self.pl_move_list;
+py::array_t<U32> get_pl_move_list(BoardState* board) {
+    if (!board->pl.generated) {
+        MoveGenerator::generate_pl_moves(board);
+    }
+    size_t size = board->pl.moves_found;
+    const U32* data_ptr = board->pl.move_list;
     return py::array_t<U32>(size, data_ptr);
 }
 
@@ -322,18 +316,14 @@ PYBIND11_MODULE(game_engine, m, py::mod_gil_not_used()) {
         .def("material_score", &material_score, "material score white minus black")
         .def("doubled_pawn_score", &doubled_pawn_score, "doubled pawn count black minus white")
         .def("enemy_mobility_score", &enemy_mobility_score, "enemy (if turn switched immediately) legal move count")
+        .def("generate_pl_moves", &MoveGenerator::generate_pl_moves, "generate pseudolegal moves -> retrieve the moves with this.get_pl_move_list")
+        .def("get_pl_move_list", &get_pl_move_list, "array of pseudo legal moves")
+        .def("print_pl_moves", &MoveGenerator::print_pl_moves, py::arg("piece_type") = 12, "print the pseudo legal moves for a specific piece")
         .def_readonly("halfmove", &BoardState::halfmove)
         .def_readonly("turn_no", &BoardState::turn_no)
         .def_readonly("turn", &BoardState::turn)
         .def_readonly("enpassant_sq", &BoardState::enpassant_sq)
         .def("__repr__", [](const BoardState &a){ return "<BoardState object>"; } );
-
-    py::class_<MoveGenerator>(m, "MoveGenerator")
-        .def(py::init<>())
-        .def("generate_pl_moves", &MoveGenerator::generate_pl_moves, "generate pseudolegal moves -> retrieve the moves with this.get_pl_move_list")
-        .def("get_pl_move_list", &get_pl_move_list, "array of pseudo legal moves")
-        .def("print_pl_moves", &MoveGenerator::print_pl_moves, py::arg("piece_type") = 12, "print the pseudo legal moves for a specific piece")
-        .def("__repr__", [](const MoveGenerator &a){ return "<MoveGenerator object>"; } );
 
     init_engine();
 }
