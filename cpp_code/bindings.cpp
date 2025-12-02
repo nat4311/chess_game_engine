@@ -295,6 +295,7 @@ PYBIND11_MODULE(game_engine, m, py::mod_gil_not_used()) {
     m.doc() = "chess game engine module with pybind11"; // optional module docstring
 
     m.def("init_engine", &init_engine, "initialize the game engine");
+    m.def("encode_move", &encode_move, "encode a move");
     m.def("unit_tests", &unit_tests, "run the unit tests");
     m.def("print_move", &print_move, py::arg("U32_move"), py::arg("bool_verbose"), "print a move");
     m.def("policy_move_index_0", &policy_move_index_0, "get the 73 index");
@@ -333,23 +334,6 @@ PYBIND11_MODULE(game_engine, m, py::mod_gil_not_used()) {
         .def("get_pl_move_list", &get_pl_move_list, "array of pseudo legal moves")
         .def("print_pl_moves", &MoveGenerator::print_pl_moves, py::arg("piece_type") = 12, "print the pseudo legal moves for a specific piece")
         .def("__repr__", [](const MoveGenerator &a){ return "<MoveGenerator object>"; } );
-
-    // py::class_<GameStateNodeAlphazero>(m, "GameStateNodeAlphazero")
-    //     .def(py::init<GameStateNodeAlphazero*, U32>(),
-    //          py::arg("parent") = nullptr,
-    //          py::arg("prev_move") = 0)
-    //     .def("make_root", &GameStateNodeAlphazero::make_root, "make this node a root node for mcts (resets mcts variables and sets parent->NULL)")
-    //     .def("add_pl_child", &GameStateNodeAlphazero::add_pl_child, "attempt to add a child node to the children array (won't do it if the move was illegal)")
-    //     .def_readonly("board_state", &GameStateNodeAlphazero::board_state)
-    //     .def_readonly("move_generator", &GameStateNodeAlphazero::move_generator)
-    //     .def_readonly("parent", &GameStateNodeAlphazero::parent)
-    //     .def_readonly("prev_move", &GameStateNodeAlphazero::prev_move)
-    //     .def_readonly_static("max_n_children", &GameStateNodeAlphazero::max_n_children)
-    //     .def_readonly("children", &GameStateNodeAlphazero::children)
-    //     .def_readonly("n_children", &GameStateNodeAlphazero::n_children)
-    //     .def_readwrite("prior", &GameStateNodeAlphazero::prior)
-    //     .def_readonly("valid", &GameStateNodeAlphazero::valid)
-    //     .def("__repr__", [](const GameStateNodeAlphazero &a){ return "<GameStateNodeAlphazero object>"; } );
 
     init_engine();
 }

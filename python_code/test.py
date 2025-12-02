@@ -12,7 +12,7 @@ from alphazero import model, load_objects, get_policy_move, mcts_n_sims
 from alphazero import U32_move_to_policy_move_dict, self_play_one_game
 from stockfish import Stockfish
 from model_evaluation import get_stockfish_move
-from constants import WHITE_WIN, BLACK_WIN, DRAW, piece_chars
+from constants import *
 
 ###############################################################
 
@@ -150,6 +150,33 @@ def hand_eval_test():
     print(f"{dp = }")
     emob = board.enemy_mobility_score()
     print(f"{emob = }")
+
+def encode_move_test():
+    source_sq = a7
+    target_sq = a5
+    piece_type = BLACK_PAWN
+    promotion_piece_type = WHITE_PAWN
+    promotion = 0
+    double_pawn_push = 1
+    capture = 0
+    enpassant_capture = 0
+    castle_kingside = 0
+    castle_queenside = 0
+
+    move = game_engine.encode_move(
+        source_sq,
+        target_sq,
+        piece_type,
+        promotion_piece_type,
+        promotion,
+        double_pawn_push,
+        capture,
+        enpassant_capture,
+        castle_kingside,
+        castle_queenside
+    )
+    game_engine.print_move(move, True)
+
 
 def make_test():
     fen = "rnbqkbnr/pppppppp/8/8/7q/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
@@ -300,7 +327,8 @@ def test_alphazero_play_stockfish_loop():
 
 if __name__ == "__main__":
 
-    hand_eval_test()
+    encode_move_test()
+    # hand_eval_test()
     # test_alphazero_play_stockfish_loop()
     # model_input_test()
     # make_test()

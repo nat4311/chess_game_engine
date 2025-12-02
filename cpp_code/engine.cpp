@@ -290,12 +290,14 @@ struct BoardState {
                     board->bitboards[BLACK_PAWN] ^= capture_sq_bit;
                     board->occupancies[BLACK] ^= capture_sq_bit;
                     board->occupancies[BOTH] ^= capture_sq_bit;
+                    captured_piece_type = BLACK_PAWN;
                 }
                 else {
                     U64 capture_sq_bit = target_sq_bit >> 8;
                     board->bitboards[WHITE_PAWN] ^= capture_sq_bit;
                     board->occupancies[WHITE] ^= capture_sq_bit;
                     board->occupancies[BOTH] ^= capture_sq_bit;
+                    captured_piece_type = WHITE_PAWN;
                 }
             }
             else if (capture) {
@@ -560,8 +562,6 @@ struct BoardState {
             }
         }
         else { // not castling or promotion move
-            // std::cout << "found it!" << std::endl;
-            // std::cout << "source_sq: " << source_sq << " target_sq: " << target_sq << std::endl;
             U64 source_sq_bit = sq_bit[source_sq];
             U64 target_sq_bit = sq_bit[target_sq];
             U64 source_and_target_sq_bits = source_sq_bit | target_sq_bit;
@@ -1399,7 +1399,40 @@ void init_engine() {
 
 int main() {
     init_engine();
-    unit_tests();
+    // unit_tests();
+    int source_sq = a7;
+    int target_sq = a5;
+    int piece_type = BLACK_PAWN;
+    int promotion_piece_type = WHITE_PAWN;
+    int promotion = 0;
+    int double_pawn_push = 1;
+    int capture = 0;
+    int enpassant_capture = 0;
+    int castle_kingside = 0;
+    int castle_queenside = 0;
+    U32 move = encode_move(
+        source_sq,
+        target_sq,
+        piece_type,
+        promotion_piece_type,
+        promotion,
+        double_pawn_push,
+        capture,
+        enpassant_capture,
+        castle_kingside,
+        castle_queenside
+    );
+    char fen[] = "rnbqkbnr/p1pppppp/8/1P6/8/8/1PPPPPPP/RNBQKBNR b KQkq - 0 3\n";
+
+    BoardState board;
+    board.load(&board, fen);
+    // BoardState::print(&board);
+    BoardState::make(&board, move);
+    // BoardState::print(&board);
+    U32 move2 = encode_move(b5, a6, WHITE_PAWN, WHITE_PAWN, 0, 0, 1, 1, 0, 0); 
+    BoardState::print(&board);
+    board.make(&board, move2, true);
+    BoardState::print(&board);
 
     return 0;
 }
