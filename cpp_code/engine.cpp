@@ -1000,7 +1000,7 @@ namespace MoveGenerator{
         for (int i = 0; i<board->pl.moves_found; i++) {
             U32 move = board->pl.move_list[i];
             if (BoardState::make(board, move, true)) {
-                board->l.moves_found++;
+                board->l.move_list[board->l.moves_found++] = move;
             }
         }
         

@@ -4,8 +4,6 @@ from math import inf
 from utils import pretty_time_elapsed, pretty_datetime
 from constants import *
 
-move_generator = game_engine.MoveGenerator()
-
 class GameStateNode0:
     """
     saves children as part of each node, uses way too much RAM
@@ -39,7 +37,7 @@ class GameStateNode0:
             self.state = DRAW
             return
 
-        pl_move_list = move_generator.get_pl_move_list(self.board)
+        pl_move_list = self.board.get_pl_move_list()
         for U32_move in pl_move_list:
             new_board = self.board.copy()
             if new_board.make(U32_move):
@@ -145,7 +143,6 @@ class GameStateNode1:
     def __init__(self, board=None, prev_move = None, fen=None):
         self.state = None
         self.prev_move = prev_move
-        self.legal_moves = None
 
         if board is None:
             self.board = game_engine.BoardState()
@@ -158,44 +155,10 @@ class GameStateNode1:
             assert fen is None
 
     def count_legal_moves(self):
-        if self.legal_moves is not None:
-            return self.legal_moves
+        n_legal_moves = self.board.get_l_move_count()
+        self.state = self.board.get_state()
 
-        if self.board.halfmove == 100:
-            self.state = DRAW
-            self.legal_moves = 0
-            return 0
-
-        legal_moves = 0
-        board_backup = self.board.copy()
-        last_move = None
-        for U32_move in self.board.get_pl_move_list():
-            if self.board.get_bitboards_U64()[BLACK_PAWN] != board_backup.get_bitboards_U64()[BLACK_PAWN]:
-                print("last move")
-                game_engine.print_move(last_move, True)
-                print("backup board")
-                board_backup.print()
-                print("actual board")
-                self.board.print()
-                raise Exception("backup board does not match")
-            # self.board.print()
-            if self.board.make(U32_move, True):
-                legal_moves += 1
-            last_move = U32_move
-
-        if legal_moves == 0:
-            if self.board.king_is_attacked():
-                if self.board.turn == WHITE:
-                    self.state = BLACK_WIN
-                else:
-                    self.state = WHITE_WIN
-            else:
-                self.state = DRAW
-        else:
-            self.state = NOTOVER
-
-        self.legal_moves = legal_moves
-        return legal_moves
+        return n_legal_moves
 
     def eval(self):
         mobility_score = self.count_legal_moves()
@@ -237,10 +200,10 @@ class GameStateNode1:
         if maximizing_player:
             max_eval = -inf
             best_child = None
-            for U32_move in move_generator.get_pl_move_list(node.board):
+            for U32_move in node.board.get_l_move_list():
                 new_board = node.board.copy()
                 if not new_board.make(U32_move):
-                    continue
+                    raise Exception("l_move failed")
                 child = GameStateNode1(board=new_board, prev_move=U32_move)
                 _, eval_child = self._minimax(child, depth - 1, alpha, beta, False)
                 if eval_child > max_eval:
@@ -253,10 +216,10 @@ class GameStateNode1:
         else:
             min_eval = inf
             best_child = None
-            for U32_move in move_generator.get_pl_move_list(node.board):
+            for U32_move in node.board.get_l_move_list():
                 new_board = node.board.copy()
                 if not new_board.make(U32_move):
-                    continue
+                    raise Exception("l_move failed")
                 child = GameStateNode1(board=new_board, prev_move=U32_move)
                 _, eval_child = self._minimax(child, depth - 1, alpha, beta, True)
                 if eval_child < min_eval:
