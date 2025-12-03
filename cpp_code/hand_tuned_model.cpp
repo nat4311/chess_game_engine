@@ -5,6 +5,97 @@
 
 float inf = std::numeric_limits<double>::infinity();
 
+/*
+         source_sq            6 bits (0-5)      0-63     (a8-h1)
+         target_sq            6 bits (6-11)     0-63     (a8-h1)
+         piece_type           4 bits (12-15)    0-11     (WHITE_PAWN, ..., BLACK_KING)
+         double_pawn_push     1 bit  (16)       0-1      (true or false)
+         enpassant_capture    1 bit  (17)       0-1      (true or false)
+         castle_kingside      1 bit  (18)       0-1      (true or false)
+         castle_queenside     1 bit  (19)       0-1      (true or false)
+         capture              1 bit  (20)       0-1      (true or false)
+(NEW)    capture_score        4 bits (21-25)    0-16     (capturing_piece_score - captured_piece_score)
+         promotion_type       4 bits (27-30)    1-4,7-10 (WHITE_KNIGHT, ..., WHITE_QUEEN, BLACK_KNIGHT, ..., BLACK_QUEEN)
+         promotion            1 bit  (31)       0-1      (true or false)
+ */
+void encode_move_capture_score(U32* move, BoardState *board) {
+    if (!decode_move_capture(*move)) { return; }
+
+    int piece_type = decode_move_piece_type(*move);
+    int target_sq = decode_move_target_sq(*move);
+    U64 target_sq_bit = sq_bit[target_sq];
+    int captured_piece_type;
+
+    if (board->turn == WHITE) {
+        if (board->bitboards[BLACK_PAWN] & target_sq_bit) {
+            captured_piece_type = BLACK_PAWN;
+            goto CAPTURED_PIECE_FOUND;
+        }
+        if (board->bitboards[BLACK_KNIGHT] & target_sq_bit) {
+            captured_piece_type = BLACK_KNIGHT;
+            goto CAPTURED_PIECE_FOUND;
+        }
+        if (board->bitboards[BLACK_BISHOP] & target_sq_bit) {
+            captured_piece_type = BLACK_BISHOP;
+            goto CAPTURED_PIECE_FOUND;
+        }
+        if (board->bitboards[BLACK_ROOK] & target_sq_bit) {
+            captured_piece_type = BLACK_ROOK;
+            goto CAPTURED_PIECE_FOUND;
+        }
+        if (board->bitboards[BLACK_QUEEN] & target_sq_bit) {
+            captured_piece_type = BLACK_QUEEN;
+            goto CAPTURED_PIECE_FOUND;
+        }
+        if (board->bitboards[BLACK_KING] & target_sq_bit) {
+            captured_piece_type = BLACK_KING;
+            BoardState::print(board);
+            print_move(*move, 1);
+            throw std::runtime_error("tried to capture king\n");
+        }
+        BoardState::print(board);
+        print_move(*move, 1);
+        throw std::runtime_error("move has capture flag set but no captured_piece was found\n");
+    }
+    else { // board->turn == BLACK
+        if (board->bitboards[WHITE_PAWN] & target_sq_bit) {
+            captured_piece_type = WHITE_PAWN;
+            goto CAPTURED_PIECE_FOUND;
+        }
+        if (board->bitboards[WHITE_KNIGHT] & target_sq_bit) {
+            captured_piece_type = WHITE_KNIGHT;
+            goto CAPTURED_PIECE_FOUND;
+        }
+        if (board->bitboards[WHITE_BISHOP] & target_sq_bit) {
+            captured_piece_type = WHITE_BISHOP;
+            goto CAPTURED_PIECE_FOUND;
+        }
+        if (board->bitboards[WHITE_ROOK] & target_sq_bit) {
+            captured_piece_type = WHITE_ROOK;
+            goto CAPTURED_PIECE_FOUND;
+        }
+        if (board->bitboards[WHITE_QUEEN] & target_sq_bit) {
+            captured_piece_type = WHITE_QUEEN;
+            goto CAPTURED_PIECE_FOUND;
+        }
+        if (board->bitboards[WHITE_KING] & target_sq_bit) {
+            captured_piece_type = WHITE_KING;
+            BoardState::print(board);
+            print_move(*move, 1);
+            throw std::runtime_error("tried to capture king\n");
+        }
+        BoardState::print(board);
+        print_move(*move, 1);
+        throw std::runtime_error("move has capture flag set but no captured_piece was found\n");
+    }
+    CAPTURED_PIECE_FOUND:
+
+    int capture_score = piece_score[piece_type] - piece_score[captured_piece_type] + 8;
+    assert (capture_score>=0 && capture_score<=16);
+    (*move) |= (capture_score<<21);
+    return;
+}
+
 struct GameStateNode1 {
     U32 prev_move;
     BoardState board;
@@ -115,7 +206,6 @@ int main() {
 
     GameStateNode1 game;
 
-    //TODO: measure timings from start pos
     for (int i = 1; i<=10; i++) {
         auto t0 = timestamp();
         minimax(&game, i);

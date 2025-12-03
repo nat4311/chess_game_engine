@@ -120,6 +120,7 @@ enum {
     NO_PIECE,
 };
 
+constexpr int piece_score[] = {1, 3, 3, 5, 9, 1000, 1, 3, 3, 5, 9, 1000};
 constexpr const char piece_char[] = {'P', 'N', 'B', 'R', 'Q', 'K', 'p', 'n', 'b', 'r', 'q', 'k'};
 
 #ifdef TERMINAL_DARK_MODE
@@ -233,20 +234,23 @@ constexpr U64 sq_bit[65] = {
                      Section: move helper functions
 /*/////////////////////////////////////////////////////////////////////////////
 
-// TODO: are the encoding functions faster as #define?
-
+// todo: are the encoding functions faster as #define?
 /* Inputs:
    source_sq            6 bits (0-5)      0-63     (a8-h1)
    target_sq            6 bits (6-11)     0-63     (a8-h1)
    piece_type           4 bits (12-15)    0-11     (WHITE_PAWN, ..., BLACK_KING)
-   promotion_type       4 bits (16-19)    1-4,7-10 (WHITE_KNIGHT, ..., WHITE_QUEEN, BLACK_KNIGHT, ..., BLACK_QUEEN)
-   promotion            1 bit  (20)       0-1      (true or false)
-   double_pawn_push     1 bit  (21)       0-1      (true or false)
-   capture              1 bit  (22)       0-1      (true or false)
-   enpassant_capture    1 bit  (23)       0-1      (true or false)
-   castle_kingside      1 bit  (24)       0-1      (true or false)
-   castle_queenside     1 bit  (25)       0-1      (true or false)
+   double_pawn_push     1 bit  (16)       0-1      (true or false)
+   enpassant_capture    1 bit  (17)       0-1      (true or false)
+   castle_kingside      1 bit  (18)       0-1      (true or false)
+   castle_queenside     1 bit  (19)       0-1      (true or false)
+   capture              1 bit  (20)       0-1      (true or false)
+   promotion_type       4 bits (27-30)    1-4,7-10 (WHITE_KNIGHT, ..., WHITE_QUEEN, BLACK_KNIGHT, ..., BLACK_QUEEN)
+   promotion            1 bit  (31)       0-1      (true or false)
+
+   Not included:
+   capture_score        4 bits (21-25)    0-16     (capturing_piece_score - captured_piece_score)
  */
+
 inline U32 encode_move(
     int source_sq,
     int target_sq,
@@ -263,25 +267,25 @@ inline U32 encode_move(
                      source_sq |
                 (target_sq<<6) |
               (piece_type<<12) |
-    (promotion_piece_type<<16) | 
-               (promotion<<20) |
-        (double_pawn_push<<21) |
-                 (capture<<22) |
-       (enpassant_capture<<23) |
-         (castle_kingside<<24) |
-        (castle_queenside<<25);
+        (double_pawn_push<<16) |
+       (enpassant_capture<<17) |
+         (castle_kingside<<18) |
+        (castle_queenside<<19) |
+                 (capture<<20) |
+    (promotion_piece_type<<27) | 
+               (promotion<<31);
 }
 
 #define decode_move_source_sq(move)               (int(move & 63))
 #define decode_move_target_sq(move)               (int((move>>6) & 63))
 #define decode_move_piece_type(move)              (int((move>>12) & 15))
-#define decode_move_promotion_piece_type(move)    (int((move>>16) & 15))
-#define decode_move_promotion(move)               (int((move>>20) & 1))
-#define decode_move_double_pawn_push(move)        (int((move>>21) & 1))
-#define decode_move_capture(move)                 (int((move>>22) & 1))
-#define decode_move_enpassant_capture(move)       (int((move>>23) & 1))
-#define decode_move_castle_kingside(move)         (int((move>>24) & 1))
-#define decode_move_castle_queenside(move)        (int((move>>25) & 1))
+#define decode_move_promotion_piece_type(move)    (int((move>>27) & 15))
+#define decode_move_promotion(move)               (int((move>>31) & 1))
+#define decode_move_double_pawn_push(move)        (int((move>>16) & 1))
+#define decode_move_capture(move)                 (int((move>>20) & 1))
+#define decode_move_enpassant_capture(move)       (int((move>>17) & 1))
+#define decode_move_castle_kingside(move)         (int((move>>18) & 1))
+#define decode_move_castle_queenside(move)        (int((move>>19) & 1))
 
 /* Inputs:
    captured_piece       4 bits (0-3)       0-11,12 (WHITE_PAWN - BLACK_KING, NO_PIECE)
