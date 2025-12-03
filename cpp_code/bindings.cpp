@@ -3,81 +3,6 @@
 #include <pybind11/numpy.h>
 namespace py = pybind11;
 
-int material_score(BoardState* board) {
-
-    int wQ = bit_count(board->bitboards[WHITE_QUEEN]);
-    int wR = bit_count(board->bitboards[WHITE_ROOK]);
-    int wB = bit_count(board->bitboards[WHITE_BISHOP]);
-    int wN = bit_count(board->bitboards[WHITE_KNIGHT]);
-    int wP = bit_count(board->bitboards[WHITE_PAWN]);
-    int bQ = bit_count(board->bitboards[BLACK_QUEEN]);
-    int bR = bit_count(board->bitboards[BLACK_ROOK]);
-    int bB = bit_count(board->bitboards[BLACK_BISHOP]);
-    int bN = bit_count(board->bitboards[BLACK_KNIGHT]);
-    int bP = bit_count(board->bitboards[BLACK_PAWN]);
-
-    return 9*(wQ-bQ) + 5*(wR-bR) + 3*(wB+wN-bB-bN) + (wP-bP);
-
-}
-
-int enemy_mobility_score(BoardState* board) {
-    BoardState new_board = BoardState::copy(board);
-    new_board.enpassant_sq = no_sq;
-    if (new_board.turn == WHITE) {
-        new_board.turn = BLACK;
-    }
-    else {
-        new_board.turn = WHITE;
-    }
-
-    MoveGenerator::generate_l_moves(&new_board);
-    return new_board.l.moves_found;
-}
-
-// black dps - white dps
-int doubled_pawn_score(BoardState* board) {
-    int aW = bit_count(board->bitboards[WHITE_PAWN] & a_file); if (aW) {aW--;}
-    int bW = bit_count(board->bitboards[WHITE_PAWN] & b_file); if (bW) {bW--;}
-    int cW = bit_count(board->bitboards[WHITE_PAWN] & c_file); if (cW) {cW--;}
-    int dW = bit_count(board->bitboards[WHITE_PAWN] & d_file); if (dW) {dW--;}
-    int eW = bit_count(board->bitboards[WHITE_PAWN] & e_file); if (eW) {eW--;}
-    int fW = bit_count(board->bitboards[WHITE_PAWN] & f_file); if (fW) {fW--;}
-    int gW = bit_count(board->bitboards[WHITE_PAWN] & g_file); if (gW) {gW--;}
-    int hW = bit_count(board->bitboards[WHITE_PAWN] & h_file); if (hW) {hW--;}
-
-    int aB = bit_count(board->bitboards[BLACK_PAWN] & a_file); if (aB) {aB--;}
-    int bB = bit_count(board->bitboards[BLACK_PAWN] & b_file); if (bB) {bB--;}
-    int cB = bit_count(board->bitboards[BLACK_PAWN] & c_file); if (cB) {cB--;}
-    int dB = bit_count(board->bitboards[BLACK_PAWN] & d_file); if (dB) {dB--;}
-    int eB = bit_count(board->bitboards[BLACK_PAWN] & e_file); if (eB) {eB--;}
-    int fB = bit_count(board->bitboards[BLACK_PAWN] & f_file); if (fB) {fB--;}
-    int gB = bit_count(board->bitboards[BLACK_PAWN] & g_file); if (gB) {gB--;}
-    int hB = bit_count(board->bitboards[BLACK_PAWN] & h_file); if (hB) {hB--;}
-
-    return -aW-bW-cW-dW-eW-fW-gW-hW + aB+bB+cB+dB+eB+fB+gB+hB;
-}
-
-bool get_castle_K(BoardState* board) {
-    return board->castling_rights & WHITE_CASTLE_KINGSIDE;
-}
-bool get_castle_Q(BoardState* board) {
-    return board->castling_rights & WHITE_CASTLE_QUEENSIDE;
-}
-bool get_castle_k(BoardState* board) {
-    return board->castling_rights & BLACK_CASTLE_KINGSIDE;
-}
-bool get_castle_q(BoardState* board) {
-    return board->castling_rights & BLACK_CASTLE_QUEENSIDE;
-}
-int get_l_move_count(BoardState* board) {
-    MoveGenerator::generate_l_moves(board);
-    return board->l.moves_found;
-}
-int get_state(BoardState* board) {
-    assert(board->l.generated);
-    return board->state;
-}
-
 // 73 move types.
 // queen type move (8 dir x 7 dist = 56).
 // knight move (8 dir).
@@ -241,13 +166,13 @@ int get_move_promotion_piece_type(U32 move) {
 }
 
 py::array_t<U32> get_pl_move_list(BoardState* board) {
-    MoveGenerator::generate_pl_moves(board);
+    BoardState::generate_pl_moves(board);
     size_t size = board->pl.moves_found;
     const U32* data_ptr = board->pl.move_list;
     return py::array_t<U32>(size, data_ptr);
 }
 py::array_t<U32> get_l_move_list(BoardState* board) {
-    MoveGenerator::generate_l_moves(board);
+    BoardState::generate_l_moves(board);
     size_t size = board->l.moves_found;
     const U32* data_ptr = board->l.move_list;
     return py::array_t<U32>(size, data_ptr);
@@ -330,30 +255,28 @@ PYBIND11_MODULE(game_engine, m, py::mod_gil_not_used()) {
         .def("copy", &BoardState::copy, "copy by value of a board state")
         .def("make", &BoardState::make, py::arg(), py::arg("unmake_move_flag") = false, "make a move")
         .def("king_is_attacked", &BoardState::king_is_attacked, "returns True if king is in check")
-
+        .def("get_state", &BoardState::get_state, "returns WHITE_WIN, DRAW, or BLACK_WIN")
+        .def("get_l_move_count", &BoardState::get_l_move_count, "returns number of legal moves")
+        .def("get_castle_K", &BoardState::get_castle_K, "returns True if white can kingside castle")
+        .def("get_castle_Q", &BoardState::get_castle_Q, "returns True if white can queenside castle")
+        .def("get_castle_k", &BoardState::get_castle_k, "returns true if black can kingside castle")
+        .def("get_castle_q", &BoardState::get_castle_q, "returns True if black can queenside castle")
+        .def("get_partial_model_input", &get_partial_model_input, "get partial model input as 21x8x8 U8 array")
+        .def("material_score", &BoardState::material_score, "material score white minus black")
+        .def("doubled_pawn_score", &BoardState::doubled_pawn_score, "doubled pawn count black minus white")
+        .def("enemy_mobility_score", &BoardState::enemy_mobility_score, "enemy (if turn switched immediately) legal move count")
+        .def("generate_pl_moves", &BoardState::generate_pl_moves, "generate pseudolegal moves")
+        .def("generate_l_moves", &BoardState::generate_l_moves, "generate legal moves")
+        .def("print_pl_moves", &BoardState::print_pl_moves, py::arg("piece_type") = 12, "print the pseudo legal moves for a specific piece")
+        .def("print_l_moves", &BoardState::print_l_moves, py::arg("piece_type") = 12, "print the legal moves for a specific piece")
         .def_readonly("halfmove", &BoardState::halfmove)
         .def_readonly("turn_no", &BoardState::turn_no)
         .def_readonly("turn", &BoardState::turn)
         .def_readonly("enpassant_sq", &BoardState::enpassant_sq)
-
-        .def("get_state", &get_state, "returns WHITE_WIN, DRAW, or BLACK_WIN")
-        .def("get_l_move_count", &get_l_move_count, "returns number of legal moves")
-        .def("get_castle_K", &get_castle_K, "returns True if white can kingside castle")
-        .def("get_castle_Q", &get_castle_Q, "returns True if white can queenside castle")
-        .def("get_castle_k", &get_castle_k, "returns true if black can kingside castle")
-        .def("get_castle_q", &get_castle_q, "returns True if black can queenside castle")
         .def("get_bitboards", &get_bitboards, "get all 12 piece bitboards as 12x64 bool array")
         .def("get_bitboards_U64", &get_bitboards_U64, "get all 12 piece bitboards as 12 len U64 array")
-        .def("get_partial_model_input", &get_partial_model_input, "get partial model input as 21x8x8 U8 array")
-        .def("material_score", &material_score, "material score white minus black")
-        .def("doubled_pawn_score", &doubled_pawn_score, "doubled pawn count black minus white")
-        .def("enemy_mobility_score", &enemy_mobility_score, "enemy (if turn switched immediately) legal move count")
-        .def("generate_pl_moves", &MoveGenerator::generate_pl_moves, "generate pseudolegal moves")
-        .def("generate_l_moves", &MoveGenerator::generate_l_moves, "generate legal moves")
         .def("get_pl_move_list", &get_pl_move_list, "array of pseudo legal moves")
         .def("get_l_move_list", &get_l_move_list, "array of legal moves")
-        .def("print_pl_moves", &MoveGenerator::print_pl_moves, py::arg("piece_type") = 12, "print the pseudo legal moves for a specific piece")
-        .def("print_l_moves", &MoveGenerator::print_l_moves, py::arg("piece_type") = 12, "print the legal moves for a specific piece")
         .def("__repr__", [](const BoardState &a){ return "<BoardState object>"; } );
 
     init_engine();

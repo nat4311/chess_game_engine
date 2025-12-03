@@ -73,6 +73,7 @@ enum {
 };
 
 enum {
+    NULL_STATE = -2,
     BLACK_WIN = -1,
     DRAW = 0,
     WHITE_WIN = 1,

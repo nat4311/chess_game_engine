@@ -192,7 +192,7 @@ class GameStateNode1:
             return 0
         elif self.state == WHITE_WIN:
             return 10000 - self.board.turn_no
-        if self.state == BLACK_WIN:
+        elif self.state == BLACK_WIN:
             return -10000 + self.board.turn_no
 
         # material_score = self.board.material_score()

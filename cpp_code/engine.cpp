@@ -11,19 +11,19 @@
                                Section: BoardState
 /*////////////////////////////////////////////////////////////////////////////////
 
-constexpr static int max_move_index = 256;
-struct pl_moves {
-    U32 move_list[max_move_index];
-    int moves_found = 0;
-    bool generated = false;
-};
-struct l_moves {
-    U32 move_list[max_move_index];
-    int moves_found = 0;
-    bool generated = false;
-};
-
 struct BoardState {
+    constexpr static int max_move_index = 256;
+    struct pl_moves {
+        U32 move_list[max_move_index];
+        int moves_found = 0;
+        bool generated = false;
+    };
+    struct l_moves {
+        U32 move_list[max_move_index];
+        int moves_found = 0;
+        bool generated = false;
+    };
+
     // side (WHITE or BLACK)
     int turn;
 
@@ -609,14 +609,89 @@ struct BoardState {
             }
         }
     }
-};
 
-/*////////////////////////////////////////////////////////////////////////////////
-                             Section: move generator
-/*////////////////////////////////////////////////////////////////////////////////
+    static int get_state(BoardState* board) {
+        assert(board->l.generated);
+        return board->state;
+    }
 
-// for generating moves and storing them inside struct
-namespace MoveGenerator{
+
+    static int material_score(BoardState* board) {
+
+        int wQ = bit_count(board->bitboards[WHITE_QUEEN]);
+        int wR = bit_count(board->bitboards[WHITE_ROOK]);
+        int wB = bit_count(board->bitboards[WHITE_BISHOP]);
+        int wN = bit_count(board->bitboards[WHITE_KNIGHT]);
+        int wP = bit_count(board->bitboards[WHITE_PAWN]);
+        int bQ = bit_count(board->bitboards[BLACK_QUEEN]);
+        int bR = bit_count(board->bitboards[BLACK_ROOK]);
+        int bB = bit_count(board->bitboards[BLACK_BISHOP]);
+        int bN = bit_count(board->bitboards[BLACK_KNIGHT]);
+        int bP = bit_count(board->bitboards[BLACK_PAWN]);
+
+        return 9*(wQ-bQ) + 5*(wR-bR) + 3*(wB+wN-bB-bN) + (wP-bP);
+
+    }
+
+    static int enemy_mobility_score(BoardState* board) {
+        BoardState new_board = BoardState::copy(board);
+        new_board.enpassant_sq = no_sq;
+        if (new_board.turn == WHITE) {
+            new_board.turn = BLACK;
+        }
+        else {
+            new_board.turn = WHITE;
+        }
+
+        BoardState::generate_l_moves(&new_board);
+        return new_board.l.moves_found;
+    }
+
+    // black dps - white dps
+    static int doubled_pawn_score(BoardState* board) {
+        int aW = bit_count(board->bitboards[WHITE_PAWN] & a_file); if (aW) {aW--;}
+        int bW = bit_count(board->bitboards[WHITE_PAWN] & b_file); if (bW) {bW--;}
+        int cW = bit_count(board->bitboards[WHITE_PAWN] & c_file); if (cW) {cW--;}
+        int dW = bit_count(board->bitboards[WHITE_PAWN] & d_file); if (dW) {dW--;}
+        int eW = bit_count(board->bitboards[WHITE_PAWN] & e_file); if (eW) {eW--;}
+        int fW = bit_count(board->bitboards[WHITE_PAWN] & f_file); if (fW) {fW--;}
+        int gW = bit_count(board->bitboards[WHITE_PAWN] & g_file); if (gW) {gW--;}
+        int hW = bit_count(board->bitboards[WHITE_PAWN] & h_file); if (hW) {hW--;}
+
+        int aB = bit_count(board->bitboards[BLACK_PAWN] & a_file); if (aB) {aB--;}
+        int bB = bit_count(board->bitboards[BLACK_PAWN] & b_file); if (bB) {bB--;}
+        int cB = bit_count(board->bitboards[BLACK_PAWN] & c_file); if (cB) {cB--;}
+        int dB = bit_count(board->bitboards[BLACK_PAWN] & d_file); if (dB) {dB--;}
+        int eB = bit_count(board->bitboards[BLACK_PAWN] & e_file); if (eB) {eB--;}
+        int fB = bit_count(board->bitboards[BLACK_PAWN] & f_file); if (fB) {fB--;}
+        int gB = bit_count(board->bitboards[BLACK_PAWN] & g_file); if (gB) {gB--;}
+        int hB = bit_count(board->bitboards[BLACK_PAWN] & h_file); if (hB) {hB--;}
+
+        return -aW-bW-cW-dW-eW-fW-gW-hW + aB+bB+cB+dB+eB+fB+gB+hB;
+    }
+
+    static bool get_castle_K(BoardState* board) {
+        return board->castling_rights & WHITE_CASTLE_KINGSIDE;
+    }
+    static bool get_castle_Q(BoardState* board) {
+        return board->castling_rights & WHITE_CASTLE_QUEENSIDE;
+    }
+    static bool get_castle_k(BoardState* board) {
+        return board->castling_rights & BLACK_CASTLE_KINGSIDE;
+    }
+    static bool get_castle_q(BoardState* board) {
+        return board->castling_rights & BLACK_CASTLE_QUEENSIDE;
+    }
+    static int get_l_move_count(BoardState* board) {
+        generate_l_moves(board);
+        return board->l.moves_found;
+    }
+
+    /*////////////////////////////////////////////////////////////////////////////////
+                                 Section: move generation functions
+    /*////////////////////////////////////////////////////////////////////////////////
+    // for generating moves and storing them inside the pl_moves and l_moves structs
+
     // generate pseudo-legal moves.
     // moves stored in pl_move_list.
     // max index pl_moves_found.
@@ -1114,7 +1189,7 @@ void manual_move_check(char fen[], int piece_type, float sleep_time_s) {
     BoardState::print(&board);
 
     U64 sleep_time_us = sleep_time_s*1000000ULL;
-    MoveGenerator::generate_pl_moves(&board);
+    BoardState::generate_pl_moves(&board);
     std::cout << "pl moves found: " << board.pl.moves_found << std::endl;
     for (int i=0; i<board.pl.moves_found; i++) {
         U32 move = board.pl.move_list[i];
@@ -1154,7 +1229,7 @@ struct PerftResults {
 void perft(PerftResults* results, BoardState *board, int depth, bool include_piece_types) {
     if (depth == 1) {
         int l_moves = 0;
-        MoveGenerator::generate_pl_moves(board);
+        BoardState::generate_pl_moves(board);
 
         for (int move_index=0; move_index<board->pl.moves_found; move_index++) {
             BoardState board_copy = *board;
@@ -1206,7 +1281,7 @@ void perft(PerftResults* results, BoardState *board, int depth, bool include_pie
         }
     }
     else {
-        MoveGenerator::generate_pl_moves(board);
+        BoardState::generate_pl_moves(board);
         for (int move_index=0; move_index<board->pl.moves_found; move_index++) {
             BoardState board_copy = BoardState::copy(board);
             if (BoardState::make(&board_copy, board->pl.move_list[move_index])) {
