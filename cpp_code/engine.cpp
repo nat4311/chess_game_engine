@@ -528,7 +528,7 @@ struct BoardState {
             return false;
         }
     }
-    
+
     // assumes that only the pieces have been moved, board state variables have not updated yet (turn, ep, castling, halfmove, etc)
     static void unmake(BoardState* board, int source_sq, int target_sq, int moved_piece_type, int enpassant_capture, int captured_piece_type, int castle_kingside, int castle_queenside, int promotion, int promotion_piece_type) {
         if (castle_kingside) {
@@ -1110,7 +1110,7 @@ struct BoardState {
 
     static void print_l_moves(BoardState* board, int piece_type = NO_PIECE) {
         generate_l_moves(board);
-        printf("L MOVES     dcekq\n------------------\n");
+        printf("L MOVES      dcekq\n------------------\n");
         for (int i=0; i<board->l.moves_found; i++) {
             U32 move = board->l.move_list[i];
             if (piece_type == NO_PIECE || decode_move_piece_type(move) == piece_type) {

@@ -147,22 +147,31 @@ class GameStateNode1:
     single thread timings
 
     minimax timings from start pos, no move ordering
-    1 0.0006825476884841919
-    2 0.007834275253117085
-    3 0.017839105799794197
-    4 0.764815291389823
-    5 0.8085004044696689
-    6 162.43249557446688
-    7 69.25481910258532
+    1 0.0006825476884841919 s
+    2 0.007834275253117085 s
+    3 0.017839105799794197 s
+    4 0.764815291389823 s
+    5 0.8085004044696689 s
+    6 162.43249557446688 s
+    7 69.25481910258532 s
 
     after moving count_legal_moves and legal move generation (for minimax) to c++
-    1 8.558016270399094e-05
-    2 0.0007701413705945015
-    3 0.0020072944462299347
-    4 0.07913886103779078
-    5 0.08957733120769262
-    6 15.086321806535125
-    7 7.631460613571107
+    depth 1, time = 8.558016270399094e-05 s
+    depth 2, time = 0.0007701413705945015 s
+    depth 3, time = 0.0020072944462299347 s
+    depth 4, time = 0.07913886103779078 s
+    depth 5, time = 0.08957733120769262 s
+    depth 6, time = 15.086321806535125 s
+    depth 7, time = 7.631460613571107 s
+
+    in c++
+    depth 1, time = 1.7e-05 s
+    depth 2, time = 0.000131 s
+    depth 3, time = 0.000345 s
+    depth 4, time = 0.019428 s
+    depth 5, time = 0.022782 s
+    depth 6, time = 4.34886 s
+    depth 7, time = 1.94325 s
 
     """
     def __init__(self, board=None, prev_move = None, fen=None):
@@ -257,28 +266,27 @@ class GameStateNode1:
 
 if __name__ == "__main__":
     import timeit
-    game = GameStateNode1()
-    game.minimax(1)
+    game = GameStateNode1(fen="7k/bpp3pp/3pq1pp/8/8/5P2/PPPPQPPP/RNB1KBNR w KQ - 0 1\n")
+    # game.minimax(1)
 
-    for i in range(1,9):
-        f = lambda: game.minimax(i)
-        t = timeit.timeit(f, number=1)
-        print(i, t)
+    # for i in range(1,9):
+    #     f = lambda: game.minimax(i)
+    #     t = timeit.timeit(f, number=1)
+    #     print(i, t)
 
-    # while True:
-    #     game.print()
-    #     if game.state in (DRAW, WHITE_WIN, BLACK_WIN):
-    #         if game.state == DRAW:
-    #             print("draw")
-    #         if game.state == WHITE_WIN:
-    #             print("white wins")
-    #         if game.state == BLACK_WIN:
-    #             print("black wins")
-    #         break
-    #
-    #     print("----------------------")
-    #     t0 = time.time()
-    #     best_child = game.minimax(5)
-    #     print("time to choose move:", pretty_time_elapsed(t0, time.time()))
-    #     game = best_child
-    #     time.sleep(1)
+    while True:
+        game.print()
+        if game.state in (DRAW, WHITE_WIN, BLACK_WIN):
+            if game.state == DRAW:
+                print("draw")
+            if game.state == WHITE_WIN:
+                print("white wins")
+            if game.state == BLACK_WIN:
+                print("black wins")
+            break
+
+        print("----------------------")
+        t0 = time.time()
+        best_child = game.minimax(6)
+        print("time to choose move:", pretty_time_elapsed(t0, time.time()))
+        game = best_child
