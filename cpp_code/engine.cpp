@@ -91,7 +91,7 @@ struct BoardState {
     // example:
     // rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1 .
     //                                     pieces turn cast ep hm fm
-    static void load(BoardState* board, char* fen_str) {
+    static void load(BoardState* board, const char* fen_str) {
         int i_fen_str = 0;
         char c;
         int x, y, sq;
