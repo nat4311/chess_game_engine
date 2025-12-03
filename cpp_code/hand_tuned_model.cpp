@@ -5,6 +5,12 @@
 
 float inf = std::numeric_limits<double>::infinity();
 
+/*/////////////////////////////////////////////////////////////////////////////
+                          Section: Helper funcs
+/*/////////////////////////////////////////////////////////////////////////////
+
+#define gameover(game) (game.board.state == DRAW || game.board.state == WHITE_WIN || game.board.state == BLACK_WIN)
+
 /*
          source_sq            6 bits (0-5)      0-63     (a8-h1)
          target_sq            6 bits (6-11)     0-63     (a8-h1)
@@ -95,6 +101,10 @@ void encode_move_capture_score(U32* move, BoardState *board) {
     (*move) |= (capture_score<<21);
     return;
 }
+
+/*/////////////////////////////////////////////////////////////////////////////
+                          Section: GameStateNode and minimax
+/*/////////////////////////////////////////////////////////////////////////////
 
 struct GameStateNode1 {
     U32 prev_move;
@@ -198,29 +208,66 @@ minimax_result minimax(GameStateNode1* root, int depth) {
     return best;
 }
 
-#define gameover(game) (game.board.state == DRAW || game.board.state == WHITE_WIN || game.board.state == BLACK_WIN)
+/*/////////////////////////////////////////////////////////////////////////////
+                          Section: Unit tests
+/*/////////////////////////////////////////////////////////////////////////////
 
-int main() {
-    init_engine();
-    std::cout << "starting hand_tuned_model.cpp\n";
-
+void test_minimax_timings(int max_depth = 8) {
     GameStateNode1 game;
 
-    for (int i = 1; i<=10; i++) {
+    for (int i = 1; i<=max_depth; i++) {
         auto t0 = timestamp();
         minimax(&game, i);
         auto t1 = timestamp();
         std::cout << "depth " << i << ", time = " << delta_timestamp_us(t0,t1)/1000000.0 << " s\n";
     }
-    // for (int i=1; i<=10; i++) {
-    //     // std::cout << "i: " << i << std::endl;
-    //     auto r = minimax(&game, 6);
-    //     game = r.best_child;
-    //     BoardState::print(&game.board);
-    //     if (gameover(game)) {
-    //         break;
-    //     }
-    // }
+}
+
+void test_minimax_checkmates() {
+    bool pass1 = false;
+    bool pass2 = false;
+
+    const char* fen1 = "rnb1kbnr/ppppqppp/8/8/8/7P/PPPPB1PP/RNB4K b kq - 0 1\n";
+    GameStateNode1 game1(NULL, 0, fen1);
+    for (int i=1; i<=10; i++) {
+        auto r = minimax(&game1, 6);
+        game1 = r.best_child;
+        BoardState::print(&game1.board);
+        if (gameover(game1)) {
+            pass1 = (i==3);
+            break;
+        }
+    }
+
+    const char* fen2 = "nb5k/ppppn1pp/6pr/8/5b2/8/PPPPQPPP/RNB1KBNR w KQ - 0 1\n";
+    GameStateNode1 game2(NULL, 0, fen2);
+    for (int i=1; i<=10; i++) {
+        auto r = minimax(&game2, 6);
+        game2 = r.best_child;
+        BoardState::print(&game2.board);
+        if (gameover(game2)) {
+            pass2 = (i==5);
+            break;
+        }
+    }
+
+    if (pass1 && pass2) {
+        std::cout << "pass\n";
+    }
+    else {
+        std::cout << "fail\n";
+    }
+}
+
+/*/////////////////////////////////////////////////////////////////////////////
+                          Section: Main
+/*/////////////////////////////////////////////////////////////////////////////
+
+int main() {
+    init_engine();
+    std::cout << "starting hand_tuned_model.cpp\n";
+
+    test_minimax_timings();
 
     return 0;
 }
