@@ -244,11 +244,12 @@ constexpr U64 sq_bit[65] = {
    castle_kingside      1 bit  (18)       0-1      (true or false)
    castle_queenside     1 bit  (19)       0-1      (true or false)
    capture              1 bit  (20)       0-1      (true or false)
-   promotion_type       4 bits (27-30)    1-4,7-10 (WHITE_KNIGHT, ..., WHITE_QUEEN, BLACK_KNIGHT, ..., BLACK_QUEEN)
-   promotion            1 bit  (31)       0-1      (true or false)
+   promotion_type       4 bits (26-29)    1-4,7-10 (WHITE_KNIGHT, ..., WHITE_QUEEN, BLACK_KNIGHT, ..., BLACK_QUEEN)
+   promotion            1 bit  (30)       0-1      (true or false)
 
    Not included:
-   capture_score        4 bits (21-25)    0-16     (capturing_piece_score - captured_piece_score)
+   capture_score        5 bits (21-25)    0-16     (capturing_piece_score - captured_piece_score)
+   PV                   1 bit  (31)       0-1      (for iterative deepening) //todo
  */
 
 inline U32 encode_move(
@@ -272,20 +273,20 @@ inline U32 encode_move(
          (castle_kingside<<18) |
         (castle_queenside<<19) |
                  (capture<<20) |
-    (promotion_piece_type<<27) | 
-               (promotion<<31);
+    (promotion_piece_type<<26) | 
+               (promotion<<30);
 }
 
 #define decode_move_source_sq(move)               (int(move & 63))
 #define decode_move_target_sq(move)               (int((move>>6) & 63))
 #define decode_move_piece_type(move)              (int((move>>12) & 15))
-#define decode_move_promotion_piece_type(move)    (int((move>>27) & 15))
-#define decode_move_promotion(move)               (int((move>>31) & 1))
 #define decode_move_double_pawn_push(move)        (int((move>>16) & 1))
-#define decode_move_capture(move)                 (int((move>>20) & 1))
 #define decode_move_enpassant_capture(move)       (int((move>>17) & 1))
 #define decode_move_castle_kingside(move)         (int((move>>18) & 1))
 #define decode_move_castle_queenside(move)        (int((move>>19) & 1))
+#define decode_move_capture(move)                 (int((move>>20) & 1))
+#define decode_move_promotion_piece_type(move)    (int((move>>26) & 15))
+#define decode_move_promotion(move)               (int((move>>30) & 1))
 
 /* Inputs:
    captured_piece       4 bits (0-3)       0-11,12 (WHITE_PAWN - BLACK_KING, NO_PIECE)

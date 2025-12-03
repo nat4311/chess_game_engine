@@ -22,6 +22,7 @@ struct BoardState {
         U32 move_list[max_move_index];
         int moves_found = 0;
         bool generated = false;
+        bool capture_scores_encoded = false;
     };
 
     // side (WHITE or BLACK)
@@ -85,6 +86,7 @@ struct BoardState {
         BoardState new_board = *board;
         new_board.pl.generated = false;
         new_board.l.generated = false;
+        new_board.l.capture_scores_encoded = false;
         return new_board;
     }
 

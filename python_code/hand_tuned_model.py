@@ -147,13 +147,14 @@ class GameStateNode1:
     single thread timings
 
     minimax timings from start pos, no move ordering
-    1 0.0006825476884841919 s
-    2 0.007834275253117085 s
-    3 0.017839105799794197 s
-    4 0.764815291389823 s
-    5 0.8085004044696689 s
-    6 162.43249557446688 s
-    7 69.25481910258532 s
+    depth 1, time = 0.0006825476884841919 s
+    depth 2, time = 0.007834275253117085 s
+    depth 3, time = 0.017839105799794197 s
+    depth 4, time = 0.764815291389823 s
+    depth 5, time = 0.8085004044696689 s
+    depth 6, time = 162.43249557446688 s
+    depth 7, time = 69.25481910258532 s
+    depth 8, dnf
 
     after moving count_legal_moves and legal move generation (for minimax) to c++
     depth 1, time = 8.558016270399094e-05 s
@@ -163,8 +164,9 @@ class GameStateNode1:
     depth 5, time = 0.08957733120769262 s
     depth 6, time = 15.086321806535125 s
     depth 7, time = 7.631460613571107 s
+    depth 8, dnf
 
-    in c++
+    all in c++
     depth 1, time = 1.7e-05 s
     depth 2, time = 0.000131 s
     depth 3, time = 0.000345 s
@@ -173,6 +175,19 @@ class GameStateNode1:
     depth 6, time = 4.34886 s
     depth 7, time = 1.94325 s
     depth 8, time = 433.817 s
+    depth 9, dnf
+
+    move ordering with capture score
+    depth 1, time = 1.9e-05 s
+    depth 2, time = 7.6e-05 s
+    depth 3, time = 0.00112 s
+    depth 4, time = 0.006624 s
+    depth 5, time = 0.072729 s
+    depth 6, time = 0.582312 s
+    depth 7, time = 4.93559 s
+    depth 8, time = 35.927 s
+    depth 9, time = 191.175 s
+    depth 10, time = 1529.02 s
 
     """
     def __init__(self, board=None, prev_move = None, fen=None):

@@ -2,6 +2,7 @@
 #include "engine.cpp"
 #include <limits>
 #include <unistd.h>
+#include <algorithm>
 
 float inf = std::numeric_limits<double>::infinity();
 
@@ -20,86 +21,107 @@ float inf = std::numeric_limits<double>::infinity();
          castle_kingside      1 bit  (18)       0-1      (true or false)
          castle_queenside     1 bit  (19)       0-1      (true or false)
          capture              1 bit  (20)       0-1      (true or false)
-(NEW)    capture_score        4 bits (21-25)    0-16     (capturing_piece_score - captured_piece_score)
-         promotion_type       4 bits (27-30)    1-4,7-10 (WHITE_KNIGHT, ..., WHITE_QUEEN, BLACK_KNIGHT, ..., BLACK_QUEEN)
-         promotion            1 bit  (31)       0-1      (true or false)
+(NEW)    capture_score        5 bits (21-25)    0-17     (capturing_piece_score - captured_piece_score)
+         promotion_type       4 bits (26-29)    1-4,7-10 (WHITE_KNIGHT, ..., WHITE_QUEEN, BLACK_KNIGHT, ..., BLACK_QUEEN)
+         promotion            1 bit  (30)       0-1      (true or false)
  */
 void encode_move_capture_score(U32* move, BoardState *board) {
     if (!decode_move_capture(*move)) { return; }
-
     int piece_type = decode_move_piece_type(*move);
+    if (piece_type == WHITE_KING || piece_type == BLACK_KING) {
+        return;
+    }
     int target_sq = decode_move_target_sq(*move);
+    int enpassant_capture = decode_move_enpassant_capture(*move);
     U64 target_sq_bit = sq_bit[target_sq];
     int captured_piece_type;
 
-    if (board->turn == WHITE) {
-        if (board->bitboards[BLACK_PAWN] & target_sq_bit) {
-            captured_piece_type = BLACK_PAWN;
-            goto CAPTURED_PIECE_FOUND;
+    if (enpassant_capture) {
+        if (enpassant_capture) {
+            if (board->turn == WHITE) {
+                captured_piece_type = BLACK_PAWN;
+            }
+            else {
+                captured_piece_type = WHITE_PAWN;
+            }
         }
-        if (board->bitboards[BLACK_KNIGHT] & target_sq_bit) {
-            captured_piece_type = BLACK_KNIGHT;
-            goto CAPTURED_PIECE_FOUND;
-        }
-        if (board->bitboards[BLACK_BISHOP] & target_sq_bit) {
-            captured_piece_type = BLACK_BISHOP;
-            goto CAPTURED_PIECE_FOUND;
-        }
-        if (board->bitboards[BLACK_ROOK] & target_sq_bit) {
-            captured_piece_type = BLACK_ROOK;
-            goto CAPTURED_PIECE_FOUND;
-        }
-        if (board->bitboards[BLACK_QUEEN] & target_sq_bit) {
-            captured_piece_type = BLACK_QUEEN;
-            goto CAPTURED_PIECE_FOUND;
-        }
-        if (board->bitboards[BLACK_KING] & target_sq_bit) {
-            captured_piece_type = BLACK_KING;
-            BoardState::print(board);
-            print_move(*move, 1);
-            throw std::runtime_error("tried to capture king\n");
-        }
-        BoardState::print(board);
-        print_move(*move, 1);
-        throw std::runtime_error("move has capture flag set but no captured_piece was found\n");
     }
-    else { // board->turn == BLACK
-        if (board->bitboards[WHITE_PAWN] & target_sq_bit) {
-            captured_piece_type = WHITE_PAWN;
-            goto CAPTURED_PIECE_FOUND;
+    else {
+        if (board->turn == WHITE) {
+            if (board->bitboards[BLACK_PAWN] & target_sq_bit) {
+                captured_piece_type = BLACK_PAWN;
+            }
+            else if (board->bitboards[BLACK_KNIGHT] & target_sq_bit) {
+                captured_piece_type = BLACK_KNIGHT;
+            }
+            else if (board->bitboards[BLACK_BISHOP] & target_sq_bit) {
+                captured_piece_type = BLACK_BISHOP;
+            }
+            else if (board->bitboards[BLACK_ROOK] & target_sq_bit) {
+                captured_piece_type = BLACK_ROOK;
+            }
+            else if (board->bitboards[BLACK_QUEEN] & target_sq_bit) {
+                captured_piece_type = BLACK_QUEEN;
+            }
+            else if (board->bitboards[BLACK_KING] & target_sq_bit) {
+                int capture_score = 18;
+                (*move) |= (capture_score<<21);
+                return;
+            }
+            else {
+                BoardState::print(board);
+                print_move(*move, 1);
+                throw std::runtime_error("(inside encode_move_capture_score()) move has capture flag set but no captured_piece was found\n");
+            }
         }
-        if (board->bitboards[WHITE_KNIGHT] & target_sq_bit) {
-            captured_piece_type = WHITE_KNIGHT;
-            goto CAPTURED_PIECE_FOUND;
+        else { // board->turn == BLACK
+            if (board->bitboards[WHITE_PAWN] & target_sq_bit) {
+                captured_piece_type = WHITE_PAWN;
+            }
+            else if (board->bitboards[WHITE_KNIGHT] & target_sq_bit) {
+                captured_piece_type = WHITE_KNIGHT;
+            }
+            else if (board->bitboards[WHITE_BISHOP] & target_sq_bit) {
+                captured_piece_type = WHITE_BISHOP;
+            }
+            else if (board->bitboards[WHITE_ROOK] & target_sq_bit) {
+                captured_piece_type = WHITE_ROOK;
+            }
+            else if (board->bitboards[WHITE_QUEEN] & target_sq_bit) {
+                captured_piece_type = WHITE_QUEEN;
+            }
+            else if (board->bitboards[WHITE_KING] & target_sq_bit) {
+                int capture_score = 18;
+                (*move) |= (capture_score<<21);
+                return;
+            }
+            else {
+                BoardState::print(board);
+                print_move(*move, 1);
+                throw std::runtime_error("(inside encode_move_capture_score()) move has capture flag set but no captured_piece was found\n");
+            }
         }
-        if (board->bitboards[WHITE_BISHOP] & target_sq_bit) {
-            captured_piece_type = WHITE_BISHOP;
-            goto CAPTURED_PIECE_FOUND;
-        }
-        if (board->bitboards[WHITE_ROOK] & target_sq_bit) {
-            captured_piece_type = WHITE_ROOK;
-            goto CAPTURED_PIECE_FOUND;
-        }
-        if (board->bitboards[WHITE_QUEEN] & target_sq_bit) {
-            captured_piece_type = WHITE_QUEEN;
-            goto CAPTURED_PIECE_FOUND;
-        }
-        if (board->bitboards[WHITE_KING] & target_sq_bit) {
-            captured_piece_type = WHITE_KING;
-            BoardState::print(board);
-            print_move(*move, 1);
-            throw std::runtime_error("tried to capture king\n");
-        }
-        BoardState::print(board);
-        print_move(*move, 1);
-        throw std::runtime_error("move has capture flag set but no captured_piece was found\n");
     }
-    CAPTURED_PIECE_FOUND:
 
-    int capture_score = piece_score[piece_type] - piece_score[captured_piece_type] + 8;
-    assert (capture_score>=0 && capture_score<=16);
+    int capture_score = piece_score[captured_piece_type] - piece_score[piece_type] + 9;
+    if (capture_score<1 || capture_score>17) {
+        std::cout << "invalid capture score: " << capture_score << "\n\n";
+        throw(1);
+    };
+
     (*move) |= (capture_score<<21);
     return;
+}
+
+void sort_l_moves(BoardState* board) {
+    assert (board->l.generated);
+    if (!board->l.capture_scores_encoded) {
+        for (int i = 0; i<board->l.moves_found; i++) {
+            encode_move_capture_score(&(board->l.move_list[i]), board);
+        }
+    }
+
+    std::sort(&board->l.move_list[0], &board->l.move_list[board->l.moves_found], std::greater<unsigned int>());
 }
 
 /*/////////////////////////////////////////////////////////////////////////////
@@ -158,6 +180,7 @@ struct minimax_result {
 
 minimax_result _minimax(GameStateNode1* node, int depth, bool maximizing_player=true, float alpha=-inf, float beta=inf) {
     BoardState::generate_l_moves(&(node->board));
+    sort_l_moves(&(node->board));
     if (depth==0 || node->board.state==DRAW || node->board.state==WHITE_WIN || node->board.state==BLACK_WIN) {
         minimax_result res = {*node, node->eval()};
         return res;
@@ -212,7 +235,7 @@ minimax_result minimax(GameStateNode1* root, int depth) {
                           Section: Unit tests
 /*/////////////////////////////////////////////////////////////////////////////
 
-void test_minimax_timings(int max_depth = 8) {
+void test_minimax_timings(int max_depth = 10) {
     GameStateNode1 game;
 
     for (int i = 1; i<=max_depth; i++) {
@@ -268,6 +291,14 @@ int main() {
     std::cout << "starting hand_tuned_model.cpp\n";
 
     test_minimax_timings();
+    // test_minimax_checkmates();
+
+    // const char* fen = "rnb1kbnr/ppp1pppp/8/8/8/8/qPPPPPPP/RNBQKBNR w KQkq - 0 1\n";
+    // BoardState board;
+    // BoardState::load(&board, fen);
+    // BoardState::print_l_moves(&board);
+    // sort_l_moves(&board);
+    // BoardState::print_l_moves(&board);
 
     return 0;
 }
