@@ -210,7 +210,7 @@ def hand_tuned_model_play_stockfish(info_str = None, minmax_search_depth = 7, mi
     stockfish = Stockfish("/usr/games/stockfish")
 
     model_elo = elo_records_dict["hand_tuned_model_elo"]
-    stockfish_elo = round(model_elo) + random.randint(-50,100)
+    stockfish_elo = round(model_elo) + random.randint(200,300)
     stockfish_elo = max(stockfish_elo, min_stockfish_elo)
     stockfish.set_elo_rating(stockfish_elo)
 
