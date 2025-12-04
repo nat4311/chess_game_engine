@@ -28,6 +28,11 @@ struct GameStateNode1 {
         }
         else {
             board = BoardState::copy(prev_board);
+            // TODO: remove this debug stuff
+            // if (prev_move == 91851) {
+            //     std::cout << "found it\n";
+            //     throw(1);
+            // }
             if (!BoardState::make(&board, prev_move)) {
                 std::cout << "new GameStateNode1 failed to create: make(prev_move) failed";
 
@@ -37,11 +42,11 @@ struct GameStateNode1 {
                 std::cout << "occupancies both\n";
                 print_bitboard(prev_board->occupancies[BOTH]);
 
-                std::cout << "occupancies white\n";
-                print_bitboard(prev_board->occupancies[WHITE]);
-
-                std::cout << "occupancies black\n";
-                print_bitboard(prev_board->occupancies[BLACK]);
+                // std::cout << "occupancies white\n";
+                // print_bitboard(prev_board->occupancies[WHITE]);
+                //
+                // std::cout << "occupancies black\n";
+                // print_bitboard(prev_board->occupancies[BLACK]);
 
                 std::cout << "prev_move:\n";
                 print_move(prev_move, true);
@@ -56,11 +61,11 @@ struct GameStateNode1 {
                     std::cout << "occupancies both\n";
                     print_bitboard(node->board.occupancies[BOTH]);
 
-                    std::cout << "occupancies white\n";
-                    print_bitboard(node->board.occupancies[WHITE]);
-
-                    std::cout << "occupancies black\n";
-                    print_bitboard(node->board.occupancies[BLACK]);
+                    // std::cout << "occupancies white\n";
+                    // print_bitboard(node->board.occupancies[WHITE]);
+                    //
+                    // std::cout << "occupancies black\n";
+                    // print_bitboard(node->board.occupancies[BLACK]);
 
                     std::cout << "prev_move:\n";
                     print_move(node->prev_move, true);
@@ -109,8 +114,8 @@ struct minimax_result1 {
 };
 
 minimax_result1 _minimax1(GameStateNode1* node, int depth, bool maximizing_player=true, float alpha=-inf, float beta=inf) {
-    BoardState::generate_l_moves(&(node->board));
-    BoardState::sort_l_moves(&(node->board));
+    BoardState::generate_l_moves(&node->board);
+    BoardState::sort_l_moves(&node->board);
     if (depth==0 || node->board.state==DRAW || node->board.state==WHITE_WIN || node->board.state==BLACK_WIN) {
         minimax_result1 res = {*node, node->eval()};
         return res;
@@ -292,23 +297,78 @@ int main() {
     std::cout << "starting hand_tuned_model.cpp\n";
 
     // test_minimax1_omp_timings();
+    test_minimax1_omp_checkmates();
 
-    /////////////// DEBUG
-    BoardState board;
-    U32 move = 67892;
-    BoardState::make(&board, move);
-    move = 30150;
-    BoardState::make(&board, move);
-    move = 1828;
-    BoardState::make(&board, move);
-    move = 91851;
-    BoardState::make(&board, move);
-    // move = 20055260;
-    // BoardState::make(&board, move);
+    // DEBUG 2
+    // GameStateNode1 root;
+    // U32 move = 67892;
+    // // GameStateNode1 child = GameStateNode1(&root.board, move, "", &root);
+    // GameStateNode1 child = GameStateNode1(&root.board, move);
+    // BoardState::print(&child.board);
+    // // minimax1(&child, 8);
+    //
+    // move = 30150;
+    // // GameStateNode1 child2 = GameStateNode1(&child.board, move, "", &child);
+    // GameStateNode1 child2 = GameStateNode1(&child.board, move);
+    // BoardState::print(&child2.board);
+    // // minimax1(&child2, 7);
+    //
+    // move = 1828;
+    // // GameStateNode1 child3 = GameStateNode1(&child2.board, move, "", &child2);
+    // GameStateNode1 child3 = GameStateNode1(&child2.board, move);
+    // BoardState::print(&child3.board);
+    // // minimax1(&child3, 6);
+    //
+    // move = 91851;
+    // // GameStateNode1 child4 = GameStateNode1(&child3.board, move, "", &child3);
+    // GameStateNode1 child4 = GameStateNode1(&child3.board, move);
+    // BoardState::print(&child4.board);
+    // std::cout << "before\n";
+    // print_bitboard(child4.board.occupancies[BOTH]);
+    // // minimax1(&child4, 5);
+    // BoardState::generate_l_moves(&child4.board);
+    // // BoardState::sort_l_moves(&child4.board);
+    // // for (int i = 0; i < child4.board.l.moves_found; i++) {
+    // //     GameStateNode1 child = GameStateNode1(&child4.board, child4.board.l.move_list[i], "", &child4);
+    // // }
+    // std::cout << "after\n";
+    // print_bitboard(child4.board.occupancies[BOTH]);
 
-    BoardState::print(&board);
-    print_bitboard(board.occupancies[BOTH]);
-    /////////////// END DEBUG
+    // END DEBUG 2
+
+    // /////////////// DEBUG
+    // GameStateNode1 game;
+    // BoardState::print(&game.board);
+    // print_bitboard(game.board.occupancies[BOTH]);
+    //
+    // U32 move = 67892;
+    // print_move(move, true);
+    // std::cout << "\n\n";
+    // game = GameStateNode1(&game.board, move);
+    // BoardState::print(&game.board);
+    // print_bitboard(game.board.occupancies[BOTH]);
+    //
+    // move = 30150;
+    // print_move(move, true);
+    // std::cout << "\n\n";
+    // game = GameStateNode1(&game.board, move);
+    // BoardState::print(&game.board);
+    // print_bitboard(game.board.occupancies[BOTH]);
+    //
+    // move = 1828;
+    // print_move(move, true);
+    // std::cout << "\n\n";
+    // game = GameStateNode1(&game.board, move);
+    // BoardState::print(&game.board);
+    // print_bitboard(game.board.occupancies[BOTH]);
+    //
+    // move = 91851;
+    // print_move(move, true);
+    // std::cout << "\n\n";
+    // game = GameStateNode1(&game.board, move);
+    // BoardState::print(&game.board);
+    // print_bitboard(game.board.occupancies[BOTH]);
+    // /////////////// END DEBUG
 
 
 

@@ -592,14 +592,14 @@ struct BoardState {
                 if (board->turn == WHITE) {
                     assert (captured_piece_type == BLACK_PAWN);
                     capture_sq_bit <<= 8;
-                    board->occupancies[BOTH] ^= source_sq_bit;
+                    board->occupancies[BOTH] ^= source_sq_bit | capture_sq_bit | target_sq_bit;
                     board->bitboards[BLACK_PAWN] ^= capture_sq_bit;
                     board->occupancies[BLACK] ^= capture_sq_bit;
                 }
                 else {
                     assert (captured_piece_type == WHITE_PAWN);
                     capture_sq_bit >>= 8;
-                    board->occupancies[BOTH] ^= source_sq_bit;
+                    board->occupancies[BOTH] ^= source_sq_bit | capture_sq_bit | target_sq_bit;
                     board->bitboards[WHITE_PAWN] ^= capture_sq_bit;
                     board->occupancies[WHITE] ^= capture_sq_bit;
                 }
@@ -1079,6 +1079,11 @@ struct BoardState {
             U32 move = board->pl.move_list[i];
             if (BoardState::make(board, move, true)) {
                 board->l.move_list[board->l.moves_found++] = move;
+                // TODO: remove
+                // std::cout << "\n\n\n\n";
+                // print_move(move, true);
+                // print_bitboard(board->occupancies[BOTH]);
+                // endremove
             }
         }
         
