@@ -202,8 +202,15 @@ class GameStateNode1:
     depth 10, time = 1529.02 s
 
     c++, open mp
-    depth 9, time = 72.6338 s
-    depth 10, time = 428.335 s
+    depth 1, time = 0.000461 s
+    depth 2, time = 8.4e-05 s
+    depth 3, time = 0.000601 s
+    depth 4, time = 0.002885 s
+    depth 5, time = 0.021282 s
+    depth 6, time = 0.10138 s
+    depth 7, time = 1.39301 s
+    depth 8, time = 7.34563 s
+    depth 9, time = 70.1452 s
 
     """
     def __init__(self, board=None, prev_move = None, fen=None):

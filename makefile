@@ -11,11 +11,11 @@ test:
 	g++ -DMAIN -O3 -Wall cpp_code/engine.cpp cpp_code/attacks.cpp -o build/engine_test
 	./build/engine_test
 
-unit_test:
+engine_test:
 	g++ -O3 -Wall -DMAIN cpp_code/engine.cpp cpp_code/attacks.cpp -o build/engine_test
 	./build/engine_test
 
-hand:
+hand_test:
 	g++ -DMAIN -fopenmp -O3 -Wall cpp_code/hand_tuned_model.cpp cpp_code/attacks.cpp -o build/hand_tuned_model
 	./build/hand_tuned_model
 

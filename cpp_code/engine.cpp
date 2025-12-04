@@ -302,7 +302,7 @@ struct BoardState {
                 king_sq_after_move = c8;
             }
         }
-        else { // not castling or promotion move
+        else { // not castling move
             U64 source_sq_bit = sq_bit[source_sq];
             U64 target_sq_bit = sq_bit[target_sq];
             U64 source_and_target_sq_bits = source_sq_bit | target_sq_bit;
@@ -394,21 +394,21 @@ struct BoardState {
             }
 
             if (promotion) {
-                // if (
-                //     promotion_piece_type != WHITE_QUEEN &&
-                //     promotion_piece_type != WHITE_ROOK &&
-                //     promotion_piece_type != WHITE_KNIGHT &&
-                //     promotion_piece_type != WHITE_BISHOP &&
-                //     promotion_piece_type != BLACK_QUEEN &&
-                //     promotion_piece_type != BLACK_ROOK &&
-                //     promotion_piece_type != BLACK_KNIGHT &&
-                //     promotion_piece_type != BLACK_BISHOP
-                // ) {
-                //     std::cout << "promotion_piece_type invalid: " << promotion_piece_type << "\n";
-                //     print_move(move, true);
-                //     std::cout << (source_sq_bit & rank_2) << " debug\n";
-                //     throw std::runtime_error("invalid promotion_piece_type\n");
-                // }
+                if (
+                    promotion_piece_type != WHITE_QUEEN &&
+                    promotion_piece_type != WHITE_ROOK &&
+                    promotion_piece_type != WHITE_KNIGHT &&
+                    promotion_piece_type != WHITE_BISHOP &&
+                    promotion_piece_type != BLACK_QUEEN &&
+                    promotion_piece_type != BLACK_ROOK &&
+                    promotion_piece_type != BLACK_KNIGHT &&
+                    promotion_piece_type != BLACK_BISHOP
+                ) {
+                    std::cout << "promotion_piece_type invalid: " << promotion_piece_type << "\n";
+                    print_move(move, true);
+                    std::cout << (source_sq_bit & rank_2) << " debug\n";
+                    throw std::runtime_error("invalid promotion_piece_type\n");
+                }
                 board->bitboards[moving_piece_type] ^= source_sq_bit;
                 board->occupancies[board->turn] ^= source_and_target_sq_bits;
                 board->bitboards[promotion_piece_type] ^= target_sq_bit;
@@ -428,10 +428,18 @@ struct BoardState {
 
         ////////////// unmake the move immediately (ie: if only checking legality)
         if (unmake_move_flag) {
+            // // TODO: remove
+            // std::cout << "dd2\n";
+            // print_move(move, true);
+            // print(board);
+            // // endremove
             unmake(board, source_sq, target_sq, moving_piece_type, enpassant_capture, captured_piece_type, castle_kingside, castle_queenside, promotion, promotion_piece_type);
+            // // remove
+            // print(board);
+            // throw(1);
+            // // endremove
             return 1;
         }
-
 
         /////////////// board state updates
         if (board->turn == BLACK) {
@@ -534,6 +542,10 @@ struct BoardState {
 
     // assumes that only the pieces have been moved, board state variables have not updated yet (turn, ep, castling, halfmove, etc)
     static void unmake(BoardState* board, int source_sq, int target_sq, int moved_piece_type, int enpassant_capture, int captured_piece_type, int castle_kingside, int castle_queenside, int promotion, int promotion_piece_type) {
+        // // remove
+        // std::cout << "dd4\n";
+        // print(board);
+        // // end remove
         if (castle_kingside) {
             if (board->turn == WHITE) {
                 board->bitboards[WHITE_KING] ^= (E1|G1);
@@ -563,20 +575,28 @@ struct BoardState {
             }
         }
         else if (promotion) {
+            // // TODO: remove
+            // std::cout << "dd5   " << moved_piece_type << std::endl;
+            // print(board);
+            // // endremove
             U64 source_sq_bit = sq_bit[source_sq];
             U64 target_sq_bit = sq_bit[target_sq];
             U64 source_and_target_sq_bits = source_sq_bit | target_sq_bit;
             board->bitboards[moved_piece_type] ^= source_sq_bit;
             board->bitboards[promotion_piece_type] ^= target_sq_bit;
-            board->bitboards[board->turn] ^= source_and_target_sq_bits;
+            board->occupancies[board->turn] ^= source_and_target_sq_bits;
             if (captured_piece_type == NO_PIECE) {
                 board->bitboards[BOTH] ^= source_and_target_sq_bits;
             }
             else {
                 board->bitboards[captured_piece_type] ^= target_sq_bit;
-                board->bitboards[!board->turn] ^= target_sq_bit;
-                board->bitboards[BOTH] ^= source_sq_bit;
+                board->occupancies[!board->turn] ^= target_sq_bit;
+                board->occupancies[BOTH] ^= source_sq_bit;
             }
+            // // remove
+            // std::cout << "dd6\n";
+            // print(board);
+            // // end remove
         }
         else { // not castling or promotion move
             U64 source_sq_bit = sq_bit[source_sq];
@@ -611,6 +631,11 @@ struct BoardState {
                 board->occupancies[!board->turn] ^= target_sq_bit;
             }
         }
+        //
+        // // remove
+        // std::cout << "dd5\n";
+        // print(board);
+        // // end remove
     }
 
     static int get_state(BoardState* board) {
@@ -1079,13 +1104,15 @@ struct BoardState {
             U32 move = board->pl.move_list[i];
             if (BoardState::make(board, move, true)) {
                 board->l.move_list[board->l.moves_found++] = move;
-                // TODO: remove
-                // std::cout << "\n\n\n\n";
-                // print_move(move, true);
-                // print_bitboard(board->occupancies[BOTH]);
-                // endremove
             }
         }
+
+        // //TODO: remove
+        // for (int i = 0; i<board->l.moves_found; i++) {
+        //     U32 move = board->l.move_list[i];
+        //     assert (BoardState::make(board, move, true));
+        // }
+        // // endremove
         
         if (board->l.moves_found == 0) {
             if (BoardState::king_is_attacked(board)) {
@@ -1582,6 +1609,50 @@ void init_engine() {
 int main() {
     init_engine();
     unit_tests();
+
+
+    // const char* fen = "rnb1qbnr/ppp1Pkp1/8/5p1p/7P/8/PPPP1PP1/RNBQKBNR w KQ - 1 6\n";
+    // U32 move = 1141899596;
+    // BoardState board;
+    // BoardState::load(&board, fen);
+    // std::cout << "before\n";
+    // BoardState::print(&board);
+    // bool b = BoardState::make(&board, move, true);
+    // std::cout << "b: " << b << "\n";
+    // std::cout << "after\n";
+    // BoardState::print(&board);
+
+    //
+    // const char* fen = "rnb1qbnr/ppp1Pkp1/8/5p1p/7P/8/PPPP1PP1/RNBQKBNR w KQ - 1 6\n";
+    // BoardState board;
+    // BoardState::load(&board, fen);
+    // BoardState::print(&board);
+    //
+    // BoardState::generate_l_moves(&board);
+    // U32 move = board.l.move_list[0]; 
+    // print_move(move, false);
+    // assert(BoardState::make(&board, move, true));
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    // for (int i = 0; i<board.l.moves_found; i++) {
+    //     U32 move = board.l.move_list[i]; 
+    //     print_move(move, false);
+    //     assert(BoardState::make(&board, move, true));
+    // }
+
     // perft_suite(false);
 
     // char fen[] = "rnbqkbnr/p3ppp1/2pp4/1P4Pp/8/8/1PPPPP1P/RNBQKBNR w KQkq - 0 3\n";
