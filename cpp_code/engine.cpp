@@ -1612,9 +1612,9 @@ void test_l_move_generation() {
 #ifndef OVERRIDE_ENGINE_CPP_MAIN 
 int main() {
     init_engine();
-    // unit_tests();
+    unit_tests();
 
-    test_l_move_generation();
+    // test_l_move_generation();
 
     // perft_suite(false);
 
