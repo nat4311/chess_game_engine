@@ -428,7 +428,7 @@ struct BoardState {
 
         ////////////// unmake the move immediately (ie: if only checking legality)
         if (unmake_move_flag) {
-            // // TODO: remove
+            // // remove
             // std::cout << "dd2\n";
             // print_move(move, true);
             // print(board);
@@ -575,7 +575,7 @@ struct BoardState {
             }
         }
         else if (promotion) {
-            // // TODO: remove
+            // // remove
             // std::cout << "dd5   " << moved_piece_type << std::endl;
             // print(board);
             // // endremove
@@ -586,7 +586,7 @@ struct BoardState {
             board->bitboards[promotion_piece_type] ^= target_sq_bit;
             board->occupancies[board->turn] ^= source_and_target_sq_bits;
             if (captured_piece_type == NO_PIECE) {
-                board->bitboards[BOTH] ^= source_and_target_sq_bits;
+                board->occupancies[BOTH] ^= source_and_target_sq_bits;
             }
             else {
                 board->bitboards[captured_piece_type] ^= target_sq_bit;
@@ -596,6 +596,7 @@ struct BoardState {
             // // remove
             // std::cout << "dd6\n";
             // print(board);
+            // throw(1);
             // // end remove
         }
         else { // not castling or promotion move
@@ -1107,13 +1108,6 @@ struct BoardState {
                 board->l.move_list[board->l.moves_found++] = move;
             }
         }
-
-        // //TODO: remove
-        // for (int i = 0; i<board->l.moves_found; i++) {
-        //     U32 move = board->l.move_list[i];
-        //     assert (BoardState::make(board, move, true));
-        // }
-        // // endremove
         
         if (board->l.moves_found == 0) {
             if (BoardState::king_is_attacked(board)) {
@@ -1606,10 +1600,22 @@ void init_engine() {
     std::cout << "    attacks initialized in " << delta_timestamp_ms(t0, t1) << " ms\n\n";
 }
 
+void test_l_move_generation() {
+    const char* fen = "8/prPK1pk1/8/4r2p/1b6/8/1PPP3P/1RB2B2 w - - 3 28\n";
+    BoardState board;
+    BoardState::load(&board, fen);
+    BoardState::generate_l_moves(&board);
+    BoardState::print(&board);
+    BoardState::print_l_moves(&board);
+}
+
 #ifndef OVERRIDE_ENGINE_CPP_MAIN 
 int main() {
     init_engine();
-    unit_tests();
+    // unit_tests();
+
+    test_l_move_generation();
+
     // perft_suite(false);
 
     // perft_suite(false);
