@@ -1,0 +1,198 @@
+Initializing engine...
+    attacks initialized in 158 ms
+
+starting hand_tuned_model.cpp
+depth 1, time = 5.1e-05 s
+depth 2, time = 0.000224 s
+depth 3, time = 0.003422 s
+depth 4, time = 0.020026 s
+depth 5, time = 0.221698 s
+depth 6, time = 1.67532 s
+depth 7, time = 14.5976 s
+
+ Performance counter stats for './build/hand_tuned_model':
+
+         16,676.63 msec task-clock                       #    1.000 CPUs utilized             
+                62      context-switches                 #    3.718 /sec                      
+                30      cpu-migrations                   #    1.799 /sec                      
+               662      page-faults                      #   39.696 /sec                      
+    90,394,438,832      cycles                           #    5.420 GHz                         (38.41%)
+     6,579,556,041      stalled-cycles-frontend          #    7.28% frontend cycles idle        (38.42%)
+   297,513,479,829      instructions                     #    3.29  insn per cycle            
+                                                  #    0.02  stalled cycles per insn     (38.44%)
+    32,044,312,723      branches                         #    1.922 G/sec                       (38.47%)
+        98,292,945      branch-misses                    #    0.31% of all branches             (38.49%)
+   104,501,059,190      L1-dcache-loads                  #    6.266 G/sec                       (38.49%)
+       231,866,039      L1-dcache-load-misses            #    0.22% of all L1-dcache accesses   (38.49%)
+   <not supported>      LLC-loads                                                             
+   <not supported>      LLC-load-misses                                                       
+     2,690,776,162      L1-icache-loads                  #  161.350 M/sec                       (38.49%)
+           336,492      L1-icache-load-misses            #    0.01% of all L1-icache accesses   (38.49%)
+         5,405,875      dTLB-loads                       #  324.159 K/sec                       (38.49%)
+         1,209,453      dTLB-load-misses                 #   22.37% of all dTLB cache accesses  (38.46%)
+            48,885      iTLB-loads                       #    2.931 K/sec                       (38.44%)
+            27,592      iTLB-load-misses                 #   56.44% of all iTLB cache accesses  (38.42%)
+
+      16.678619813 seconds time elapsed
+
+      16.677529000 seconds user
+       0.000000000 seconds sys
+
+
+# To display the perf.data header info, please use --header/--header-only options.
+#
+#
+# Total Lost Samples: 0
+#
+# Samples: 64K of event 'cycles:P'
+# Event count (approx.): 84673816940
+#
+# Overhead  Command          Shared Object         Symbol                                                                                                                                                                                                                                          
+# ........  ...............  ....................  ................................................................................................................................................................................................................................................
+#
+    15.63%  hand_tuned_mode  hand_tuned_model      [.] BoardState::make(BoardState*, unsigned int, bool)
+     9.14%  hand_tuned_mode  hand_tuned_model      [.] BoardState::generate_pl_moves(BoardState*)
+     7.79%  hand_tuned_mode  hand_tuned_model      [.] BoardState::sq_is_attacked(BoardState*, int, int)
+     6.98%  hand_tuned_mode  hand_tuned_model      [.] BoardState::unmake(BoardState*, int, int, int, int, int, int, int, int, int)
+     6.51%  hand_tuned_mode  hand_tuned_model      [.] void std::__unguarded_linear_insert<unsigned int*, __gnu_cxx::__ops::_Val_comp_iter<std::greater<unsigned int> > >(unsigned int*, __gnu_cxx::__ops::_Val_comp_iter<std::greater<unsigned int> >)
+     6.48%  hand_tuned_mode  hand_tuned_model      [.] get_rook_attacks(int, unsigned long)
+     5.64%  hand_tuned_mode  hand_tuned_model      [.] get_bishop_attacks(int, unsigned long)
+     3.93%  hand_tuned_mode  hand_tuned_model      [.] std::greater<unsigned int>::operator()(unsigned int const&, unsigned int const&) const
+     3.43%  hand_tuned_mode  hand_tuned_model      [.] encode_move(int, int, int, int, int, int, int, int, int, int)
+     3.38%  hand_tuned_mode  hand_tuned_model      [.] std::remove_reference<unsigned int&>::type&& std::move<unsigned int&>(unsigned int&)
+     3.34%  hand_tuned_mode  hand_tuned_model      [.] bool __gnu_cxx::__ops::_Val_comp_iter<std::greater<unsigned int> >::operator()<unsigned int, unsigned int*>(unsigned int&, unsigned int*)
+     2.67%  hand_tuned_mode  hand_tuned_model      [.] BoardState::generate_l_moves(BoardState*)
+     2.34%  hand_tuned_mode  hand_tuned_model      [.] get_queen_attacks(int, unsigned long)
+     1.82%  hand_tuned_mode  hand_tuned_model      [.] bool __gnu_cxx::__ops::_Iter_comp_iter<std::greater<unsigned int> >::operator()<unsigned int*, unsigned int*>(unsigned int*, unsigned int*)
+     1.68%  hand_tuned_mode  hand_tuned_model      [.] get_pawn_attacks(int, int)
+     1.42%  hand_tuned_mode  hand_tuned_model      [.] void std::__insertion_sort<unsigned int*, __gnu_cxx::__ops::_Iter_comp_iter<std::greater<unsigned int> > >(unsigned int*, unsigned int*, __gnu_cxx::__ops::_Iter_comp_iter<std::greater<unsigned int> >)
+     1.39%  hand_tuned_mode  hand_tuned_model      [.] unsigned int* std::__unguarded_partition<unsigned int*, __gnu_cxx::__ops::_Iter_comp_iter<std::greater<unsigned int> > >(unsigned int*, unsigned int*, unsigned int*, __gnu_cxx::__ops::_Iter_comp_iter<std::greater<unsigned int> >)
+     1.33%  hand_tuned_mode  hand_tuned_model      [.] BoardState::copy(BoardState*)
+     1.30%  hand_tuned_mode  hand_tuned_model      [.] _minimax1(GameStateNode1*, int, bool, float, float)
+     1.11%  hand_tuned_mode  hand_tuned_model      [.] get_king_attacks(int)
+     0.98%  hand_tuned_mode  hand_tuned_model      [.] get_knight_attacks(int)
+     0.95%  hand_tuned_mode  hand_tuned_model      [.] GameStateNode1::GameStateNode1(BoardState*, unsigned int, char const*)
+     0.92%  hand_tuned_mode  hand_tuned_model      [.] BoardState::encode_move_capture_score(BoardState*, unsigned int*)
+     0.89%  hand_tuned_mode  libgcc_s.so.1         [.] __popcountdi2
+     0.86%  hand_tuned_mode  hand_tuned_model      [.] BoardState::sort_l_moves(BoardState*)
+     0.82%  hand_tuned_mode  hand_tuned_model      [.] __gnu_cxx::__ops::_Val_comp_iter<std::greater<unsigned int> > __gnu_cxx::__ops::__val_comp_iter<std::greater<unsigned int> >(__gnu_cxx::__ops::_Iter_comp_iter<std::greater<unsigned int> >)
+     0.70%  hand_tuned_mode  hand_tuned_model      [.] __gnu_cxx::__ops::_Val_comp_iter<std::greater<unsigned int> >::_Val_comp_iter(__gnu_cxx::__ops::_Iter_comp_iter<std::greater<unsigned int> >&&)
+     0.46%  hand_tuned_mode  hand_tuned_model      [.] void std::__unguarded_insertion_sort<unsigned int*, __gnu_cxx::__ops::_Iter_comp_iter<std::greater<unsigned int> > >(unsigned int*, unsigned int*, __gnu_cxx::__ops::_Iter_comp_iter<std::greater<unsigned int> >)
+     0.45%  hand_tuned_mode  hand_tuned_model      [.] std::enable_if<std::__and_<std::__not_<std::__is_tuple_like<unsigned int> >, std::is_move_constructible<unsigned int>, std::is_move_assignable<unsigned int> >::value, void>::type std::swap<unsigned int>(unsigned int&, unsigned int&)
+     0.42%  hand_tuned_mode  hand_tuned_model      [.] BoardState::doubled_pawn_score(BoardState*)
+     0.42%  hand_tuned_mode  hand_tuned_model      [.] get_rook_attacks_slow(int, unsigned long)
+     0.38%  hand_tuned_mode  hand_tuned_model      [.] BoardState::reset(BoardState*)
+     0.38%  hand_tuned_mode  hand_tuned_model      [.] std::remove_reference<std::greater<unsigned int>&>::type&& std::move<std::greater<unsigned int>&>(std::greater<unsigned int>&)
+     0.32%  hand_tuned_mode  hand_tuned_model      [.] std::remove_reference<__gnu_cxx::__ops::_Iter_comp_iter<std::greater<unsigned int> >&>::type&& std::move<__gnu_cxx::__ops::_Iter_comp_iter<std::greater<unsigned int> >&>(__gnu_cxx::__ops::_Iter_comp_iter<std::greater<unsigned int> >&)
+     0.26%  hand_tuned_mode  hand_tuned_model      [.] void std::__introsort_loop<unsigned int*, long, __gnu_cxx::__ops::_Iter_comp_iter<std::greater<unsigned int> > >(unsigned int*, unsigned int*, long, __gnu_cxx::__ops::_Iter_comp_iter<std::greater<unsigned int> >)
+     0.21%  hand_tuned_mode  hand_tuned_model      [.] BoardState::material_score(BoardState*)
+     0.20%  hand_tuned_mode  hand_tuned_model      [.] void std::iter_swap<unsigned int*, unsigned int*>(unsigned int*, unsigned int*)
+     0.19%  hand_tuned_mode  hand_tuned_model      [.] unsigned int* std::__copy_move_backward<true, true, std::random_access_iterator_tag>::__copy_move_b<unsigned int, unsigned int>(unsigned int*, unsigned int*, unsigned int*)
+     0.18%  hand_tuned_mode  hand_tuned_model      [.] void std::__move_median_to_first<unsigned int*, __gnu_cxx::__ops::_Iter_comp_iter<std::greater<unsigned int> > >(unsigned int*, unsigned int*, unsigned int*, unsigned int*, __gnu_cxx::__ops::_Iter_comp_iter<std::greater<unsigned int> >)
+     0.15%  hand_tuned_mode  hand_tuned_model      [.] unsigned int* std::__copy_move_backward_a<true, unsigned int*, unsigned int*>(unsigned int*, unsigned int*, unsigned int*)
+     0.14%  hand_tuned_mode  libc.so.6             [.] __random
+     0.14%  hand_tuned_mode  hand_tuned_model      [.] GameStateNode1::eval()
+     0.13%  hand_tuned_mode  hand_tuned_model      [.] void std::__final_insertion_sort<unsigned int*, __gnu_cxx::__ops::_Iter_comp_iter<std::greater<unsigned int> > >(unsigned int*, unsigned int*, __gnu_cxx::__ops::_Iter_comp_iter<std::greater<unsigned int> >)
+     0.13%  hand_tuned_mode  hand_tuned_model      [.] unsigned int* std::__unguarded_partition_pivot<unsigned int*, __gnu_cxx::__ops::_Iter_comp_iter<std::greater<unsigned int> > >(unsigned int*, unsigned int*, __gnu_cxx::__ops::_Iter_comp_iter<std::greater<unsigned int> >)
+     0.13%  hand_tuned_mode  hand_tuned_model      [.] __popcountdi2@plt
+     0.12%  hand_tuned_mode  hand_tuned_model      [.] unsigned int* std::move_backward<unsigned int*, unsigned int*>(unsigned int*, unsigned int*, unsigned int*)
+     0.11%  hand_tuned_mode  hand_tuned_model      [.] unsigned int* std::__copy_move_backward_a1<true, unsigned int*, unsigned int*>(unsigned int*, unsigned int*, unsigned int*)
+     0.09%  hand_tuned_mode  hand_tuned_model      [.] find_rook_magic_numbers()
+     0.09%  hand_tuned_mode  hand_tuned_model      [.] unsigned int* std::__niter_base<unsigned int*>(unsigned int*)
+     0.09%  hand_tuned_mode  hand_tuned_model      [.] BoardState::enemy_mobility_score(BoardState*)
+     0.09%  hand_tuned_mode  hand_tuned_model      [.] get_bishop_attacks_slow(int, unsigned long)
+     0.09%  hand_tuned_mode  hand_tuned_model      [.] unsigned int* std::__miter_base<unsigned int*>(unsigned int*)
+     0.09%  hand_tuned_mode  hand_tuned_model      [.] BoardState::BoardState()
+     0.08%  hand_tuned_mode  hand_tuned_model      [.] unsigned int* std::__copy_move_backward_a2<true, unsigned int*, unsigned int*>(unsigned int*, unsigned int*, unsigned int*)
+     0.08%  hand_tuned_mode  libc.so.6             [.] __memset_avx512_unaligned_erms
+     0.08%  hand_tuned_mode  hand_tuned_model      [.] void std::sort<unsigned int*, std::greater<unsigned int> >(unsigned int*, unsigned int*, std::greater<unsigned int>)
+     0.07%  hand_tuned_mode  hand_tuned_model      [.] float const& std::max<float>(float const&, float const&)
+     0.07%  hand_tuned_mode  hand_tuned_model      [.] BoardState::l_moves::l_moves()
+     0.07%  hand_tuned_mode  hand_tuned_model      [.] void std::__sort<unsigned int*, __gnu_cxx::__ops::_Iter_comp_iter<std::greater<unsigned int> > >(unsigned int*, unsigned int*, __gnu_cxx::__ops::_Iter_comp_iter<std::greater<unsigned int> >)
+     0.06%  hand_tuned_mode  libc.so.6             [.] __random_r
+     0.06%  hand_tuned_mode  libc.so.6             [.] __memmove_avx512_unaligned_erms
+     0.05%  hand_tuned_mode  hand_tuned_model      [.] long std::__lg<long>(long)
+     0.04%  hand_tuned_mode  hand_tuned_model      [.] int std::__bit_width<unsigned long>(unsigned long)
+     0.04%  hand_tuned_mode  hand_tuned_model      [.] void std::__copy_move<true, false, std::random_access_iterator_tag>::__assign_one<unsigned int, unsigned int>(unsigned int*, unsigned int*)
+     0.04%  hand_tuned_mode  hand_tuned_model      [.] unsigned int* std::__niter_wrap<unsigned int*>(unsigned int* const&, unsigned int*)
+     0.04%  hand_tuned_mode  hand_tuned_model      [.] GameStateNode1::count_legal_moves()
+     0.04%  hand_tuned_mode  hand_tuned_model      [.] __gnu_cxx::__ops::_Iter_comp_iter<std::greater<unsigned int> >::_Iter_comp_iter(std::greater<unsigned int>)
+     0.04%  hand_tuned_mode  hand_tuned_model      [.] BoardState::pl_moves::pl_moves()
+     0.04%  hand_tuned_mode  hand_tuned_model      [.] __gnu_cxx::__ops::_Iter_comp_iter<std::greater<unsigned int> > __gnu_cxx::__ops::__iter_comp_iter<std::greater<unsigned int> >(std::greater<unsigned int>)
+     0.03%  hand_tuned_mode  hand_tuned_model      [.] random_U64()
+     0.02%  hand_tuned_mode  hand_tuned_model      [.] int std::__countl_zero<unsigned long>(unsigned long)
+     0.02%  hand_tuned_mode  hand_tuned_model      [.] float const& std::min<float>(float const&, float const&)
+     0.02%  hand_tuned_mode  hand_tuned_model      [.] find_bishop_magic_numbers()
+     0.01%  hand_tuned_mode  hand_tuned_model      [.] rook_relevant_occupancy(int, int)
+     0.01%  hand_tuned_mode  [kernel.kallsyms]     [k] sched_balance_trigger
+     0.01%  hand_tuned_mode  [kernel.kallsyms]     [k] task_tick_fair
+     0.01%  hand_tuned_mode  [kernel.kallsyms]     [k] asm_sysvec_apic_timer_interrupt
+     0.01%  hand_tuned_mode  hand_tuned_model      [.] minimax_result1::minimax_result1()
+     0.01%  hand_tuned_mode  [kernel.kallsyms]     [k] sched_use_asym_prio
+     0.01%  hand_tuned_mode  [kernel.kallsyms]     [k] __irqentry_text_end
+     0.00%  hand_tuned_mode  hand_tuned_model      [.] random_U64_few_bits()
+     0.00%  hand_tuned_mode  [kernel.kallsyms]     [k] srso_alias_safe_ret
+     0.00%  hand_tuned_mode  hand_tuned_model      [.] random@plt
+     0.00%  hand_tuned_mode  [kernel.kallsyms]     [k] __update_load_avg_cfs_rq
+     0.00%  hand_tuned_mode  [kernel.kallsyms]     [k] __calc_delta.constprop.0
+     0.00%  hand_tuned_mode  [kernel.kallsyms]     [k] update_curr
+     0.00%  hand_tuned_mode  [kernel.kallsyms]     [k] irq_exit_rcu
+     0.00%  hand_tuned_mode  [kernel.kallsyms]     [k] update_process_times
+     0.00%  hand_tuned_mode  [kernel.kallsyms]     [k] srso_alias_return_thunk
+     0.00%  hand_tuned_mode  [kernel.kallsyms]     [k] _find_next_bit
+     0.00%  hand_tuned_mode  [kernel.kallsyms]     [k] __schedule
+     0.00%  hand_tuned_mode  [kernel.kallsyms]     [k] update_load_avg
+     0.00%  hand_tuned_mode  [kernel.kallsyms]     [k] native_read_msr
+     0.00%  hand_tuned_mode  [kernel.kallsyms]     [k] lock_vma_under_rcu
+     0.00%  hand_tuned_mode  ld-linux-x86-64.so.2  [.] do_lookup_x
+     0.00%  hand_tuned_mode  [kernel.kallsyms]     [k] event_sched_out
+     0.00%  hand_tuned_mode  [kernel.kallsyms]     [k] raise_softirq
+     0.00%  hand_tuned_mode  [kernel.kallsyms]     [k] native_queued_spin_lock_slowpath
+     0.00%  hand_tuned_mode  [kernel.kallsyms]     [k] timerqueue_del
+     0.00%  hand_tuned_mode  [kernel.kallsyms]     [k] hrtimer_interrupt
+     0.00%  hand_tuned_mode  [kernel.kallsyms]     [k] irqentry_exit_to_user_mode
+     0.00%  hand_tuned_mode  [kernel.kallsyms]     [k] sched_balance_update_blocked_averages
+     0.00%  hand_tuned_mode  [kernel.kallsyms]     [k] update_rq_clock
+     0.00%  hand_tuned_mode  [kernel.kallsyms]     [k] native_irq_return_iret
+     0.00%  hand_tuned_mode  [kernel.kallsyms]     [k] perf_ibs_stop
+     0.00%  hand_tuned_mode  [kernel.kallsyms]     [k] __hrtimer_next_event_base
+     0.00%  hand_tuned_mode  [kernel.kallsyms]     [k] hrtimer_update_next_event
+     0.00%  hand_tuned_mode  [kernel.kallsyms]     [k] _raw_spin_lock
+     0.00%  hand_tuned_mode  [kernel.kallsyms]     [k] read_tsc
+     0.00%  hand_tuned_mode  [kernel.kallsyms]     [k] tcp_rate_gen
+     0.00%  hand_tuned_mode  [kernel.kallsyms]     [k] idle_cpu
+     0.00%  hand_tuned_mode  [kernel.kallsyms]     [k] rb_erase
+     0.00%  hand_tuned_mode  [kernel.kallsyms]     [k] sched_clock
+     0.00%  hand_tuned_mode  [nvidia]              [k] kheadReadVblankIntrEnable_KERNEL_v05_02
+     0.00%  hand_tuned_mode  [kernel.kallsyms]     [k] sched_tick
+     0.00%  hand_tuned_mode  hand_tuned_model      [.] memmove@plt
+     0.00%  hand_tuned_mode  [kernel.kallsyms]     [k] clear_page_erms
+     0.00%  hand_tuned_mode  [kernel.kallsyms]     [k] tmigr_handle_remote
+     0.00%  hand_tuned_mode  [kernel.kallsyms]     [k] sched_balance_domains
+     0.00%  hand_tuned_mode  [kernel.kallsyms]     [k] cpuacct_account_field
+     0.00%  hand_tuned_mode  [kernel.kallsyms]     [k] __cgroup_account_cputime
+     0.00%  hand_tuned_mode  libc.so.6             [.] new_do_write
+     0.00%  hand_tuned_mode  [kernel.kallsyms]     [k] note_gp_changes
+     0.00%  hand_tuned_mode  [kernel.kallsyms]     [k] arch_perf_update_userpage
+     0.00%  hand_tuned_mode  [kernel.kallsyms]     [k] call_function_single_prep_ipi
+     0.00%  hand_tuned_mode  ld-linux-x86-64.so.2  [.] open_verify.constprop.0
+     0.00%  hand_tuned_mode  [kernel.kallsyms]     [k] move_page_tables
+     0.00%  hand_tuned_mode  [kernel.kallsyms]     [k] __get_user_8
+     0.00%  hand_tuned_mode  [kernel.kallsyms]     [k] __perf_event_task_sched_in
+     0.00%  hand_tuned_mode  [kernel.kallsyms]     [k] perf_event_groups_next
+     0.00%  perf-exec        [kernel.kallsyms]     [k] event_sched_in
+     0.00%  hand_tuned_mode  [kernel.kallsyms]     [k] nmi_restore
+     0.00%  hand_tuned_mode  [kernel.kallsyms]     [k] native_write_msr
+     0.00%  hand_tuned_mode  [kernel.kallsyms]     [k] local_clock
+     0.00%  hand_tuned_mode  [kernel.kallsyms]     [k] perf_event_idx_default
+     0.00%  hand_tuned_mode  [kernel.kallsyms]     [k] calc_timer_values
+     0.00%  hand_tuned_mode  [kernel.kallsyms]     [k] local_clock_noinstr
+     0.00%  hand_tuned_mode  [kernel.kallsyms]     [k] native_sched_clock
+     0.00%  hand_tuned_mode  [kernel.kallsyms]     [k] sched_clock_noinstr
+     0.00%  perf-exec        [kernel.kallsyms]     [k] sched_clock_noinstr
+     0.00%  perf-exec        [kernel.kallsyms]     [k] native_write_msr
+
+
+#
+# (Tip: To adjust path to source files to local file system use perf report --prefix=... --prefix-strip=...)
+#

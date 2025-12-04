@@ -12,9 +12,21 @@ test:
 	./build/engine_test
 
 unit_test:
-	g++ -DMAIN cpp_code/engine.cpp cpp_code/attacks.cpp -o build/engine_test
+	g++ -O3 -Wall -DMAIN cpp_code/engine.cpp cpp_code/attacks.cpp -o build/engine_test
 	./build/engine_test
 
 hand:
-	g++ -DMAIN -O3 -Wall cpp_code/hand_tuned_model.cpp cpp_code/attacks.cpp -o build/hand_tuned_model
+	g++ -DMAIN -fopenmp -O3 -Wall cpp_code/hand_tuned_model.cpp cpp_code/attacks.cpp -o build/hand_tuned_model
 	./build/hand_tuned_model
+
+profile:
+	g++ -DMAIN -g -O0 -Wall cpp_code/hand_tuned_model.cpp cpp_code/attacks.cpp -o build/hand_tuned_model
+	perf stat -d -d ./build/hand_tuned_model > profiling_results/perf.txt 2>&1
+	perf record ./build/hand_tuned_model
+	perf report --stdio >> profiling_results/perf.txt
+
+	g++ -DMAIN -g -O3 -Wall cpp_code/hand_tuned_model.cpp cpp_code/attacks.cpp -o build/hand_tuned_model
+	perf stat -d -d ./build/hand_tuned_model > profiling_results/perf_optimized.txt 2>&1
+	perf record ./build/hand_tuned_model
+	perf report --stdio >> profiling_results/perf_optimized.txt
+

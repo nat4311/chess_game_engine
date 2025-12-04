@@ -269,6 +269,7 @@ PYBIND11_MODULE(game_engine, m, py::mod_gil_not_used()) {
         .def("generate_l_moves", &BoardState::generate_l_moves, "generate legal moves")
         .def("print_pl_moves", &BoardState::print_pl_moves, py::arg("piece_type") = 12, "print the pseudo legal moves for a specific piece")
         .def("print_l_moves", &BoardState::print_l_moves, py::arg("piece_type") = 12, "print the legal moves for a specific piece")
+        .def("sort_l_moves", &BoardState::sort_l_moves, "sort the legal moves for minimax")
         .def_readonly("halfmove", &BoardState::halfmove)
         .def_readonly("turn_no", &BoardState::turn_no)
         .def_readonly("turn", &BoardState::turn)

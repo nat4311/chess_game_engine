@@ -1,0 +1,126 @@
+Initializing engine...
+    attacks initialized in 76 ms
+
+starting hand_tuned_model.cpp
+depth 1, time = 2e-05 s
+depth 2, time = 7.5e-05 s
+depth 3, time = 0.001093 s
+depth 4, time = 0.0065 s
+depth 5, time = 0.071536 s
+depth 6, time = 0.58095 s
+depth 7, time = 4.8778 s
+
+ Performance counter stats for './build/hand_tuned_model':
+
+          5,615.19 msec task-clock                       #    1.000 CPUs utilized             
+                18      context-switches                 #    3.206 /sec                      
+                 8      cpu-migrations                   #    1.425 /sec                      
+               666      page-faults                      #  118.607 /sec                      
+    30,496,695,658      cycles                           #    5.431 GHz                         (38.38%)
+     2,315,927,384      stalled-cycles-frontend          #    7.59% frontend cycles idle        (38.38%)
+   106,518,830,786      instructions                     #    3.49  insn per cycle            
+                                                  #    0.02  stalled cycles per insn     (38.38%)
+    17,579,783,223      branches                         #    3.131 G/sec                       (38.38%)
+        93,196,240      branch-misses                    #    0.53% of all branches             (38.45%)
+    36,739,749,028      L1-dcache-loads                  #    6.543 G/sec                       (38.47%)
+       141,044,761      L1-dcache-load-misses            #    0.38% of all L1-dcache accesses   (38.54%)
+   <not supported>      LLC-loads                                                             
+   <not supported>      LLC-load-misses                                                       
+       152,726,741      L1-icache-loads                  #   27.199 M/sec                       (38.54%)
+            78,348      L1-icache-load-misses            #    0.05% of all L1-icache accesses   (38.54%)
+         3,689,362      dTLB-loads                       #  657.033 K/sec                       (38.54%)
+            16,833      dTLB-load-misses                 #    0.46% of all dTLB cache accesses  (38.54%)
+             8,893      iTLB-loads                       #    1.584 K/sec                       (38.47%)
+             8,958      iTLB-load-misses                 #  100.73% of all iTLB cache accesses  (38.40%)
+
+       5.616255535 seconds time elapsed
+
+       5.616080000 seconds user
+       0.000000000 seconds sys
+
+
+# To display the perf.data header info, please use --header/--header-only options.
+#
+#
+# Total Lost Samples: 0
+#
+# Samples: 21K of event 'cycles:P'
+# Event count (approx.): 27552486738
+#
+# Overhead  Command          Shared Object         Symbol                                                                                                                                                                                                                                  
+# ........  ...............  ....................  ........................................................................................................................................................................................................................................
+#
+    39.39%  hand_tuned_mode  hand_tuned_model      [.] BoardState::make(BoardState*, unsigned int, bool)
+    14.49%  hand_tuned_mode  hand_tuned_model      [.] _minimax1(GameStateNode1*, int, bool, float, float)
+    12.94%  hand_tuned_mode  hand_tuned_model      [.] BoardState::generate_pl_moves(BoardState*)
+     6.64%  hand_tuned_mode  hand_tuned_model      [.] get_queen_attacks(int, unsigned long)
+     6.55%  hand_tuned_mode  hand_tuned_model      [.] BoardState::sort_l_moves(BoardState*)
+     4.12%  hand_tuned_mode  hand_tuned_model      [.] get_rook_attacks(int, unsigned long)
+     3.70%  hand_tuned_mode  hand_tuned_model      [.] get_bishop_attacks(int, unsigned long)
+     2.84%  hand_tuned_mode  libgcc_s.so.1         [.] __popcountdi2
+     2.35%  hand_tuned_mode  hand_tuned_model      [.] get_pawn_attacks(int, int)
+     2.25%  hand_tuned_mode  hand_tuned_model      [.] void std::__introsort_loop<unsigned int*, long, __gnu_cxx::__ops::_Iter_comp_iter<std::greater<unsigned int> > >(unsigned int*, unsigned int*, long, __gnu_cxx::__ops::_Iter_comp_iter<std::greater<unsigned int> >) [clone .isra.0]
+     1.41%  hand_tuned_mode  hand_tuned_model      [.] get_knight_attacks(int)
+     1.15%  hand_tuned_mode  hand_tuned_model      [.] get_king_attacks(int)
+     0.39%  hand_tuned_mode  hand_tuned_model      [.] __popcountdi2@plt
+     0.35%  hand_tuned_mode  libc.so.6             [.] __random
+     0.34%  hand_tuned_mode  hand_tuned_model      [.] get_rook_attacks_slow(int, unsigned long)
+     0.18%  hand_tuned_mode  libc.so.6             [.] __memset_avx512_unaligned_erms
+     0.18%  hand_tuned_mode  hand_tuned_model      [.] find_rook_magic_numbers()
+     0.14%  hand_tuned_mode  hand_tuned_model      [.] get_bishop_attacks_slow(int, unsigned long)
+     0.12%  hand_tuned_mode  libc.so.6             [.] __memmove_avx512_unaligned_erms
+     0.12%  hand_tuned_mode  libc.so.6             [.] __random_r
+     0.06%  hand_tuned_mode  hand_tuned_model      [.] find_bishop_magic_numbers()
+     0.04%  hand_tuned_mode  hand_tuned_model      [.] init_attacks()
+     0.03%  hand_tuned_mode  hand_tuned_model      [.] memmove@plt
+     0.03%  hand_tuned_mode  hand_tuned_model      [.] random@plt
+     0.03%  hand_tuned_mode  [kernel.kallsyms]     [k] __irqentry_text_end
+     0.01%  hand_tuned_mode  [kernel.kallsyms]     [k] srso_alias_safe_ret
+     0.01%  hand_tuned_mode  [kernel.kallsyms]     [k] clear_page_erms
+     0.01%  hand_tuned_mode  [kernel.kallsyms]     [k] sched_balance_trigger
+     0.01%  hand_tuned_mode  [kernel.kallsyms]     [k] update_rt_rq_load_avg
+     0.01%  hand_tuned_mode  [kernel.kallsyms]     [k] asm_sysvec_apic_timer_interrupt
+     0.01%  hand_tuned_mode  [kernel.kallsyms]     [k] native_read_msr
+     0.00%  hand_tuned_mode  [kernel.kallsyms]     [k] account_user_time
+     0.00%  hand_tuned_mode  [kernel.kallsyms]     [k] __rmqueue_pcplist
+     0.00%  hand_tuned_mode  [kernel.kallsyms]     [k] do_anonymous_page
+     0.00%  hand_tuned_mode  [kernel.kallsyms]     [k] visit_groups_merge.constprop.0.isra.0
+     0.00%  hand_tuned_mode  [kernel.kallsyms]     [k] ktime_get_update_offsets_now
+     0.00%  hand_tuned_mode  [kernel.kallsyms]     [k] __mod_timer
+     0.00%  hand_tuned_mode  [kernel.kallsyms]     [k] update_load_avg
+     0.00%  hand_tuned_mode  [kernel.kallsyms]     [k] hrtimer_interrupt
+     0.00%  hand_tuned_mode  [kernel.kallsyms]     [k] idle_cpu
+     0.00%  hand_tuned_mode  [kernel.kallsyms]     [k] update_process_times
+     0.00%  hand_tuned_mode  [kernel.kallsyms]     [k] __hrtimer_run_queues
+     0.00%  hand_tuned_mode  [kernel.kallsyms]     [k] sched_use_asym_prio
+     0.00%  hand_tuned_mode  [kernel.kallsyms]     [k] sync_regs
+     0.00%  hand_tuned_mode  [kernel.kallsyms]     [k] _find_next_bit
+     0.00%  hand_tuned_mode  [kernel.kallsyms]     [k] perf_adjust_freq_unthr_context
+     0.00%  hand_tuned_mode  [nvidia]              [k] gpuSanityCheckRegisterAccess_IMPL
+     0.00%  hand_tuned_mode  [kernel.kallsyms]     [k] delay_halt_mwaitx
+     0.00%  hand_tuned_mode  [kernel.kallsyms]     [k] update_cfs_group
+     0.00%  hand_tuned_mode  [kernel.kallsyms]     [k] perf_ibs_del
+     0.00%  hand_tuned_mode  ld-linux-x86-64.so.2  [.] _dl_lookup_symbol_x
+     0.00%  hand_tuned_mode  [kernel.kallsyms]     [k] perf_iterate_ctx
+     0.00%  hand_tuned_mode  [kernel.kallsyms]     [k] __get_user_8
+     0.00%  hand_tuned_mode  [kernel.kallsyms]     [k] native_irq_return_iret
+     0.00%  hand_tuned_mode  [kernel.kallsyms]     [k] asm_sysvec_reschedule_ipi
+     0.00%  perf-exec        [kernel.kallsyms]     [k] perf_event_addr_filters_exec
+     0.00%  hand_tuned_mode  [kernel.kallsyms]     [k] finish_task_switch.isra.0
+     0.00%  hand_tuned_mode  [kernel.kallsyms]     [k] __perf_event_task_sched_in
+     0.00%  hand_tuned_mode  [kernel.kallsyms]     [k] cyc2ns_read_begin
+     0.00%  hand_tuned_mode  [kernel.kallsyms]     [k] perf_ibs_add
+     0.00%  hand_tuned_mode  [kernel.kallsyms]     [k] calc_timer_values
+     0.00%  hand_tuned_mode  [kernel.kallsyms]     [k] native_write_msr
+     0.00%  hand_tuned_mode  [kernel.kallsyms]     [k] perf_event_update_userpage
+     0.00%  hand_tuned_mode  [kernel.kallsyms]     [k] local_clock_noinstr
+     0.00%  hand_tuned_mode  [kernel.kallsyms]     [k] perf_event_idx_default
+     0.00%  perf-exec        [kernel.kallsyms]     [k] local_clock
+     0.00%  hand_tuned_mode  [kernel.kallsyms]     [k] local_clock
+     0.00%  hand_tuned_mode  [kernel.kallsyms]     [k] srso_alias_return_thunk
+     0.00%  perf-exec        [kernel.kallsyms]     [k] native_write_msr
+
+
+#
+# (Tip: For a higher level overview, try: perf report --sort comm,dso)
+#

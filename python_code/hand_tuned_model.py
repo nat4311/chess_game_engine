@@ -1,5 +1,8 @@
 import game_engine
+import cProfile
+import pstats
 import time
+import timeit
 from math import inf
 from utils import pretty_time_elapsed, pretty_datetime
 from constants import *
@@ -144,9 +147,9 @@ class GameStateNode1:
 
     --------------------------------------------------------------------------------
 
-    single thread timings
+    single thread minimax timings from start position
 
-    minimax timings from start pos, no move ordering
+    in python, no move ordering
     depth 1, time = 0.0006825476884841919 s
     depth 2, time = 0.007834275253117085 s
     depth 3, time = 0.017839105799794197 s
@@ -156,7 +159,7 @@ class GameStateNode1:
     depth 7, time = 69.25481910258532 s
     depth 8, dnf
 
-    after moving count_legal_moves and legal move generation (for minimax) to c++
+    in python, after moving count_legal_moves and legal move generation (for minimax) to c++
     depth 1, time = 8.558016270399094e-05 s
     depth 2, time = 0.0007701413705945015 s
     depth 3, time = 0.0020072944462299347 s
@@ -166,7 +169,7 @@ class GameStateNode1:
     depth 7, time = 7.631460613571107 s
     depth 8, dnf
 
-    all in c++
+    in c++, no move ordering
     depth 1, time = 1.7e-05 s
     depth 2, time = 0.000131 s
     depth 3, time = 0.000345 s
@@ -177,7 +180,16 @@ class GameStateNode1:
     depth 8, time = 433.817 s
     depth 9, dnf
 
-    move ordering with capture score
+    in python, move ordering with capture score
+    depth 1, time = 0.0001286221668124199
+    depth 2, time = 0.0005760975182056427
+    depth 3, time = 0.008842403069138527
+    depth 4, time = 0.032893081195652485
+    depth 5, time = 0.37780505511909723
+    depth 6, time = 2.4619059208780527
+    depth 7, time = 26.00939543824643
+
+    in c++, move ordering with capture score
     depth 1, time = 1.9e-05 s
     depth 2, time = 7.6e-05 s
     depth 3, time = 0.00112 s
@@ -244,6 +256,7 @@ class GameStateNode1:
     def _minimax(self, node, depth, alpha=-inf, beta=inf, maximizing_player=True):
         if node.state is None:
             node.count_legal_moves()
+            node.board.sort_l_moves()
         if depth == 0 or node.state in {DRAW, WHITE_WIN, BLACK_WIN}:
             return node, node.eval()
 
@@ -280,29 +293,48 @@ class GameStateNode1:
                     break
             return best_child, min_eval
 
+def test_minimax1_timings():
+    game = GameStateNode1()
+    game.minimax(1)
+
+    for i in range(1,9):
+        f = lambda: game.minimax(i)
+        t = timeit.timeit(f, number=1)
+        print(f"depth {i}, time = {t}")
+
+# game = GameStateNode1(fen="7k/bpp3pp/3pq1pp/8/8/5P2/PPPPQPPP/RNB1KBNR w KQ - 0 1\n")
+# game.minimax(1)
+def main():
+    test_minimax1_timings()
+    # for i in range(1,7):
+    #     print(i)
+    #     game.minimax(i)
+
+    # while True:
+    #     game.print()
+    #     if game.state in (DRAW, WHITE_WIN, BLACK_WIN):
+    #         if game.state == DRAW:
+    #             print("draw")
+    #         if game.state == WHITE_WIN:
+    #             print("white wins")
+    #         if game.state == BLACK_WIN:
+    #             print("black wins")
+    #         break
+    #
+    #     print("----------------------")
+    #     t0 = time.time()
+    #     best_child = game.minimax(6)
+    #     print("time to choose move:", pretty_time_elapsed(t0, time.time()))
+    #     game = best_child
+
+
+
 if __name__ == "__main__":
-    import timeit
-    game = GameStateNode1(fen="7k/bpp3pp/3pq1pp/8/8/5P2/PPPPQPPP/RNB1KBNR w KQ - 0 1\n")
-    # game.minimax(1)
+    t0 = time.time()
+    with cProfile.Profile() as profile:
+        main()
+    print(pretty_time_elapsed(t0, time.time()))
 
-    # for i in range(1,9):
-    #     f = lambda: game.minimax(i)
-    #     t = timeit.timeit(f, number=1)
-    #     print(i, t)
-
-    while True:
-        game.print()
-        if game.state in (DRAW, WHITE_WIN, BLACK_WIN):
-            if game.state == DRAW:
-                print("draw")
-            if game.state == WHITE_WIN:
-                print("white wins")
-            if game.state == BLACK_WIN:
-                print("black wins")
-            break
-
-        print("----------------------")
-        t0 = time.time()
-        best_child = game.minimax(6)
-        print("time to choose move:", pretty_time_elapsed(t0, time.time()))
-        game = best_child
+    results = pstats.Stats(profile)
+    results.sort_stats('tottime').print_stats(10)
+    results.dump_stats("results.prof")

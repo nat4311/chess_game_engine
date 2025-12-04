@@ -6,6 +6,7 @@
 #include <assert.h>
 #include <unistd.h>
 #include <iostream>
+#include <algorithm>
 
 /*////////////////////////////////////////////////////////////////////////////////
                                Section: BoardState
@@ -1099,6 +1100,118 @@ struct BoardState {
         }
     }
 
+    /*
+             source_sq            6 bits (0-5)      0-63     (a8-h1)
+             target_sq            6 bits (6-11)     0-63     (a8-h1)
+             piece_type           4 bits (12-15)    0-11     (WHITE_PAWN, ..., BLACK_KING)
+             double_pawn_push     1 bit  (16)       0-1      (true or false)
+             enpassant_capture    1 bit  (17)       0-1      (true or false)
+             castle_kingside      1 bit  (18)       0-1      (true or false)
+             castle_queenside     1 bit  (19)       0-1      (true or false)
+             capture              1 bit  (20)       0-1      (true or false)
+    (NEW)    capture_score        5 bits (21-25)    0-17     (capturing_piece_score - captured_piece_score)
+             promotion_type       4 bits (26-29)    1-4,7-10 (WHITE_KNIGHT, ..., WHITE_QUEEN, BLACK_KNIGHT, ..., BLACK_QUEEN)
+             promotion            1 bit  (30)       0-1      (true or false)
+     */
+    static void encode_move_capture_score(BoardState *board, U32* move) {
+        if (!decode_move_capture(*move)) { return; }
+        int piece_type = decode_move_piece_type(*move);
+        if (piece_type == WHITE_KING || piece_type == BLACK_KING) {
+            return;
+        }
+        int target_sq = decode_move_target_sq(*move);
+        int enpassant_capture = decode_move_enpassant_capture(*move);
+        U64 target_sq_bit = sq_bit[target_sq];
+        int captured_piece_type;
+
+        if (enpassant_capture) {
+            if (enpassant_capture) {
+                if (board->turn == WHITE) {
+                    captured_piece_type = BLACK_PAWN;
+                }
+                else {
+                    captured_piece_type = WHITE_PAWN;
+                }
+            }
+        }
+        else {
+            if (board->turn == WHITE) {
+                if (board->bitboards[BLACK_PAWN] & target_sq_bit) {
+                    captured_piece_type = BLACK_PAWN;
+                }
+                else if (board->bitboards[BLACK_KNIGHT] & target_sq_bit) {
+                    captured_piece_type = BLACK_KNIGHT;
+                }
+                else if (board->bitboards[BLACK_BISHOP] & target_sq_bit) {
+                    captured_piece_type = BLACK_BISHOP;
+                }
+                else if (board->bitboards[BLACK_ROOK] & target_sq_bit) {
+                    captured_piece_type = BLACK_ROOK;
+                }
+                else if (board->bitboards[BLACK_QUEEN] & target_sq_bit) {
+                    captured_piece_type = BLACK_QUEEN;
+                }
+                else if (board->bitboards[BLACK_KING] & target_sq_bit) {
+                    int capture_score = 18;
+                    (*move) |= (capture_score<<21);
+                    return;
+                }
+                else {
+                    BoardState::print(board);
+                    print_move(*move, 1);
+                    throw std::runtime_error("(inside encode_move_capture_score()) move has capture flag set but no captured_piece was found\n");
+                }
+            }
+            else { // board->turn == BLACK
+                if (board->bitboards[WHITE_PAWN] & target_sq_bit) {
+                    captured_piece_type = WHITE_PAWN;
+                }
+                else if (board->bitboards[WHITE_KNIGHT] & target_sq_bit) {
+                    captured_piece_type = WHITE_KNIGHT;
+                }
+                else if (board->bitboards[WHITE_BISHOP] & target_sq_bit) {
+                    captured_piece_type = WHITE_BISHOP;
+                }
+                else if (board->bitboards[WHITE_ROOK] & target_sq_bit) {
+                    captured_piece_type = WHITE_ROOK;
+                }
+                else if (board->bitboards[WHITE_QUEEN] & target_sq_bit) {
+                    captured_piece_type = WHITE_QUEEN;
+                }
+                else if (board->bitboards[WHITE_KING] & target_sq_bit) {
+                    int capture_score = 18;
+                    (*move) |= (capture_score<<21);
+                    return;
+                }
+                else {
+                    BoardState::print(board);
+                    print_move(*move, 1);
+                    throw std::runtime_error("(inside encode_move_capture_score()) move has capture flag set but no captured_piece was found\n");
+                }
+            }
+        }
+
+        int capture_score = piece_score[captured_piece_type] - piece_score[piece_type] + 9;
+        if (capture_score<1 || capture_score>17) {
+            std::cout << "invalid capture score: " << capture_score << "\n\n";
+            throw(1);
+        };
+
+        (*move) |= (capture_score<<21);
+        return;
+    }
+
+    static void sort_l_moves(BoardState* board) {
+        assert (board->l.generated);
+        if (!board->l.capture_scores_encoded) {
+            for (int i = 0; i<board->l.moves_found; i++) {
+                encode_move_capture_score(board, &(board->l.move_list[i]));
+            }
+        }
+
+        std::sort(&board->l.move_list[0], &board->l.move_list[board->l.moves_found], std::greater<unsigned int>());
+    }
+
     static void print_pl_moves(BoardState* board, int piece_type = NO_PIECE) {
         generate_pl_moves(board);
         printf("PL MOVES     dcekq\n------------------\n");
@@ -1447,6 +1560,7 @@ void perft_suite(bool slow_test) {
 /*////////////////////////////////////////////////////////////////////////////////
 
 void unit_tests() {
+    std::cout << "running unit tests\n";
     perft_suite(true);
 }
 

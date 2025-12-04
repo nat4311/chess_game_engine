@@ -251,7 +251,6 @@ constexpr U64 sq_bit[65] = {
    capture_score        5 bits (21-25)    0-16     (capturing_piece_score - captured_piece_score)
    PV                   1 bit  (31)       0-1      (for iterative deepening) //todo
  */
-
 inline U32 encode_move(
     int source_sq,
     int target_sq,
