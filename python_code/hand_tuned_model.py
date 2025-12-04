@@ -211,6 +211,8 @@ class GameStateNode1:
     depth 7, time = 1.39301 s
     depth 8, time = 7.34563 s
     depth 9, time = 70.1452 s
+    depth 10, time = 409.803 s
+    depth 11, time = 2877.88 s
 
     """
     def __init__(self, board=None, prev_move = None, fen=None):

@@ -327,7 +327,18 @@ def test_alphazero_play_stockfish_loop():
 
 if __name__ == "__main__":
 
-    encode_move_test()
+    game = game_engine.GameStateNode1()
+    # game.board.load("rnb1kbnr/ppp1pppp/8/8/8/8/qPPPPPPP/RNBQKBNR w KQkq - 0 1\n")
+    game.board.print()
+    for i in range(1000):
+        move = game.choose_move(7)
+        game.make_move(move)
+        game.board.print()
+        if game.board.get_state() in (WHITE_WIN, DRAW, BLACK_WIN):
+            break
+        # game_engine.print_move(game.prev_move, True)
+
+    # encode_move_test()
     # hand_eval_test()
     # test_alphazero_play_stockfish_loop()
     # model_input_test()

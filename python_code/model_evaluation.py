@@ -20,7 +20,7 @@ from alphazero2 import load_objects as load_alphazero2_objects
 
 import game_engine
 from constants import WHITE, BLACK, WHITE_WIN, BLACK_WIN, DRAW, NOTOVER
-from stockfish_api import get_stockfish_move
+from stockfish_api import get_stockfish_move, get_stockfish_move1
 
 """#############################################################
                    Section: elo_records
@@ -56,6 +56,7 @@ model_list = [
     "test",
     "alphazero",
     "alphazero2",
+    "hand_tuned_model",
 ]
 for model_str in model_list:
     if f"{model_str}_elo" not in elo_records_dict.keys():
@@ -78,6 +79,66 @@ def record_new_elo(model_str, opponent_elo, score):
 """#############################################################
                Section: evaluate against stockfish
 #############################################################"""
+
+def hand_tuned_model_play_stockfish(info_str = None, minmax_search_depth = 7, min_stockfish_elo = 400, printing=False):
+    """
+    for evaluation purposes
+    """
+    stockfish = Stockfish("/usr/games/stockfish")
+
+    model_elo = elo_records_dict["hand_tuned_model_elo"]
+    stockfish_elo = round(model_elo) + random.randint(-50,100)
+    stockfish_elo = max(stockfish_elo, min_stockfish_elo)
+    stockfish.set_elo_rating(stockfish_elo)
+
+    curr_node = game_engine.GameStateNode1()
+    model_turn = random.random() > .5
+    if model_turn:
+        side_str = "hand_tuned white, stockfish black"
+    else:
+        side_str = "hand_tuned black, stockfish white"
+    while True:
+        if model_turn:
+            curr_node = curr_node.choose_node(minmax_search_depth)
+        else:
+            U32_move = get_stockfish_move1(stockfish, curr_node)
+            for move in curr_node.board.get_l_move_list():
+                if move == U32_move:
+                    curr_node.make_move(move)
+                    break
+        if printing:
+            print("------------------------------------")
+            curr_node.board.print()
+            print("\n\n")
+            print(side_str)
+            if info_str is not None:
+                print(info_str)
+                print(f"{stockfish_elo = }")
+
+        if curr_node.board.get_state() in (WHITE_WIN, BLACK_WIN):
+            if printing:
+                print("------------------------------------")
+                if curr_node.board.get_state() == WHITE_WIN:
+                    print("game over: white win")
+                else:
+                    print("game over: black win")
+                curr_node.board.print()
+            if model_turn:
+                score = 1
+                break
+            else:
+                score = 0
+                break
+        elif curr_node.board.get_state() == DRAW:
+            print("game over: draw")
+            score = .5
+            break
+        else:
+            model_turn = not model_turn
+
+    record_new_elo("hand_tuned_model", stockfish_elo, score)
+
+    return score
 
 # @profile
 def alphazero_play_stockfish(info_str = None, min_stockfish_elo = 400, printing=False):
@@ -212,8 +273,11 @@ def main():
         # info_str = f"alphazero_elo = {round(elo_records_dict["alphazero_elo"])}"
         # score = alphazero_play_stockfish(info_str=info_str, printing=True)
 
-        info_str = f"alphazero2_elo = {round(elo_records_dict["alphazero2_elo"])}"
-        score = alphazero2_play_stockfish(info_str=info_str, printing=True)
+        # info_str = f"alphazero2_elo = {round(elo_records_dict["alphazero2_elo"])}"
+        # score = alphazero2_play_stockfish(info_str=info_str, printing=True)
+
+        info_str = f"hand_tuned_model_elo = {round(elo_records_dict["hand_tuned_model_elo"])}"
+        score = hand_tuned_model_play_stockfish(info_str=info_str, printing=True)
 
 if __name__ == "__main__":
     main()

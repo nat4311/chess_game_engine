@@ -1,5 +1,5 @@
 all:
-	g++ -DMAIN -O3 -Wall -shared -std=c++11 -fPIC $$(python3 -m pybind11 --includes) cpp_code/bindings.cpp cpp_code/attacks.cpp -o python_code/game_engine$$(python3 -m pybind11 --extension-suffix)
+	g++ -DMAIN -fopenmp -O3 -Wall -shared -std=c++11 -fPIC $$(python3 -m pybind11 --includes) cpp_code/bindings.cpp cpp_code/attacks.cpp -o python_code/game_engine$$(python3 -m pybind11 --extension-suffix)
 
 debug:
 	g++ -DMAIN -g -O0 -shared -std=c++11 -fPIC $$(python3 -m pybind11 --includes)  cpp_code/bindings.cpp cpp_code/attacks.cpp -o python_code/game_engine$$(python3 -m pybind11 --extension-suffix)

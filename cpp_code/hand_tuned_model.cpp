@@ -74,6 +74,10 @@ struct GameStateNode1 {
             0.5*(float)BoardState::doubled_pawn_score(&board) +
             0.1*(float)(mobility_score - BoardState::enemy_mobility_score(&board));
     }
+
+    static void make_move(GameStateNode1* self, U32 move) {
+        *self = GameStateNode1(&self->board, move);
+    }
 };
 
 struct minimax_result1 {
@@ -174,6 +178,16 @@ minimax_result1 minimax1_omp(GameStateNode1* root, int depth) {
     return best;
 }
 
+GameStateNode1 choose_node(GameStateNode1* root, int depth) {
+    minimax_result1 r = minimax1_omp(root, depth);
+    return r.node;
+}
+
+U32 choose_move(GameStateNode1* root, int depth) {
+    minimax_result1 r = minimax1_omp(root, depth);
+    return r.node.prev_move;
+}
+
 /*/////////////////////////////////////////////////////////////////////////////
                           Section: Unit tests
 /*/////////////////////////////////////////////////////////////////////////////
@@ -262,9 +276,9 @@ void test_minimax1_omp_checkmates() {
 
 int main() {
     init_engine();
-    std::cout << "starting hand_tuned_model.cpp\n";
+    // std::cout << "starting hand_tuned_model.cpp\n";
 
-    test_minimax1_omp_timings();
+    // test_minimax1_omp_timings();
     // test_minimax1_omp_checkmates();
 
     // DEBUG 2

@@ -1,4 +1,4 @@
-#include "engine.cpp"
+#include "hand_tuned_model.cpp"
 #include <pybind11/pybind11.h>
 #include <pybind11/numpy.h>
 namespace py = pybind11;
@@ -246,6 +246,15 @@ PYBIND11_MODULE(game_engine, m, py::mod_gil_not_used()) {
     m.def("get_move_source_sq", &get_move_source_sq, "get the source square of a U32 move");
     m.def("get_move_target_sq", &get_move_target_sq, "get the target square of a U32 move");
     m.def("get_move_promotion_piece_type", &get_move_promotion_piece_type, "get the promotion_piece_type of a U32 move");
+
+    py::class_<GameStateNode1>(m, "GameStateNode1")
+        .def(py::init<>())
+        .def("choose_node", &choose_node, "choose next GameStateNode1 using minimax_omp")
+        .def("choose_move", &choose_move, "choose next U32 move using minimax_omp")
+        .def("make_move", &GameStateNode1::make_move, "make U32 move")
+        .def_readonly("board", &GameStateNode1::board)
+        .def_readonly("prev_move", &GameStateNode1::prev_move)
+        .def("__repr__", [](const GameStateNode1 &a){ return "<GameStateNode1 object>"; } );
 
     py::class_<BoardState>(m, "BoardState")
         .def(py::init<>())

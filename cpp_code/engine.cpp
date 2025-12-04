@@ -639,6 +639,7 @@ struct BoardState {
     }
 
     static int get_state(BoardState* board) {
+        BoardState::generate_l_moves(board);
         assert(board->l.generated);
         return board->state;
     }
