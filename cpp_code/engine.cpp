@@ -1608,8 +1608,8 @@ void init_engine() {
 #ifndef OVERRIDE_ENGINE_CPP_MAIN 
 int main() {
     init_engine();
-    // unit_tests();
-    perft_suite(false);
+    unit_tests();
+    // perft_suite(false);
 
     // perft_suite(false);
 

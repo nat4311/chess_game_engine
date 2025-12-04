@@ -105,6 +105,50 @@ def generate_fen(board):
     
     return fen
 
+
+def get_stockfish_move1(stockfish, game_state_node1):
+    """
+    stockfish elo should already be set
+    for use with hand_tuned_model.cpp GameStateNode1 class
+    returns a U32_move
+    """
+    board = game_state_node1.board
+    fen = generate_fen(board)
+    if not stockfish.is_fen_valid(fen):
+        board.print()
+        print(fen)
+        raise Exception("fen was invalid")
+    else:
+        stockfish.set_fen_position(fen)
+
+    stockfish_move = stockfish.get_best_move()
+    source_sq_str = stockfish_move[:2]
+    source_sq = sq_ints[source_sq_str]
+    target_sq_str = stockfish_move[2:4]
+    target_sq = sq_ints[target_sq_str]
+    if len(stockfish_move) > 4:
+        promotion_piece_str = stockfish_move[4]
+    else:
+        promotion_piece_str = None
+
+    for move in board.get_l_move_list():
+        a = game_engine.get_move_source_sq(move)
+        b = game_engine.get_move_target_sq(move)
+        if a == source_sq and b == target_sq:
+            if promotion_piece_str is None:
+                # print(stockfish_move, a, b)
+                return move
+            else:
+                c = game_engine.get_move_promotion_piece_type(move)
+                promotion_piece = get_promotion_piece_int(promotion_piece_str, board.turn)
+                if c == promotion_piece:
+                    # print(stockfish_move, a, b, c)
+                    return move
+
+    board.print()
+    print(f"{stockfish_move = }")
+    raise Exception("unable to find move")
+
 def get_stockfish_move(stockfish, game_state_node):
     """
     stockfish elo should already be set
