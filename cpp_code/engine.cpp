@@ -1608,50 +1608,8 @@ void init_engine() {
 #ifndef OVERRIDE_ENGINE_CPP_MAIN 
 int main() {
     init_engine();
-    unit_tests();
-
-
-    // const char* fen = "rnb1qbnr/ppp1Pkp1/8/5p1p/7P/8/PPPP1PP1/RNBQKBNR w KQ - 1 6\n";
-    // U32 move = 1141899596;
-    // BoardState board;
-    // BoardState::load(&board, fen);
-    // std::cout << "before\n";
-    // BoardState::print(&board);
-    // bool b = BoardState::make(&board, move, true);
-    // std::cout << "b: " << b << "\n";
-    // std::cout << "after\n";
-    // BoardState::print(&board);
-
-    //
-    // const char* fen = "rnb1qbnr/ppp1Pkp1/8/5p1p/7P/8/PPPP1PP1/RNBQKBNR w KQ - 1 6\n";
-    // BoardState board;
-    // BoardState::load(&board, fen);
-    // BoardState::print(&board);
-    //
-    // BoardState::generate_l_moves(&board);
-    // U32 move = board.l.move_list[0]; 
-    // print_move(move, false);
-    // assert(BoardState::make(&board, move, true));
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    // for (int i = 0; i<board.l.moves_found; i++) {
-    //     U32 move = board.l.move_list[i]; 
-    //     print_move(move, false);
-    //     assert(BoardState::make(&board, move, true));
-    // }
+    // unit_tests();
+    perft_suite(false);
 
     // perft_suite(false);
 
