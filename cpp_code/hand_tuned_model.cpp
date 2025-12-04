@@ -14,12 +14,9 @@ float inf = std::numeric_limits<double>::infinity();
 struct GameStateNode1 {
     U32 prev_move;
     BoardState board;
-    // TODO: remove prev_node pointer
-    GameStateNode1* prev_node;
 
-    GameStateNode1(BoardState* prev_board = NULL, U32 prev_move = 0, const char* fen="", GameStateNode1* prev_node = NULL) {
+    GameStateNode1(BoardState* prev_board = NULL, U32 prev_move = 0, const char* fen="") {
         this->prev_move = prev_move;
-        this->prev_node = prev_node;
         if (prev_board == NULL) {
             board = BoardState();
             if (fen[0] != '\0') {
@@ -29,10 +26,6 @@ struct GameStateNode1 {
         else {
             board = BoardState::copy(prev_board);
             // TODO: remove this debug stuff
-            // if (prev_move == 91851) {
-            //     std::cout << "found it\n";
-            //     throw(1);
-            // }
             if (!BoardState::make(&board, prev_move)) {
                 std::cout << "new GameStateNode1 failed to create: make(prev_move) failed";
 
@@ -42,39 +35,14 @@ struct GameStateNode1 {
                 std::cout << "occupancies both\n";
                 print_bitboard(prev_board->occupancies[BOTH]);
 
-                // std::cout << "occupancies white\n";
-                // print_bitboard(prev_board->occupancies[WHITE]);
-                //
-                // std::cout << "occupancies black\n";
-                // print_bitboard(prev_board->occupancies[BLACK]);
+                std::cout << "occupancies white\n";
+                print_bitboard(prev_board->occupancies[WHITE]);
+
+                std::cout << "occupancies black\n";
+                print_bitboard(prev_board->occupancies[BLACK]);
 
                 std::cout << "prev_move:\n";
                 print_move(prev_move, true);
-
-                GameStateNode1* node = this->prev_node;
-                while (1) {
-                    std::cout << "--------------------------------------------------\n";
-
-                    std::cout << "board:\n";
-                    BoardState::print(&node->board);
-
-                    std::cout << "occupancies both\n";
-                    print_bitboard(node->board.occupancies[BOTH]);
-
-                    // std::cout << "occupancies white\n";
-                    // print_bitboard(node->board.occupancies[WHITE]);
-                    //
-                    // std::cout << "occupancies black\n";
-                    // print_bitboard(node->board.occupancies[BLACK]);
-
-                    std::cout << "prev_move:\n";
-                    print_move(node->prev_move, true);
-
-                    node = node->prev_node;
-                    if (node == NULL) {
-                        break;
-                    }
-                }
 
                 throw(1);
             }
@@ -125,7 +93,7 @@ minimax_result1 _minimax1(GameStateNode1* node, int depth, bool maximizing_playe
     if (maximizing_player) {
         best_result.eval = -inf;
         for (int i = 0; i < node->board.l.moves_found; i++) {
-            GameStateNode1 child = GameStateNode1(&node->board, node->board.l.move_list[i], "", node);
+            GameStateNode1 child = GameStateNode1(&node->board, node->board.l.move_list[i], "");
             auto res = _minimax1(&child, depth-1, false, alpha, beta);
             if (res.eval > best_result.eval) {
                 best_result.eval = res.eval;
@@ -144,7 +112,7 @@ minimax_result1 _minimax1(GameStateNode1* node, int depth, bool maximizing_playe
     else {
         best_result.eval = inf;
         for (int i = 0; i < node->board.l.moves_found; i++) {
-            GameStateNode1 child = GameStateNode1(&node->board, node->board.l.move_list[i], "", node);
+            GameStateNode1 child = GameStateNode1(&node->board, node->board.l.move_list[i], "");
             auto res = _minimax1(&child, depth-1, true, alpha, beta);
             if (res.eval < best_result.eval) {
                 best_result.eval = res.eval;
@@ -176,7 +144,7 @@ minimax_result1 minimax1_omp(GameStateNode1* root, int depth) {
     #pragma omp parallel for num_threads(16) schedule(dynamic)
     for (int i = 0; i < n; i++) {
         U32 move = root->board.l.move_list[i];
-        GameStateNode1 child = GameStateNode1(&root->board, move, "", root);
+        GameStateNode1 child = GameStateNode1(&root->board, move, "");
         // store result in array
         minimax_result1 child_result = minimax1(&child, depth-1);
         results[i].node = child;
