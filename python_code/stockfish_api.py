@@ -190,7 +190,6 @@ def get_stockfish_move(stockfish, game_state_node):
     returns a U32_move
     """
     board = game_state_node.board
-    moves = game_state_node.moves
     fen = generate_fen(board)
     if not stockfish.is_fen_valid(fen):
         board.print()
@@ -199,7 +198,7 @@ def get_stockfish_move(stockfish, game_state_node):
     else:
         stockfish.set_fen_position(fen)
 
-    stockfish_move = stockfish.get_best_move()
+    stockfish_move = stockfish.get_best_move_time(3000)
     source_sq_str = stockfish_move[:2]
     source_sq = sq_ints[source_sq_str]
     target_sq_str = stockfish_move[2:4]
@@ -209,7 +208,7 @@ def get_stockfish_move(stockfish, game_state_node):
     else:
         promotion_piece_str = None
 
-    for move in moves.get_pl_move_list(board):
+    for move in board.get_pl_move_list():
         a = game_engine.get_move_source_sq(move)
         b = game_engine.get_move_target_sq(move)
         if a == source_sq and b == target_sq:

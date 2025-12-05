@@ -312,7 +312,7 @@ def test_minimax1_timings():
 
     for i in range(1,9):
         f = lambda: game.minimax(i)
-        t = timeit.timeit(f, number=1)
+        t = timeit.timeit(f, number=10)
         print(f"depth {i}, time = {t}")
 
 # game = GameStateNode1(fen="7k/bpp3pp/3pq1pp/8/8/5P2/PPPPQPPP/RNB1KBNR w KQ - 0 1\n")

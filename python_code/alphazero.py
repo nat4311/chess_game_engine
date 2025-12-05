@@ -243,7 +243,6 @@ class GameStateNode:
         self.parent = parent
         self.children = dict() # indexed by (73, 8, 8) move
         self.prev_move = prev_move
-        self.moves = game_engine.MoveGenerator()
         self.prior = 0
         self.value_sum = 0
         self.n_visits = 0
@@ -267,7 +266,7 @@ class GameStateNode:
             self.state = DRAW
             return
 
-        for U32_move in self.moves.get_pl_move_list(self.board):
+        for U32_move in self.board.get_pl_move_list():
             new_board = self.board.copy()
             if new_board.make(U32_move):
                 policy_move = get_policy_move(U32_move)

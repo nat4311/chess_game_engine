@@ -196,10 +196,12 @@ void test_minimax1_timings(int max_depth = 8) {
     GameStateNode1 game;
 
     for (int i = 1; i<=max_depth; i++) {
-        auto t0 = timestamp();
-        minimax1(&game, i);
-        auto t1 = timestamp();
-        std::cout << "depth " << i << ", time = " << delta_timestamp_us(t0,t1)/1000000.0 << " s\n";
+        for (int j = 1; j<=10; j++) {
+            auto t0 = timestamp();
+            minimax1(&game, i);
+            auto t1 = timestamp();
+            std::cout << "depth " << i << ", time = " << delta_timestamp_us(t0,t1)/1000000.0 << " s\n";
+        }
     }
 }
 
@@ -232,11 +234,13 @@ void test_minimax1_checkmates() {
 void test_minimax1_omp_timings(int max_depth = 12) {
     GameStateNode1 game;
 
-    for (int i = 10; i<=max_depth; i++) {
-        auto t0 = timestamp();
-        minimax1_omp(&game, i);
-        auto t1 = timestamp();
-        std::cout << "depth " << i << ", time = " << delta_timestamp_us(t0,t1)/1000000.0 << " s\n";
+    for (int i = 1; i<=max_depth; i++) {
+        for (int j = 1; j<=10; j++) {
+            auto t0 = timestamp();
+            minimax1_omp(&game, i);
+            auto t1 = timestamp();
+            std::cout << "depth " << i << ", time = " << delta_timestamp_us(t0,t1)/1000000.0 << " s\n";
+        }
     }
 }
 

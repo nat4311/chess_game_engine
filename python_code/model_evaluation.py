@@ -23,72 +23,25 @@ from constants import WHITE, BLACK, WHITE_WIN, BLACK_WIN, DRAW, NOTOVER
 from stockfish_api import get_stockfish_move, get_stockfish_move1, get_human_move
 
 """#############################################################
-                   Section: elo_records
+                   Section: elo_calculation
 #############################################################"""
-
-elo_records_savefile = "elo_records.pickle"
-elo_records_dict = dict()
-
-def load_elo_records():
-    global elo_records_dict
-    set_saved_objects_directory()
-    print("Loading model_evaluation objects...")
-
-    if os.path.exists(elo_records_savefile):
-        with open(elo_records_savefile, 'rb') as f:
-            elo_records_dict = pickle.load(f)
-            print(f"    {elo_records_savefile} loaded")
-    else:
-        print(f" X  {elo_records_savefile} not found")
-
-def save_elo_records():
-    set_saved_objects_directory()
-    print("Saving model_evaluation objects...")
-
-    with open(elo_records_savefile, 'wb') as f:
-        pickle.dump(elo_records_dict, f)
-        print(f"    {elo_records_savefile} saved")
-
-    print()
-
-load_elo_records()
-model_list = [
-    "test",
-    "alphazero",
-    "alphazero2",
-    "hand_tuned_model",
-]
-for model_str in model_list:
-    if f"{model_str}_elo" not in elo_records_dict.keys():
-        print(f"adding {model_str} to elo_records")
-        elo_records_dict[f"{model_str}_elo"] = 400
-        elo_records_dict[f"{model_str}_elo_history"] = [] # list of tuples -> (epoch_time, elo)
 
 def calculate_new_elo(old_elo, opponent_elo, score, min_elo=100):
     E = 1/(1+10**((opponent_elo-old_elo)/400))
     return max(old_elo + 20*(score-E), min_elo)
-
-def record_new_elo(model_str, opponent_elo, score):
-    old_elo = elo_records_dict[f"{model_str}_elo"]
-    new_elo = calculate_new_elo(old_elo, opponent_elo, score)
-    epoch_time = time.time()
-    elo_records_dict[f"{model_str}_elo"] = new_elo
-    elo_records_dict[f"{model_str}_elo_history"].append((epoch_time, new_elo))
-    save_elo_records()
 
 """#############################################################
                Section: evaluate against stockfish
 #############################################################"""
 
 # @profile
-def alphazero_play_stockfish(info_str = None, min_stockfish_elo = 400, printing=False):
+def alphazero_play_stockfish(model_elo = 1200, info_str = None, min_stockfish_elo = 400, printing=False):
     """
     for evaluation purposes
     """
     stockfish = Stockfish("/usr/games/stockfish")
     load_alphazero_objects()
     
-    model_elo = elo_records_dict["alphazero_elo"]
     stockfish_elo = round(model_elo) + random.randint(-80,80)
     stockfish_elo = max(stockfish_elo, min_stockfish_elo)
     stockfish.set_elo_rating(stockfish_elo)
@@ -138,18 +91,17 @@ def alphazero_play_stockfish(info_str = None, min_stockfish_elo = 400, printing=
         else:
             model_turn = not model_turn
 
-    record_new_elo("alphazero", stockfish_elo, score)
+    new_model_elo = calculate_new_elo(model_elo, stockfish_elo, score)
 
-    return score
+    return score, new_model_elo
 
-def alphazero2_play_stockfish(info_str = None, min_stockfish_elo = 400, printing=False):
+def alphazero2_play_stockfish(model_elo=1200, info_str = None, min_stockfish_elo = 400, printing=False):
     """
     for evaluation purposes
     """
     stockfish = Stockfish("/usr/games/stockfish")
     load_alphazero2_objects()
     
-    model_elo = elo_records_dict["alphazero2_elo"]
     stockfish_elo = round(model_elo) + random.randint(-80,80)
     stockfish_elo = max(stockfish_elo, min_stockfish_elo)
     stockfish.set_elo_rating(stockfish_elo)
@@ -199,22 +151,19 @@ def alphazero2_play_stockfish(info_str = None, min_stockfish_elo = 400, printing
         else:
             model_turn = not model_turn
 
-    record_new_elo("alphazero2", stockfish_elo, score)
+    new_model_elo = calculate_new_elo(model_elo, stockfish_elo, score)
 
-    return score
+    return score, new_model_elo
 
-def hand_tuned_model_play_stockfish(info_str = None, minmax_search_depth = 7, min_stockfish_elo = 400, printing=False):
+def hand_tuned_model_play_stockfish(model_elo = 1200, info_str = None, minmax_search_depth = 7, min_stockfish_elo = 400, printing=False):
     """
     for evaluation purposes
     """
     stockfish = Stockfish("/usr/games/stockfish")
 
-    model_elo = elo_records_dict["hand_tuned_model_elo"]
-    # stockfish_elo = round(model_elo) + random.randint(-1000,-500)
-    # stockfish_elo = max(stockfish_elo, min_stockfish_elo)
-    stockfish_elo = 500
+    stockfish_elo = round(model_elo) + random.randint(-80,80)
+    stockfish_elo = max(stockfish_elo, min_stockfish_elo)
     stockfish.set_elo_rating(stockfish_elo)
-    # stockfish.set_depth(15)
 
     curr_node = game_engine.GameStateNode1()
     model_turn = random.random() > .5
@@ -261,9 +210,9 @@ def hand_tuned_model_play_stockfish(info_str = None, minmax_search_depth = 7, mi
         else:
             model_turn = not model_turn
 
-    record_new_elo("hand_tuned_model", stockfish_elo, score)
+    new_model_elo = calculate_new_elo(model_elo, stockfish_elo, score)
 
-    return score
+    return score, new_model_elo
 
 def human_play_hand_model(printing=True):
     """
@@ -318,21 +267,20 @@ def human_play_hand_model(printing=True):
 
 def main():
     n = 0
+    model_elo = 1200
     while True:
         if n%10 == 9:
             os.system("clear")
 
-        # info_str = f"alphazero_elo = {round(elo_records_dict["alphazero_elo"])}"
-        # score = alphazero_play_stockfish(info_str=info_str, printing=True)
+        info_str = f"model_elo = {round(model_elo)}"
+        score = alphazero_play_stockfish(info_str=info_str, printing=True)
 
-        # info_str = f"alphazero2_elo = {round(elo_records_dict["alphazero2_elo"])}"
+        # info_str = f"model_elo = {round(model_elo)}"
         # score = alphazero2_play_stockfish(info_str=info_str, printing=True)
 
-        info_str = f"hand_tuned_model_elo = {round(elo_records_dict["hand_tuned_model_elo"])}"
-        score = hand_tuned_model_play_stockfish(info_str=info_str, printing=True)
+        # info_str = f"model_elo = {round(model_elo)}"
+        # score, model_elo = hand_tuned_model_play_stockfish(model_elo, info_str=info_str, printing=True)
 
 if __name__ == "__main__":
-    # main()
-    info_str = ""
-    # score = hand_tuned_model_play_stockfish(info_str=info_str, printing=True)
-    human_play_hand_model()
+    main()
+    # human_play_hand_model()
