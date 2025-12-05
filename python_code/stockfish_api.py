@@ -105,6 +105,40 @@ def generate_fen(board):
     
     return fen
 
+def get_human_move(game_state_node1):
+    """
+    for use with hand_tuned_model.cpp GameStateNode1 class
+    returns a U32_move
+    """
+    board = game_state_node1.board
+
+    human_move = input("input a move: ")
+    source_sq_str = human_move[:2]
+    source_sq = sq_ints[source_sq_str]
+    target_sq_str = human_move[2:4]
+    target_sq = sq_ints[target_sq_str]
+    if len(human_move) > 4:
+        promotion_piece_str = human_move[4]
+    else:
+        promotion_piece_str = None
+
+    for move in board.get_l_move_list():
+        a = game_engine.get_move_source_sq(move)
+        b = game_engine.get_move_target_sq(move)
+        if a == source_sq and b == target_sq:
+            if promotion_piece_str is None:
+                # print(stockfish_move, a, b)
+                return move
+            else:
+                c = game_engine.get_move_promotion_piece_type(move)
+                promotion_piece = get_promotion_piece_int(promotion_piece_str, board.turn)
+                if c == promotion_piece:
+                    # print(stockfish_move, a, b, c)
+                    return move
+
+    board.print()
+    print(f"invalid move: {human_move}")
+    return get_human_move(game_state_node1)
 
 def get_stockfish_move1(stockfish, game_state_node1):
     """
@@ -121,7 +155,7 @@ def get_stockfish_move1(stockfish, game_state_node1):
     else:
         stockfish.set_fen_position(fen)
 
-    stockfish_move = stockfish.get_best_move()
+    stockfish_move = stockfish.get_best_move_time(3000)
     source_sq_str = stockfish_move[:2]
     source_sq = sq_ints[source_sq_str]
     target_sq_str = stockfish_move[2:4]

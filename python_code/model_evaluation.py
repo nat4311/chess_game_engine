@@ -20,7 +20,7 @@ from alphazero2 import load_objects as load_alphazero2_objects
 
 import game_engine
 from constants import WHITE, BLACK, WHITE_WIN, BLACK_WIN, DRAW, NOTOVER
-from stockfish_api import get_stockfish_move, get_stockfish_move1
+from stockfish_api import get_stockfish_move, get_stockfish_move1, get_human_move
 
 """#############################################################
                    Section: elo_records
@@ -210,9 +210,11 @@ def hand_tuned_model_play_stockfish(info_str = None, minmax_search_depth = 7, mi
     stockfish = Stockfish("/usr/games/stockfish")
 
     model_elo = elo_records_dict["hand_tuned_model_elo"]
-    stockfish_elo = round(model_elo) + random.randint(200,300)
-    stockfish_elo = max(stockfish_elo, min_stockfish_elo)
+    # stockfish_elo = round(model_elo) + random.randint(-1000,-500)
+    # stockfish_elo = max(stockfish_elo, min_stockfish_elo)
+    stockfish_elo = 500
     stockfish.set_elo_rating(stockfish_elo)
+    # stockfish.set_depth(15)
 
     curr_node = game_engine.GameStateNode1()
     model_turn = random.random() > .5
@@ -263,6 +265,53 @@ def hand_tuned_model_play_stockfish(info_str = None, minmax_search_depth = 7, mi
 
     return score
 
+def human_play_hand_model(printing=True):
+    """
+    for evaluation purposes
+    """
+
+    curr_node = game_engine.GameStateNode1()
+    model_turn = random.random() > .5
+    if model_turn:
+        side_str = "hand_tuned white, human black"
+    else:
+        side_str = "hand_tuned black, human white"
+    while True:
+        if model_turn:
+            curr_node = curr_node.choose_node(7)
+        else:
+            U32_move = get_human_move(curr_node)
+            for move in curr_node.board.get_l_move_list():
+                if move == U32_move:
+                    curr_node.make_move(move)
+                    break
+        if printing:
+            print("------------------------------------")
+            curr_node.board.print()
+            print("\n\n")
+            print(side_str)
+
+        if curr_node.board.get_state() in (WHITE_WIN, BLACK_WIN):
+            if printing:
+                print("------------------------------------")
+                if curr_node.board.get_state() == WHITE_WIN:
+                    print("game over: white win")
+                else:
+                    print("game over: black win")
+                curr_node.board.print()
+            if model_turn:
+                score = 1
+                break
+            else:
+                score = 0
+                break
+        elif curr_node.board.get_state() == DRAW:
+            print("game over: draw")
+            score = .5
+            break
+        else:
+            model_turn = not model_turn
+
 """#############################################################
                        Section: main
 #############################################################"""
@@ -283,4 +332,7 @@ def main():
         score = hand_tuned_model_play_stockfish(info_str=info_str, printing=True)
 
 if __name__ == "__main__":
-    main()
+    # main()
+    info_str = ""
+    # score = hand_tuned_model_play_stockfish(info_str=info_str, printing=True)
+    human_play_hand_model()
